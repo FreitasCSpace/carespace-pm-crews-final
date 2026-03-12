@@ -1,0 +1,17 @@
+[project]
+name = "sprint-planning-crew"
+version = "0.1.0"
+description = "Plans bi-weekly sprints by scoring backlog items, filling to 80% velocity, and posting plans to Slack."
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai>=1.0.0",
+    "crewai-tools>=0.14.0",
+    "requests>=2.31.0",
+    "PyGithub>=2.3.0",
+]
+
+[project.scripts]
+run_crew = "sprint_planning_crew.main:run"
+
+[tool.crewai]
+type = "crew"

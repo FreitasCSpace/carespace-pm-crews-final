@@ -1,0 +1,17 @@
+[project]
+name = "pr-radar-crew"
+version = "0.1.0"
+description = "Monitors GitHub PRs and CI pipelines across carespace-ai org. Flags stale PRs, detects CI failures on main, creates tracking tasks, and escalates critical debt."
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai>=1.0.0",
+    "crewai-tools>=0.14.0",
+    "requests>=2.31.0",
+    "PyGithub>=2.3.0",
+]
+
+[project.scripts]
+run_crew = "pr_radar_crew.main:run"
+
+[tool.crewai]
+type = "crew"

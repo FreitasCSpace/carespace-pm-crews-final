@@ -1,0 +1,52 @@
+create_sprint_list_task:
+  description: >
+    Create a new sprint list in ClickUp using create_sprint_list. Name it
+    'Sprint {sprint_number} -- {start_date} to {end_date}' with end date
+    {end_date_iso}. Return the new list_id for subsequent tasks.
+  expected_output: >
+    JSON with the new sprint list_id and name.
+  agent: sprint_planner_agent
+
+score_and_select_task:
+  description: >
+    Read the Master Backlog from ClickUp using get_tasks. Score every item using
+    the formula: priority_weight x security_multi x blocker_multi x
+    compliance_multi + age_bonus. Factor in human_priorities: {human_priorities}.
+    Select tasks that fit within the story point budget of {target_sp} SP (80% of
+    velocity). Also scan GitHub for stale PRs >7d using get_stale_prs and add
+    'Review: [PR]' tasks (2SP each). Check CI status on main branches using get_ci
+    and add 'Fix CI: [repo]' tasks (3SP each) for failures. If any task has no
+    story points, estimate by type (bug=3, feature=5, tech_debt=3, task=2,
+    security=5). Return the ranked, selected task list with scores and SP.
+  expected_output: >
+    JSON array of selected tasks with: task_id, name, score, story_points,
+    priority, type, source (backlog/github_pr/github_ci). Total SP must not
+    exceed {target_sp}.
+  agent: sprint_planner_agent
+  context:
+    - create_sprint_list_task
+
+populate_sprint_task:
+  description: >
+    Move all selected tasks from the Master Backlog into the new sprint list using
+    move_task. For newly created GitHub-sourced tasks (stale PRs, CI failures),
+    use create_task to create them directly in the sprint list. Update each task
+    with story points if missing using update_task. Add a comment to each task
+    explaining why it was selected for this sprint using add_comment.
+  expected_output: >
+    JSON summary: {moved: N, created: N, total_sp: N, sprint_list_id: str}
+  agent: sprint_planner_agent
+  context:
+    - score_and_select_task
+
+post_and_log_task:
+  description: >
+    Post the sprint plan to Slack using post_sprint_plan with the sprint name,
+    task list, and total SP. Also post a brief summary to #engineering using post.
+    Log the automation run using log_run with crew name 'sprint_planning_crew',
+    the action taken, and the result summary.
+  expected_output: >
+    Confirmation that sprint plan was posted to Slack and run was logged.
+  agent: sprint_planner_agent
+  context:
+    - populate_sprint_task

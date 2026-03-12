@@ -1,0 +1,17 @@
+[project]
+name = "intake-crew"
+version = "0.1.0"
+description = "Monitors carespace-ai GitHub repos for open issues and PRs, classifies them, and routes to ClickUp."
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai>=1.0.0",
+    "crewai-tools>=0.14.0",
+    "requests>=2.31.0",
+    "PyGithub>=2.3.0",
+]
+
+[project.scripts]
+run_crew = "intake_crew.main:run"
+
+[tool.crewai]
+type = "crew"

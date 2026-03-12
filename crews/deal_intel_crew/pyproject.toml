@@ -1,0 +1,17 @@
+[project]
+name = "deal-intel-crew"
+version = "0.1.0"
+description = "Monitors the CareSpace sales pipeline across all 9 verticals. Identifies at-risk deals, coverage gaps, and top opportunities. Posts weekly GTM intelligence."
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai>=1.0.0",
+    "crewai-tools>=0.14.0",
+    "requests>=2.31.0",
+    "PyGithub>=2.3.0",
+]
+
+[project.scripts]
+run_crew = "deal_intel_crew.main:run"
+
+[tool.crewai]
+type = "crew"

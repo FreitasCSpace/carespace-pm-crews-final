@@ -1,0 +1,16 @@
+[project]
+name = "compliance-crew"
+version = "0.1.0"
+description = "Pulls live compliance data from Vanta daily, creates ClickUp remediation tasks for every finding, and alerts on critical issues."
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai>=1.0.0",
+    "crewai-tools>=0.14.0",
+    "requests>=2.31.0",
+]
+
+[project.scripts]
+run_crew = "compliance_crew.main:run"
+
+[tool.crewai]
+type = "crew"

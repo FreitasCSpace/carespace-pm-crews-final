@@ -1,0 +1,49 @@
+scan:
+  description: >
+    Scan all active lists for blockers and dependency chains.
+
+    Blocker Detection - scan using get_tasks_multi across all active lists.
+    Identify tasks matching ANY of these signals:
+
+    1) Status is 'blocked' - explicit blocker status set by team members.
+
+    2) Status is 'in progress' but no update in 3+ days - use get_stale with
+    3-day threshold. These are silently stuck tasks that nobody is talking about.
+
+    3) Description or comments contain blocker keywords: 'waiting on',
+    'blocked by', 'depends on', 'need from', 'pending'. Parse the text to
+    identify what they are waiting on.
+
+    4) Tasks in any Alerts list that have been sitting >24 hours without
+    resolution. These are already-flagged issues being ignored.
+
+    Dependency Chain Building - for each blocker found, trace its impact:
+    - What task is blocked?
+    - What does THAT task feed into? (sprint milestone, client launch,
+      compliance deadline, deal close date)
+    - Build the full chain: "[Task A] blocks [Task B] -> blocking [outcome]"
+    - Calculate days until the downstream deadline
+
+    Business Impact Calculation - for each chain, classify impact:
+    - Sprint milestone: "Sprint N delivery at risk, M story points blocked"
+    - Client launch: "Client [name] launch date [date] at risk"
+    - Compliance deadline: "SOC2/HIPAA deadline at risk, audit in N days"
+    - Deal: "Deal [name] worth $X at risk, close date [date]"
+    - Assign severity: CRITICAL (deadline <3d), HIGH (deadline <7d),
+      MEDIUM (deadline <14d), LOW (>14d)
+
+    Escalation - for each blocker chain:
+    - Create an alert using create_alert with the full chain description
+      and business impact
+    - Add a comment to the blocking task with the chain analysis using
+      add_comment
+    - Post to #alerts using post_blocker with chain, impact, and
+      recommended action
+    - For CRITICAL chains, also post to #engineering or #exec-updates
+      as appropriate
+
+    Log the automation run using log_run with crew name 'blocker_radar_crew'.
+  expected_output: >
+    JSON: {blockers: N, chains: [{chain, business_impact}],
+    alerts_created: N}
+  agent: blocker_radar_agent

@@ -1,0 +1,81 @@
+gather:
+  description: >
+    Gather cross-workspace health data from all sources.
+
+    Engineering: Use get_tasks_multi to pull current sprint tasks. Calculate
+    sprint completion percentage (done vs total). Use get_velocity to get
+    rolling velocity trends. Use get_stale to find stale engineering tasks
+    that indicate blockers.
+
+    GTM: Use get_tasks to pull Sales Pipeline and Marketing Campaigns lists.
+    Identify deals at risk (no activity >7d, missing next steps, past close
+    date). Count pipeline value at risk.
+
+    Compliance: Call get_health_summary() from Vanta. This is the authoritative
+    compliance source. Extract overall health status, failing controls count,
+    open vulnerabilities, BAA gaps, and overdue access reviews.
+
+    Customer Success: Pull customer success lists. Identify accounts with churn
+    risk signals (health score drop, support escalations, missed QBRs, contract
+    renewal <60d with open issues).
+
+    Bug Health: Pull bug lists. Count urgent/critical bugs, average age,
+    SLA breaches.
+
+    Alerts: Count open alerts across all alert lists. Note unresolved
+    critical alerts.
+
+    Top 3 Risks: Synthesize the above into the top 3 business risks this week,
+    ranked by potential revenue impact.
+
+    Wins: Identify completed milestones, shipped features, closed deals,
+    resolved compliance findings.
+  expected_output: >
+    JSON with sections: {engineering: {completion_pct, velocity_trend,
+    stale_count, health}, gtm: {deals_at_risk, pipeline_value_at_risk,
+    health}, compliance: {vanta_health, failing_controls, vulns, baa_gaps,
+    health}, customer_success: {churn_risk_accounts, health},
+    bugs: {critical_count, avg_age_days, health}, alerts_open: N,
+    top_3_risks: [...], wins: [...]}
+  agent: exec_reporter_agent
+
+write_and_post:
+  description: >
+    Write the weekly executive report and distribute it.
+
+    Write to ClickUp Docs using write_doc_page with title
+    "Weekly Exec Report - [date]". Structure the report as:
+
+    1) Health Dashboard table with 5 dimensions:
+       | Dimension        | Status | Key Metric           | Trend |
+       | Engineering      | GREEN  | 85% sprint complete  | up    |
+       | GTM              | YELLOW | 2 deals at risk      | flat  |
+       | Compliance       | GREEN  | Vanta health: GREEN  | up    |
+       | Customer Success | RED    | 3 churn risk accts   | down  |
+       | Bug Health       | YELLOW | 5 critical bugs      | flat  |
+
+    2) Sprint Status: completion rate, velocity vs target, notable deliveries.
+
+    3) GTM Highlights: pipeline movement, deals closed, deals at risk with
+       specific reasons.
+
+    4) Compliance (from Vanta): overall health, new findings this week,
+       remediation progress, upcoming deadlines.
+
+    5) Top 3 Risks: each with description, business impact, owner,
+       recommended action.
+
+    6) Wins This Week: completed milestones, shipped features, closed deals,
+       resolved findings.
+
+    Post a concise summary to #exec-updates using post_exec. The Slack
+    summary should be the health dashboard table + top 3 risks + wins,
+    formatted for quick scanning.
+
+    Log the automation run using log_run with crew name 'exec_report_crew'.
+  expected_output: >
+    Confirmation that executive report was written to ClickUp Docs and
+    summary posted to #exec-updates.
+  agent: exec_reporter_agent
+  context:
+    - gather

@@ -1,0 +1,33 @@
+triage:
+  description: >
+    Scan all 4 bug lists: Frontend Bugs (901326360436), Backend Bugs
+    (901326360437), Mobile Bugs (901326360441), Security Vulns (901326360443).
+
+    Step 1 - Security reclassification: Any task in Security Vulns that is not
+    marked urgent priority must be reclassified to urgent immediately using
+    update_task. Security vulnerabilities are always P0 with no exceptions.
+
+    Step 2 - SLA breach detection: For every bug across all 4 lists, check the
+    age against SLA thresholds. Urgent: 4 hours. High: 24 hours. Normal: 72
+    hours. Low: 168 hours (7 days). For each breach: create an alert in the
+    Alerts & SLA Watchlist using create_alert with the bug details, SLA
+    threshold, and time overdue. Post to #alerts using post_sla_breach with
+    the bug title, assignee, list, and hours overdue.
+
+    Step 3 - Unassigned bug triage: Use get_unassigned on each list. For each
+    unassigned bug: determine domain from the list it belongs to (frontend,
+    backend, mobile, security). Use get_members and get_workload to find the
+    least-loaded engineer in that domain. Assign the bug using update_task.
+    Set the due date based on its priority SLA. Add a comment explaining the
+    assignment rationale.
+
+    Step 4 - Priority correction: Scan for obvious misclassifications. Bugs
+    mentioning "crash", "data loss", "PHI", "HIPAA", or "security" in the
+    title or description that are not marked urgent or high should be
+    escalated. Use update_task to correct the priority and add_comment
+    explaining the reclassification.
+
+    Log the full run summary using log_run.
+  expected_output: >
+    JSON: {triaged: N, sla_breaches: N, reclassified: N, assigned: N}
+  agent: bug_triage_agent
