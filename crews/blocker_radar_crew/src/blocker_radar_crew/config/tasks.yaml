@@ -2,13 +2,13 @@ scan:
   description: >
     Scan all active lists for blockers and dependency chains.
 
-    Blocker Detection - scan using get_tasks_multi across all active lists.
+    Blocker Detection - scan across all active lists in ClickUp.
     Identify tasks matching ANY of these signals:
 
     1) Status is 'blocked' - explicit blocker status set by team members.
 
-    2) Status is 'in progress' but no update in 3+ days - use get_stale with
-    3-day threshold. These are silently stuck tasks that nobody is talking about.
+    2) Status is 'in progress' but no update in 3+ days - these are silently
+    stuck tasks that nobody is talking about.
 
     3) Description or comments contain blocker keywords: 'waiting on',
     'blocked by', 'depends on', 'need from', 'pending'. Parse the text to
@@ -33,16 +33,12 @@ scan:
       MEDIUM (deadline <14d), LOW (>14d)
 
     Escalation - for each blocker chain:
-    - Create an alert using create_alert with the full chain description
-      and business impact
-    - Add a comment to the blocking task with the chain analysis using
-      add_comment
-    - Post to #alerts using post_blocker with chain, impact, and
-      recommended action
+    - Create an alert task in the Alerts & SLA Watchlist (901326336266)
+      with the full chain description and business impact
+    - Add a comment to the blocking task with the chain analysis
+    - Post to #alerts with chain, impact, and recommended action
     - For CRITICAL chains, also post to #engineering or #exec-updates
       as appropriate
-
-    Log the automation run using log_run with crew name 'blocker_radar_crew'.
   expected_output: >
     JSON: {blockers: N, chains: [{chain, business_impact}],
     alerts_created: N}

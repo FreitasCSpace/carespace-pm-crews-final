@@ -1,14 +1,13 @@
 gather:
   description: >
-    Gather the current engineering status from ClickUp and GitHub. Use get_tasks
-    on sprint list {sprint_list_id} to fetch all tasks. Categorize them into:
+    Gather the current engineering status from ClickUp and GitHub. Pull all tasks
+    from sprint list {sprint_list_id} in ClickUp. Categorize them into:
     Done (status = done/complete/completed/closed), In Progress (status =
     in progress/review), Blocked (status = blocked or has 'blocked' tag).
-    Use get_stale on {sprint_list_id} with days=3 to find silently stale tasks
-    -- those marked In Progress but with no update in 3+ days. Use get_stale_prs
-    to find PRs open >7 days across all repos. Use get_ci on key repos to check
-    for CI failures on main branches. Compile all findings into a structured
-    report object.
+    Find silently stale tasks -- those marked In Progress but with no update in
+    3+ days. Check for PRs open >7 days across all repos. Check CI status on
+    key repos for failures on main branches. Compile all findings into a
+    structured report object.
   expected_output: >
     JSON object with keys: done (array of task summaries), in_progress (array),
     blocked (array with blocker description), stale_tasks (array with stale_days),
@@ -22,12 +21,10 @@ post_and_escalate:
     section in tight mrkdwn bullets. Done items get a checkmark. In Progress
     items show assignee and SP. Blocked items show the blocker reason and owner.
     Stale tasks (3+ days no update while In Progress) get flagged with a warning
-    in the Needs Attention section along with stale PRs and CI failures. Use
-    post_standup to post the formatted standup to #standup. For each blocked
-    task, use post_blocker to send a separate alert to #alerts with the task
-    URL, owner, and business impact. For stale tasks, use add_comment on the
-    ClickUp task to flag it as silently stale. Log the run using log_run with
-    crew name 'standup_crew'.
+    in the Needs Attention section along with stale PRs and CI failures. Post
+    the formatted standup to #standup. For each blocked task, send a separate
+    alert to #alerts with the task URL, owner, and business impact. For stale
+    tasks, add a comment on the ClickUp task to flag it as silently stale.
   expected_output: >
     Confirmation that standup was posted to #standup, N blocker alerts sent to
     #alerts, and N stale task comments added. Include counts: {done: N,

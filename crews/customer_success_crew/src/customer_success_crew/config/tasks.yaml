@@ -2,41 +2,36 @@ monitor:
   description: >
     Monitor all 4 Customer Success lists and take action on each.
 
-    1) Client Onboarding (901326354926): Use get_tasks to pull all tasks from
-    this list. Identify onboardings that are stale for more than 7 days using
-    get_stale -- these are at risk of missing the 30-day SLA. For each at-risk
-    onboarding, use add_comment to post a warning with the number of days
-    elapsed and remaining SLA time. Use get_unassigned to find any onboardings
-    without an owner and flag them with create_alert. Use post_cs_alert to
-    notify #customer-success of at-risk onboardings.
+    1) Client Onboarding (901326354926): Pull all tasks from this list in
+    ClickUp. Identify onboardings that are stale for more than 7 days -- these
+    are at risk of missing the 30-day SLA. For each at-risk onboarding, add a
+    comment noting days elapsed and remaining SLA time. Find any onboardings
+    without an owner and create an alert task in Alerts & SLA Watchlist
+    (901326336266). Post to #customer-success about at-risk onboardings.
 
-    2) Account Health (901326354930): Use get_tasks to pull all account health
-    records. Identify accounts showing churn risk signals: no activity for 14+
+    2) Account Health (901326354930): Pull all account health records from
+    ClickUp. Identify accounts showing churn risk signals: no activity for 14+
     days, more than 3 open support tickets referenced in comments or linked
     tasks, or renewal date less than 60 days away. For each at-risk account,
-    use add_comment to document the risk factors. For accounts with renewal
-    less than 60 days, use create_alert at high priority. Use post_cs_alert
-    to post a churn risk summary.
+    add a comment documenting the risk factors. For accounts with renewal less
+    than 60 days, create an alert task at high priority. Post a churn risk
+    summary to #customer-success.
 
-    3) Support Escalations (901326354933): Use get_tasks and get_unassigned
-    to find unassigned support tickets. For any unassigned ticket, immediately
-    use create_alert flagging it for assignment. Use get_stale with a 1-day
-    threshold to find tickets without a response for more than 24 hours. For
-    each stale ticket, use post_cs_alert to notify #customer-success. For
-    tickets stale more than 2 days (48 hours), use create_alert at urgent
-    priority and use post_cs_alert with an urgent escalation message.
+    3) Support Escalations (901326354933): Find unassigned support tickets in
+    ClickUp. For any unassigned ticket, immediately create an alert task
+    flagging it for assignment. Find tickets without a response for more than
+    24 hours. For each stale ticket, post to #customer-success. For tickets
+    stale more than 2 days (48 hours), create an alert task at urgent priority
+    and post an urgent escalation message to #customer-success.
 
-    4) Client Feedback (901326354935): Use get_tasks to pull all feedback
-    items. For each feedback task that does not already have a linked Master
-    Backlog task (check comments for existing cross-links), use create_task
-    to create a corresponding task in the Master Backlog list. The backlog
-    task title should be "[FEEDBACK] " followed by the feedback summary.
-    Include the original feedback details in the description. Use add_comment
-    on the feedback task with the new backlog task URL, and use add_comment
-    on the backlog task with the original feedback task URL to create a
-    bidirectional cross-link.
-
-    Log the full run summary using log_run.
+    4) Client Feedback (901326354935): Pull all feedback items from ClickUp.
+    For each feedback task that does not already have a linked Master Backlog
+    task (check comments for existing cross-links), create a corresponding
+    task in the Master Backlog list (901326359646). The backlog task title
+    should be "[FEEDBACK] " followed by the feedback summary. Include the
+    original feedback details in the description. Add a comment on the feedback
+    task with the new backlog task URL, and add a comment on the backlog task
+    with the original feedback task URL to create a bidirectional cross-link.
   expected_output: >
     JSON: {onboarding_at_risk: N, churn_risk: N, support_sla_breach: N,
     feedback_logged: N}

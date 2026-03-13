@@ -6,17 +6,8 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_tasks,
-    get_tasks_multi,
-    get_stale,
-    get_unassigned,
-    create_task,
-    update_task,
-    add_comment,
-    create_alert,
     post_cs_alert,
     post,
-    log_run,
 )
 
 
@@ -30,17 +21,8 @@ class CustomerSuccessCrew:
         return Agent(
             config=self.agents_config["customer_success_agent"],
             tools=[
-                get_tasks,
-                get_tasks_multi,
-                get_stale,
-                get_unassigned,
-                create_task,
-                update_task,
-                add_comment,
-                create_alert,
                 post_cs_alert,
                 post,
-                log_run,
             ],
             verbose=True,
             allow_delegation=False,

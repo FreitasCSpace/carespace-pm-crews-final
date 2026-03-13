@@ -6,15 +6,11 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_tasks,
-    get_stale,
     get_stale_prs,
     get_ci,
     post_standup,
     post_blocker,
     post,
-    add_comment,
-    log_run,
 )
 
 
@@ -28,15 +24,11 @@ class StandupCrewCrew:
         return Agent(
             config=self.agents_config["standup_agent"],
             tools=[
-                get_tasks,
-                get_stale,
                 get_stale_prs,
                 get_ci,
                 post_standup,
                 post_blocker,
                 post,
-                add_comment,
-                log_run,
             ],
             verbose=True,
             allow_delegation=False,

@@ -10,13 +10,8 @@ from shared.tools import (
     get_ci,
     get_stale_prs,
     get_contributors,
-    get_tasks,
-    create_task,
-    create_alert,
-    add_comment,
     post_blocker,
     post,
-    log_run,
 )
 
 
@@ -34,13 +29,8 @@ class PrRadarCrew:
                 get_ci,
                 get_stale_prs,
                 get_contributors,
-                get_tasks,
-                create_task,
-                create_alert,
-                add_comment,
                 post_blocker,
                 post,
-                log_run,
             ],
             verbose=True,
             allow_delegation=False,

@@ -7,31 +7,31 @@ vanta_sweep:
 
     Step 2: SOC 2 failing controls - call get_controls(framework='soc2') and
     filter for failing. For each failing control, check if a remediation task
-    already exists in list 901326360411 using get_tasks. If not, create_task
-    in list 901326360411 with control name, description, and 7-day due date.
-    Set priority based on control severity.
+    already exists in list 901326360411 by searching ClickUp. If not, create
+    a task in list 901326360411 with control name, description, and 7-day due
+    date. Set priority based on control severity.
 
     Step 3: HIPAA failing controls - call get_controls(framework='hipaa') and
     filter for failing. For each, check for existing task in list 901326360417.
-    If not found, create_task with control details and 5-day due date (HIPAA
+    If not found, create a task with control details and 5-day due date (HIPAA
     is stricter). Post to #compliance for any new HIPAA failures.
 
     Step 4: Failing automated tests - call get_failing_tests(). For each
-    failing test, create_task in list 901326360426 if no duplicate exists.
+    failing test, create a task in list 901326360426 if no duplicate exists.
     Include test name, last pass date, and affected framework.
 
     Step 5: Critical and high vulnerabilities - call get_vulnerabilities() and
-    filter for critical/high severity. Create_task in list 901326360443 for
-    each. Critical vulns get 3-day due date, high get 7-day. If any critical
-    vuln has breached its SLA, create_alert immediately and post to
-    #compliance.
+    filter for critical/high severity. Create a task in Security Vulns list
+    (901326360443) for each. Critical vulns get 3-day due date, high get
+    7-day. If any critical vuln has breached its SLA, create an alert task in
+    Alerts & SLA Watchlist (901326336266) immediately and post to #compliance.
 
     Step 6: BAA gaps - call get_baa_gaps(). These are HIPAA violations.
     Create urgent tasks in list 901326360416 with 2-day due date. Post to
     #compliance immediately for each BAA gap. BAA gaps are always critical.
 
     Step 7: Overdue access reviews - call get_access_reviews() and filter for
-    overdue. Create_task in list 901326360412. Reviews >90 days overdue get
+    overdue. Create a task in list 901326360412. Reviews >90 days overdue get
     critical priority and immediate #compliance alert.
 
     Step 8: People risks - call get_people_risks(). Look for offboarded
@@ -43,15 +43,12 @@ vanta_sweep:
     vendor questionnaires.
 
     Step 10: Overdue policies - call get_policies() and filter for policies
-    past their review date. Create_task in list 901326360413 for each overdue
-    policy with the policy owner as assignee.
+    past their review date. Create a task in list 901326360413 for each
+    overdue policy with the policy owner as assignee.
 
-    Step 11: Write a daily compliance report to ClickUp Docs using
-    write_doc_page. Include: overall health status, counts by category, new
-    tasks created today, critical alerts sent, and a summary table of all
-    open compliance items by framework.
-
-    Log the automation run using log_run with crew name 'compliance_crew'.
+    Step 11: Write a daily compliance report to ClickUp Docs. Include: overall
+    health status, counts by category, new tasks created today, critical alerts
+    sent, and a summary table of all open compliance items by framework.
   expected_output: >
     JSON: {vanta_health: 'GREEN/YELLOW/RED', soc2_failures: N,
     hipaa_failures: N, vulns_critical: N, baa_gaps: N,

@@ -6,15 +6,8 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_tasks,
-    get_tasks_multi,
-    get_stale,
-    create_alert,
-    update_task,
-    add_comment,
     post_blocker,
     post,
-    log_run,
 )
 
 
@@ -28,15 +21,8 @@ class BlockerRadarCrew:
         return Agent(
             config=self.agents_config["blocker_radar_agent"],
             tools=[
-                get_tasks,
-                get_tasks_multi,
-                get_stale,
-                create_alert,
-                update_task,
-                add_comment,
                 post_blocker,
                 post,
-                log_run,
             ],
             verbose=True,
             allow_delegation=False,

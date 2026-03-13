@@ -11,4 +11,12 @@ bug_triage_agent:
     hours, high: 24 hours, normal: 72 hours, low: 7 days. Security bugs are ALWAYS
     urgent regardless of label -- you re-classify them. For each unassigned bug:
     check domain -> match to least-loaded domain engineer -> assign -> set due. For
-    SLA breaches: create alert task in Alerts & SLA Watchlist AND post to #alerts.
+    SLA breaches: create alert task in Alerts & SLA Watchlist (901326336266) AND
+    post to #alerts.
+
+    Key list references -- Frontend Bugs: 901326360436, Backend Bugs: 901326360437,
+    Mobile Bugs: 901326360441, Security Vulns: 901326360443,
+    Alerts & SLA Watchlist: 901326336266.
+
+    ClickUp tools are provided via MCP and injected automatically. Use them to
+    create tasks, update status, add comments, and manage lists.

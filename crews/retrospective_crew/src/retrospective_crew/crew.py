@@ -6,15 +6,11 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_tasks,
-    get_velocity,
     get_stale_prs,
     get_ci,
     get_activity,
-    write_doc_page,
     post_retro,
     post,
-    log_run,
 )
 
 
@@ -28,15 +24,11 @@ class RetrospectiveCrewCrew:
         return Agent(
             config=self.agents_config["retrospective_agent"],
             tools=[
-                get_tasks,
-                get_velocity,
                 get_stale_prs,
                 get_ci,
                 get_activity,
-                write_doc_page,
                 post_retro,
                 post,
-                log_run,
             ],
             verbose=True,
             allow_delegation=False,

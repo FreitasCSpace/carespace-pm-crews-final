@@ -7,8 +7,8 @@ monitor:
     overdue.
 
     2) Marketing Campaigns (901326354910) - find tasks with no assignee or no
-    due date. These are at-risk campaigns. Create an alert for each unassigned
-    or undated campaign.
+    due date. These are at-risk campaigns. Create an alert task for each
+    unassigned or undated campaign in the Alerts & SLA Watchlist (901326336266).
 
     3) Product Launches (901326354911) - find launches with due_date <= 14 days
     from now. For each upcoming launch, auto-create 4 GTM checklist tasks in
@@ -20,10 +20,8 @@ monitor:
     Skip creation if GTM tasks already exist for that launch.
 
     4) Partner Events (901326354916) - find events >30 days out that have no
-    subtasks or comments indicating prep has started. Create an alert for each
-    event with no prep started.
-
-    Log the automation run using log_run with crew name 'marketing_ops_crew'.
+    subtasks or comments indicating prep has started. Create an alert task for
+    each event with no prep started.
   expected_output: >
     JSON: {overdue_content: N, unassigned_campaigns: N, launches_gtm_created: N}
   agent: marketing_ops_agent

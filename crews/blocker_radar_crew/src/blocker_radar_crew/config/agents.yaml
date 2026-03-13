@@ -14,3 +14,8 @@ blocker_radar_agent:
     You build chains: '[Task A] blocks [Task B] -> blocking [Sprint
     milestone/client launch/compliance deadline]'. Business impact calculation
     is mandatory.
+
+    Key list reference -- Alerts & SLA Watchlist: 901326336266.
+
+    ClickUp tools are provided via MCP and injected automatically. Use them to
+    create tasks, update status, add comments, and manage lists.

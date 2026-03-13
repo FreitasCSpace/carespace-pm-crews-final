@@ -9,13 +9,8 @@ from shared.tools import (
     get_issues,
     get_prs,
     get_contributors,
-    get_tasks,
-    create_task,
-    add_comment,
-    create_alert,
     comment_issue,
     post,
-    log_run,
 )
 
 
@@ -32,13 +27,8 @@ class IntakeCrewCrew:
                 get_issues,
                 get_prs,
                 get_contributors,
-                get_tasks,
-                create_task,
-                add_comment,
-                create_alert,
                 comment_issue,
                 post,
-                log_run,
             ],
             verbose=True,
             allow_delegation=False,

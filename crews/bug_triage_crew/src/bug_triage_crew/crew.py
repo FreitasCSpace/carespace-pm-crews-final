@@ -6,18 +6,9 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_tasks,
-    get_unassigned,
-    get_stale,
-    get_workload,
-    get_members,
-    update_task,
-    add_comment,
-    create_alert,
     post_sla_breach,
     post_blocker,
     post,
-    log_run,
 )
 
 
@@ -31,18 +22,9 @@ class BugTriageCrew:
         return Agent(
             config=self.agents_config["bug_triage_agent"],
             tools=[
-                get_tasks,
-                get_unassigned,
-                get_stale,
-                get_workload,
-                get_members,
-                update_task,
-                add_comment,
-                create_alert,
                 post_sla_breach,
                 post_blocker,
                 post,
-                log_run,
             ],
             verbose=True,
             allow_delegation=False,

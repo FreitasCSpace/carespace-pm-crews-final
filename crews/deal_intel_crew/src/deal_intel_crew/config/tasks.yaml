@@ -2,13 +2,13 @@ analyze:
   description: >
     Analyze the entire CareSpace sales pipeline across all 9 verticals.
 
-    Use get_tasks_multi to pull all pipeline tasks from the GTM vertical lists.
+    Pull all pipeline tasks from the GTM vertical lists in ClickUp.
     For each vertical, count the total active deals and identify any that are
     at risk.
 
     At-risk criteria: A deal is at risk if it has had no update for more than
-    7 days (use get_stale), has no assignee, or has no defined next step in
-    its description or custom fields.
+    7 days, has no assignee, or has no defined next step in its description or
+    custom fields.
 
     Coverage gap detection: Any vertical with zero active pipeline deals is a
     coverage gap. Flag these prominently in the report.
@@ -17,24 +17,22 @@ analyze:
     important deals to accelerate based on priority, vertical importance, and
     deal size indicators.
 
-    Orphaned deal handling: For any deal with no assignee, immediately use
-    create_alert to flag it as an orphaned deal requiring assignment. Include
-    the deal name, vertical, and age.
+    Orphaned deal handling: For any deal with no assignee, immediately create
+    an alert task in the Alerts & SLA Watchlist (901326336266) flagging it as
+    an orphaned deal requiring assignment. Include the deal name, vertical,
+    and age.
 
     Echelon tracking: Specifically locate the Echelon deal and report its
     current status, assignee, last update date, and any blockers. Echelon
     should always appear in the final report regardless of its status.
 
-    At-risk deal comments: For each at-risk deal, use add_comment to post a
-    warning comment on the task noting the risk factor (stale, unassigned, or
-    missing next step) and the number of days since last update.
+    At-risk deal comments: For each at-risk deal, add a comment on the task
+    in ClickUp noting the risk factor (stale, unassigned, or missing next
+    step) and the number of days since last update.
 
     GTM intelligence post: Compile the full pipeline health report and post
-    it to #gtm using post_gtm. Include: total deals per vertical, at-risk
-    count, coverage gaps, top 3 to accelerate, Echelon status, and orphaned
-    deal alerts.
-
-    Log the full run summary using log_run.
+    it to #gtm. Include: total deals per vertical, at-risk count, coverage
+    gaps, top 3 to accelerate, Echelon status, and orphaned deal alerts.
   expected_output: >
     Pipeline health report + Slack posted.
   agent: deal_intel_agent

@@ -6,15 +6,9 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_tasks,
-    get_tasks_multi,
-    get_stale,
-    get_velocity,
     get_health_summary,
-    write_doc_page,
     post_exec,
     post,
-    log_run,
 )
 
 
@@ -28,15 +22,9 @@ class ExecReportCrew:
         return Agent(
             config=self.agents_config["exec_reporter_agent"],
             tools=[
-                get_tasks,
-                get_tasks_multi,
-                get_stale,
-                get_velocity,
                 get_health_summary,
-                write_doc_page,
                 post_exec,
                 post,
-                log_run,
             ],
             verbose=True,
             allow_delegation=False,

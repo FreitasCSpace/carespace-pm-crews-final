@@ -2,35 +2,32 @@ scan:
   description: >
     Perform a full PR and CI scan across the carespace-ai GitHub organization.
 
-    Step 1 - Full PR scan: Use get_prs to retrieve all open PRs across every
-    repo in the carespace-ai org. Record each PR's repo, number, title, author,
-    creation date, last update date, and current reviewers.
+    Step 1 - Full PR scan: Retrieve all open PRs across every repo in the
+    carespace-ai org. Record each PR's repo, number, title, author, creation
+    date, last update date, and current reviewers.
 
-    Step 2 - Stale PR handling (>7 days): Use get_stale_prs to identify PRs
-    with no activity for more than 7 days. For each stale PR: use
-    get_contributors for that repo to determine the best reviewer candidate.
-    Use get_tasks to check if a ClickUp tracking task already exists for this
-    PR. If no task exists, use create_task to create one in the appropriate
-    repo list with the PR link, author, and suggested reviewer. Use post to
-    notify #engineering with the stale PR details and suggested reviewer.
+    Step 2 - Stale PR handling (>7 days): Identify PRs with no activity for
+    more than 7 days. For each stale PR: determine the best reviewer candidate
+    from repo contributors. Check if a ClickUp tracking task already exists for
+    this PR. If no task exists, create a task in ClickUp in the appropriate repo
+    list with the PR link, author, and suggested reviewer. Post to #engineering
+    with the stale PR details and suggested reviewer.
 
     Step 3 - Critical stale PRs (>30 days): For any PR stale more than 30
-    days, use create_alert at urgent priority with full context including PR
-    age, author, and repo. Post to #engineering as a critical escalation using
-    post_blocker.
+    days, create an alert task in the Alerts & SLA Watchlist (901326336266) at
+    urgent priority with full context including PR age, author, and repo. Post
+    to #engineering as a critical escalation.
 
-    Step 4 - CI failure detection: Use get_ci to check the latest CI status
-    on the main branch for carespace-ui, carespace-api-gateway, carespace-admin,
-    and carespace-sdk. For any failing CI run: create a high-priority task in
-    the repo's ClickUp list using create_task. Use add_comment to include the
-    failure logs or link. Post to #engineering using post_blocker.
+    Step 4 - CI failure detection: Check the latest CI status on the main
+    branch for carespace-ui, carespace-api-gateway, carespace-admin, and
+    carespace-sdk. For any failing CI run: create a high-priority task in the
+    repo's ClickUp list. Add a comment with the failure logs or link. Post to
+    #engineering.
 
     Step 5 - Duplicate branch detection: While scanning PRs, identify PRs
     targeting the same feature or having near-identical branch names (e.g.,
     PR #6 and #7 on iOS). Flag these as potential duplicates by adding a
-    comment via add_comment on both PRs and posting to #engineering.
-
-    Log the full run summary using log_run.
+    comment on both PRs and posting to #engineering.
   expected_output: >
     JSON: {stale_prs: N, critical_stale: N, ci_failures: N, tasks_created: N}
   agent: pr_radar_agent

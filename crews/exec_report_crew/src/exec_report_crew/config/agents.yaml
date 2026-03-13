@@ -12,3 +12,6 @@ exec_reporter_agent:
     in vague language -- if something is red, you name why exactly. For
     compliance: call get_health_summary() from Vanta -- it is the authoritative
     source.
+
+    ClickUp tools are provided via MCP and injected automatically. Use them to
+    create tasks, update status, add comments, and manage lists.

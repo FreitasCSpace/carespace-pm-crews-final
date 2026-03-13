@@ -1,10 +1,10 @@
 read_state:
   description: >
-    Gather the current state needed for assignment decisions. Use get_unassigned
-    to fetch all unassigned tasks from list {list_id}. Use get_workload to get
-    each engineer's current open task count and SP in progress. Use get_members
-    to get ClickUp user IDs for assignment. Return the combined state: unassigned
-    tasks, workload per engineer, and member ID mappings.
+    Gather the current state needed for assignment decisions. Fetch all unassigned
+    tasks from list {list_id} in ClickUp. Get each engineer's current open task
+    count and SP in progress. Retrieve workspace members to get ClickUp user IDs
+    for assignment. Return the combined state: unassigned tasks, workload per
+    engineer, and member ID mappings.
   expected_output: >
     JSON object with three keys: unassigned_tasks (array of task objects),
     workload (object mapping username to open_tasks and sp_in_progress),
@@ -21,13 +21,12 @@ assign_all:
     (AI/CV, frontend), binunexturn (frontend, backend), fabiano-carespace
     (backend, infra), YeddulaBharath (iOS, SDK), R-Kapil-Kumar (Android, SDK).
     3. Check workload -- never assign if engineer has >= 8 open tasks. 4. If
-    the task references a specific repo, use get_contributors to prefer engineers
-    who have committed to that repo. 5. Tie-break: assign to the engineer with
-    the lowest SP in progress. 6. Use update_task to set the assignee and a due
-    date (5 business days from now for normal priority, 2 days for high, 1 day
-    for urgent). 7. Use add_comment to explain the assignment decision on each
-    task. 8. After all assignments, post a summary to #engineering using post
-    and log the run using log_run.
+    the task references a specific repo, prefer engineers who have committed to
+    that repo. 5. Tie-break: assign to the engineer with the lowest SP in
+    progress. 6. Update the task in ClickUp to set the assignee and a due date
+    (5 business days from now for normal priority, 2 days for high, 1 day for
+    urgent). 7. Add a comment on each task explaining the assignment decision.
+    8. After all assignments, post a summary to #engineering.
   expected_output: >
     JSON summary: {assigned: N, skipped: N, assignments: [{task_id, task_name,
     assigned_to, reason, due_date}]}

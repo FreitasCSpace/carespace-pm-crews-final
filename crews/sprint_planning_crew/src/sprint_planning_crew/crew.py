@@ -6,19 +6,11 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_tasks,
-    get_workload,
     get_issues,
     get_stale_prs,
     get_ci,
-    create_sprint_list,
-    move_task,
-    create_task,
-    update_task,
-    add_comment,
     post_sprint_plan,
     post,
-    log_run,
 )
 
 
@@ -32,19 +24,11 @@ class SprintPlanningCrewCrew:
         return Agent(
             config=self.agents_config["sprint_planner_agent"],
             tools=[
-                get_tasks,
-                get_workload,
                 get_issues,
                 get_stale_prs,
                 get_ci,
-                create_sprint_list,
-                move_task,
-                create_task,
-                update_task,
-                add_comment,
                 post_sprint_plan,
                 post,
-                log_run,
             ],
             verbose=True,
             allow_delegation=False,

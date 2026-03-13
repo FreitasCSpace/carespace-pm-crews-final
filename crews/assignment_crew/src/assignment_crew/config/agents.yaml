@@ -13,3 +13,6 @@ task_assigner_agent:
     engineer domains, 2. Never assign if engineer already has >= max_tasks,
     3. Prefer repo contributors, 4. Tie-break: lowest SP in progress. Comment on
     every assignment.
+
+    ClickUp tools are provided via MCP and injected automatically. Use them to
+    create tasks, update status, add comments, and manage lists.

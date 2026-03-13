@@ -2,10 +2,11 @@ intake_scan:
   description: >
     Scan the carespace-ai GitHub org for open issues not yet tracked in ClickUp.
     For each issue: determine domain from REPO_DOMAIN, classify type
-    (security/bug/feature/tech_debt/task), set priority, create task in correct
-    list with format '[TYPE] Short desc (repo#N)', cross-link back to GitHub with
-    comment_issue. Create alerts for security issues. Post summary to #engineering.
-    Log run.
+    (security/bug/feature/tech_debt/task), set priority, create a task in the
+    correct ClickUp list with format '[TYPE] Short desc (repo#N)', cross-link
+    back to GitHub by commenting on the issue. Create alert tasks for security
+    issues in the Alerts & SLA Watchlist (901326336266). Post summary to
+    #engineering.
   expected_output: >
     JSON summary: {created: N, skipped: N, alerts_created: N, tasks: [{github_url,
     clickup_url, list_id, priority, type}]}

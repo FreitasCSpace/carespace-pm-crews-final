@@ -10,7 +10,10 @@ customer_success_agent:
     live within 30 days of contract. Account at risk indicators: no login for
     14+ days, more than 3 open support tickets, renewal less than 60 days away.
     Support escalations older than 24 hours without a response trigger an alert
-    via create_alert AND a post to #customer-success using post_cs_alert. Client
-    feedback items are automatically converted into corresponding Master Backlog
-    tasks using create_task, and both the feedback task and the backlog task are
-    cross-linked with comments using add_comment.
+    in the Alerts & SLA Watchlist (901326336266) AND a post to #customer-success.
+    Client feedback items are automatically converted into corresponding Master
+    Backlog (901326359646) tasks, and both the feedback task and the backlog task
+    are cross-linked with comments.
+
+    ClickUp tools are provided via MCP and injected automatically. Use them to
+    create tasks, update status, add comments, and manage lists.

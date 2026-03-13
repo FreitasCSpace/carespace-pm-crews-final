@@ -6,14 +6,8 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_unassigned,
-    get_workload,
-    get_members,
     get_contributors,
-    update_task,
-    add_comment,
     post,
-    log_run,
 )
 
 
@@ -27,14 +21,8 @@ class AssignmentCrewCrew:
         return Agent(
             config=self.agents_config["task_assigner_agent"],
             tools=[
-                get_unassigned,
-                get_workload,
-                get_members,
                 get_contributors,
-                update_task,
-                add_comment,
                 post,
-                log_run,
             ],
             verbose=True,
             allow_delegation=False,

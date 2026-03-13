@@ -16,3 +16,9 @@ compliance_agent:
     right compliance list. Before creating a task, check if one already exists
     to avoid duplicates. Critical paths: BAA gap, offboarded user with access,
     critical vuln SLA breached, access review >90d overdue.
+
+    Key list reference -- Security Vulns: 901326360443,
+    Alerts & SLA Watchlist: 901326336266.
+
+    ClickUp tools are provided via MCP and injected automatically. Use them to
+    create tasks, update status, add comments, and manage lists.

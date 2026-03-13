@@ -1,14 +1,14 @@
 measure:
   description: >
-    Calculate sprint metrics for {sprint_name} (Sprint {sprint_number}). Use
-    get_velocity on {sprint_list_id} to get: planned vs completed task counts,
-    planned vs completed story points, completion rate percentage, per-engineer
-    breakdown (planned SP, done SP, planned tasks, done tasks), carry-over tasks
-    (not done at sprint end), and the recommended SP for next sprint
-    (completed_sp x 0.80). Also use get_stale_prs to count stale PRs still open
-    at sprint end. Use get_ci on key repos to assess CI health at sprint close.
-    Use get_activity on key repos with days=14 to measure commit volume during
-    the sprint. Compile all metrics into a structured report.
+    Calculate sprint metrics for {sprint_name} (Sprint {sprint_number}). Pull
+    tasks from {sprint_list_id} in ClickUp to compute: planned vs completed task
+    counts, planned vs completed story points, completion rate percentage,
+    per-engineer breakdown (planned SP, done SP, planned tasks, done tasks),
+    carry-over tasks (not done at sprint end), and the recommended SP for next
+    sprint (completed_sp x 0.80). Also check for stale PRs still open at sprint
+    end. Check CI status on key repos to assess CI health at sprint close.
+    Measure commit volume on key repos during the sprint. Compile all metrics
+    into a structured report.
   expected_output: >
     JSON object with: planned_tasks, completed_tasks, completion_rate_pct,
     planned_sp, completed_sp, next_sprint_recommended_sp, carry_over (array of
@@ -19,8 +19,8 @@ measure:
 
 write_retro:
   description: >
-    Write the full retrospective document page in ClickUp Docs. Use write_doc_page
-    with document_id 'xnum1-4273' (Sprint Engine doc). Page name:
+    Write the full retrospective document page in ClickUp Docs using
+    document_id 'xnum1-4273' (Sprint Engine doc). Page name:
     'Retro: {sprint_name}'. Content must include in markdown: 1. Sprint Overview
     header with sprint number, dates, and health indicator (GREEN/YELLOW/RED based
     on completion rate: >=80% GREEN, >=60% YELLOW, <60% RED). 2. Velocity section
@@ -43,17 +43,14 @@ write_retro:
 
 post_and_log:
   description: >
-    Post the retrospective summary to Slack and log the run. Use post_retro with
-    the sprint name, completion percentage, velocity SP, carry-over count, and
-    the ClickUp doc URL. Also post a brief one-paragraph summary to #engineering
-    using post highlighting the key takeaway and next sprint's recommended SP.
-    Log the run using log_run with crew name 'retrospective_crew', the action
-    'Sprint {sprint_number} retrospective', and the result summary including
-    completion rate, velocity, and recommended next sprint SP.
+    Post the retrospective summary to Slack. Post the sprint name, completion
+    percentage, velocity SP, carry-over count, and the ClickUp doc URL to
+    #sprint-board. Also post a brief one-paragraph summary to #engineering
+    highlighting the key takeaway and next sprint's recommended SP.
   expected_output: >
     Confirmation that retro was posted to #sprint-board, summary posted to
-    #engineering, and run was logged. Include: {completion_rate, velocity_sp,
-    carry_over_count, next_sprint_sp, doc_url}.
+    #engineering. Include: {completion_rate, velocity_sp, carry_over_count,
+    next_sprint_sp, doc_url}.
   agent: retrospective_agent
   context:
     - write_retro

@@ -2,12 +2,11 @@ gather:
   description: >
     Gather cross-workspace health data from all sources.
 
-    Engineering: Use get_tasks_multi to pull current sprint tasks. Calculate
-    sprint completion percentage (done vs total). Use get_velocity to get
-    rolling velocity trends. Use get_stale to find stale engineering tasks
-    that indicate blockers.
+    Engineering: Pull current sprint tasks from ClickUp. Calculate sprint
+    completion percentage (done vs total). Get rolling velocity trends. Find
+    stale engineering tasks that indicate blockers.
 
-    GTM: Use get_tasks to pull Sales Pipeline and Marketing Campaigns lists.
+    GTM: Pull Sales Pipeline and Marketing Campaigns lists from ClickUp.
     Identify deals at risk (no activity >7d, missing next steps, past close
     date). Count pipeline value at risk.
 
@@ -15,12 +14,12 @@ gather:
     compliance source. Extract overall health status, failing controls count,
     open vulnerabilities, BAA gaps, and overdue access reviews.
 
-    Customer Success: Pull customer success lists. Identify accounts with churn
-    risk signals (health score drop, support escalations, missed QBRs, contract
-    renewal <60d with open issues).
+    Customer Success: Pull customer success lists from ClickUp. Identify
+    accounts with churn risk signals (health score drop, support escalations,
+    missed QBRs, contract renewal <60d with open issues).
 
-    Bug Health: Pull bug lists. Count urgent/critical bugs, average age,
-    SLA breaches.
+    Bug Health: Pull bug lists from ClickUp. Count urgent/critical bugs,
+    average age, SLA breaches.
 
     Alerts: Count open alerts across all alert lists. Note unresolved
     critical alerts.
@@ -43,8 +42,8 @@ write_and_post:
   description: >
     Write the weekly executive report and distribute it.
 
-    Write to ClickUp Docs using write_doc_page with title
-    "Weekly Exec Report - [date]". Structure the report as:
+    Write to ClickUp Docs with title "Weekly Exec Report - [date]".
+    Structure the report as:
 
     1) Health Dashboard table with 5 dimensions:
        | Dimension        | Status | Key Metric           | Trend |
@@ -68,11 +67,8 @@ write_and_post:
     6) Wins This Week: completed milestones, shipped features, closed deals,
        resolved findings.
 
-    Post a concise summary to #exec-updates using post_exec. The Slack
-    summary should be the health dashboard table + top 3 risks + wins,
-    formatted for quick scanning.
-
-    Log the automation run using log_run with crew name 'exec_report_crew'.
+    Post a concise summary to #exec-updates. The Slack summary should be the
+    health dashboard table + top 3 risks + wins, formatted for quick scanning.
   expected_output: >
     Confirmation that executive report was written to ClickUp Docs and
     summary posted to #exec-updates.

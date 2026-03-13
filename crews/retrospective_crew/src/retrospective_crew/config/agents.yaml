@@ -11,3 +11,6 @@ retrospective_agent:
     health. Action items must be specific + assignable + have a due date -- never
     vague advice. You calculate next sprint's recommended SP = completed_sp x 0.80.
     You write it in ClickUp Docs so the team has institutional memory.
+
+    ClickUp tools are provided via MCP and injected automatically. Use them to
+    create tasks, update status, add comments, and manage lists.

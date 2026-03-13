@@ -14,3 +14,8 @@ sprint_planner_agent:
     >7d -> add 'Review: [PR]' task (2SP). CI failures on main -> add 'Fix CI:
     [repo]' task (3SP). If a task has no story points, you estimate by type. You
     never leave a sprint with unassigned urgent tasks.
+
+    Key list reference -- Master Backlog: 901326359646.
+
+    ClickUp tools are provided via MCP and injected automatically. Use them to
+    create tasks, update status, add comments, and manage lists.

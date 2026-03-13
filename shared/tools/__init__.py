@@ -1,8 +1,3 @@
-from .clickup import (
-    get_tasks, get_tasks_multi, get_unassigned, get_stale, get_velocity,
-    get_workload, get_members, create_task, update_task, add_comment,
-    move_task, create_sprint_list, create_alert, write_doc_page, log_run,
-)
 from .github import (
     get_issues, get_prs, get_ci, get_stale_prs,
     get_contributors, get_activity, comment_issue,
