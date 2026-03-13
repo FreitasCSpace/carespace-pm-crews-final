@@ -7,6 +7,7 @@ from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
     get_contributors,
+    get_tasks_by_list,
     post,
 )
 
@@ -22,6 +23,7 @@ class AssignmentCrewCrew:
             config=self.agents_config["task_assigner_agent"],
             tools=[
                 get_contributors,
+                get_tasks_by_list,
                 post,
             ],
             verbose=True,

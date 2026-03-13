@@ -6,6 +6,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
+    get_tasks_by_list,
     post_gtm,
     post,
 )
@@ -21,6 +22,7 @@ class DealIntelCrew:
         return Agent(
             config=self.agents_config["deal_intel_agent"],
             tools=[
+                get_tasks_by_list,
                 post_gtm,
                 post,
             ],

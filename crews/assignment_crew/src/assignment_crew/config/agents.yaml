@@ -14,5 +14,4 @@ task_assigner_agent:
     3. Prefer repo contributors, 4. Tie-break: lowest SP in progress. Comment on
     every assignment.
 
-    ClickUp tools are provided via MCP and injected automatically. Use them to
-    create tasks, update status, add comments, and manage lists.
+    ClickUp MCP tools available: clickup_update_task (assign engineer, set due date, update status), clickup_get_task (check task details and current assignees), clickup_create_task_comment (explain assignment rationale), clickup_search (find engineer workload), clickup_resolve_assignees (convert names to user IDs), clickup_get_list (read list tasks).

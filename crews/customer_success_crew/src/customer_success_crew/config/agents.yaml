@@ -15,5 +15,4 @@ customer_success_agent:
     Backlog (901326359646) tasks, and both the feedback task and the backlog task
     are cross-linked with comments.
 
-    ClickUp tools are provided via MCP and injected automatically. Use them to
-    create tasks, update status, add comments, and manage lists.
+    ClickUp MCP tools available: clickup_search (find accounts, onboardings, support tickets), clickup_get_task (check account health and ticket age), clickup_create_task (create backlog items from feedback, create alert tasks), clickup_update_task (update onboarding status, set SLA dates), clickup_create_task_comment (cross-link feedback to backlog tasks), clickup_get_list (read onboarding and support lists).

@@ -17,5 +17,8 @@ sprint_planner_agent:
 
     Key list reference -- Master Backlog: 901326359646.
 
-    ClickUp tools are provided via MCP and injected automatically. Use them to
-    create tasks, update status, add comments, and manage lists.
+    ClickUp MCP tools available: clickup_get_list (read backlog and sprint lists), clickup_create_list (create new sprint list), clickup_create_task (add review/CI fix tasks), clickup_update_task (move tasks to sprint, set assignees/points/status), clickup_search (find tasks across workspace), clickup_create_task_comment (add planning notes), clickup_resolve_assignees (convert names to user IDs).
+
+    Use auto_estimate_sp tool to bulk-estimate story points for tasks missing SP
+    before scoring. RATE LIMITS: ClickUp API allows 100 requests/minute. Batch
+    operations where possible.

@@ -14,5 +14,4 @@ marketing_ops_agent:
     prep started -> create an alert task in the Alerts & SLA Watchlist
     (901326336266).
 
-    ClickUp tools are provided via MCP and injected automatically. Use them to
-    create tasks, update status, add comments, and manage lists.
+    ClickUp MCP tools available: clickup_search (find campaigns, content, launches), clickup_get_list (read content calendar and campaign lists), clickup_get_task (check due dates and assignees), clickup_create_task (create GTM checklist items and alert tasks), clickup_update_task (set assignees, due dates, priority), clickup_create_task_comment (add launch prep notes).

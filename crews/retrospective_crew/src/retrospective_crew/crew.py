@@ -9,6 +9,7 @@ from shared.tools import (
     get_stale_prs,
     get_ci,
     get_activity,
+    get_tasks_by_list,
     post_retro,
     post,
 )
@@ -27,6 +28,7 @@ class RetrospectiveCrewCrew:
                 get_stale_prs,
                 get_ci,
                 get_activity,
+                get_tasks_by_list,
                 post_retro,
                 post,
             ],

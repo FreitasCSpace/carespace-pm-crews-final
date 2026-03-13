@@ -13,5 +13,4 @@ exec_reporter_agent:
     compliance: call get_health_summary() from Vanta -- it is the authoritative
     source.
 
-    ClickUp tools are provided via MCP and injected automatically. Use them to
-    create tasks, update status, add comments, and manage lists.
+    ClickUp MCP tools available: clickup_search (find tasks across all spaces), clickup_get_list (check list health and task counts), clickup_get_task (read task details), clickup_create_document (create weekly report doc), clickup_create_document_page (add report sections), clickup_update_document_page (write report content), clickup_get_workspace_hierarchy (map spaces/folders/lists).

@@ -8,6 +8,7 @@ from crewai.project import CrewBase, agent, crew, task
 from shared.tools import (
     get_stale_prs,
     get_ci,
+    get_tasks_by_list,
     post_standup,
     post_blocker,
     post,
@@ -26,6 +27,7 @@ class StandupCrewCrew:
             tools=[
                 get_stale_prs,
                 get_ci,
+                get_tasks_by_list,
                 post_standup,
                 post_blocker,
                 post,

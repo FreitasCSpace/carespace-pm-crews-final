@@ -168,15 +168,31 @@ L = {
 }
 
 # ======================================================================
-# ACTIVE SPRINT -- update after each retro
+# SPRINT SCHEDULE -- ordered list; ACTIVE_SPRINT computed automatically
 # ======================================================================
-ACTIVE_SPRINT = {
-    "number":  1,
-    "name":    "Sprint 1 -- Mar 16-Mar 30",
-    "start":   "2026-03-16",
-    "end":     "2026-03-30",
-    "list_id": "901326359655",
-}
+SPRINT_SCHEDULE = [
+    {"number": 1, "name": "Sprint 1 -- Mar 16-Mar 30",  "start": "2026-03-16", "end": "2026-03-30", "list_id": L["sprint_1"]},
+    {"number": 2, "name": "Sprint 2 -- Mar 30-Apr 13",  "start": "2026-03-30", "end": "2026-04-13", "list_id": L["sprint_2"]},
+    {"number": 3, "name": "Sprint 3 -- Apr 13-Apr 27",  "start": "2026-04-13", "end": "2026-04-27", "list_id": L["sprint_3"]},
+    {"number": 4, "name": "Sprint 4 -- Apr 27-May 11",  "start": "2026-04-27", "end": "2026-05-11", "list_id": L["sprint_4"]},
+    {"number": 5, "name": "Sprint 5 -- May 11-May 25",  "start": "2026-05-11", "end": "2026-05-25", "list_id": L["sprint_5"]},
+    {"number": 6, "name": "Sprint 6 -- May 25-Jun 8",   "start": "2026-05-25", "end": "2026-06-08", "list_id": L["sprint_6"]},
+]
+
+def _get_active_sprint():
+    """Returns the sprint whose date range contains today, or the last sprint."""
+    from datetime import date
+    today = date.today().isoformat()
+    for s in SPRINT_SCHEDULE:
+        if s["start"] <= today <= s["end"]:
+            return dict(s)
+    # If between sprints or past all, return the nearest upcoming or last
+    for s in SPRINT_SCHEDULE:
+        if s["start"] > today:
+            return dict(s)
+    return dict(SPRINT_SCHEDULE[-1])
+
+ACTIVE_SPRINT = _get_active_sprint()
 
 # ======================================================================
 # GITHUB -> CLICKUP ROUTING
@@ -240,15 +256,26 @@ FEATURE_TARGET = {
 # TEAM
 # ======================================================================
 TEAM = {
-    "fusuma":            {"domains": ["ai_cv","sdk","mobile","backend"], "cap_sp": 20, "max_tasks": 4, "cu_id": None},
-    "andreCarespace":    {"domains": ["frontend"],                        "cap_sp": 20, "max_tasks": 4, "cu_id": None},
-    "BMarcano":          {"domains": ["frontend"],                        "cap_sp": 18, "max_tasks": 3, "cu_id": None},
-    "bhavyasaurabh":     {"domains": ["ai_cv","frontend"],               "cap_sp": 18, "max_tasks": 3, "cu_id": None},
-    "Deekshakain":       {"domains": ["frontend"],                        "cap_sp": 16, "max_tasks": 3, "cu_id": None},
-    "binunexturn":       {"domains": ["frontend","backend"],              "cap_sp": 20, "max_tasks": 4, "cu_id": None},
-    "fabiano-carespace": {"domains": ["backend","infra"],                 "cap_sp": 18, "max_tasks": 3, "cu_id": None},
-    "YeddulaBharath":    {"domains": ["mobile","sdk"],                    "cap_sp": 16, "max_tasks": 3, "cu_id": None},
-    "R-Kapil-Kumar":     {"domains": ["mobile","sdk"],                    "cap_sp": 16, "max_tasks": 3, "cu_id": None},
+    # Core engineering (GitHub contributors)
+    "fusuma":            {"domains": ["ai_cv","sdk","mobile","backend"], "cap_sp": 20, "max_tasks": 4, "cu_id": "48998538"},
+    "andreCarespace":    {"domains": ["frontend"],                        "cap_sp": 20, "max_tasks": 4, "cu_id": "49000180"},
+    "BMarcano":          {"domains": ["frontend"],                        "cap_sp": 18, "max_tasks": 3, "cu_id": "112101513"},
+    "bhavyasaurabh":     {"domains": ["ai_cv","frontend"],               "cap_sp": 18, "max_tasks": 3, "cu_id": "93908266"},
+    "Deekshakain":       {"domains": ["frontend"],                        "cap_sp": 16, "max_tasks": 3, "cu_id": "61019156"},
+    "binunexturn":       {"domains": ["frontend","backend"],              "cap_sp": 20, "max_tasks": 4, "cu_id": "61025897"},
+    "fabiano-carespace": {"domains": ["backend","infra"],                 "cap_sp": 18, "max_tasks": 3, "cu_id": "49000181"},
+    "YeddulaBharath":    {"domains": ["mobile","sdk"],                    "cap_sp": 16, "max_tasks": 3, "cu_id": "93908270"},
+    "R-Kapil-Kumar":     {"domains": ["mobile","sdk"],                    "cap_sp": 16, "max_tasks": 3, "cu_id": "81941440"},
+    # Nexturn extended team
+    "harshitdiyora":     {"domains": ["frontend","backend"],              "cap_sp": 16, "max_tasks": 3, "cu_id": "81942238"},
+    "ratnakumar":        {"domains": ["mobile","backend"],                "cap_sp": 16, "max_tasks": 3, "cu_id": "81941439"},
+    "sreenivas":         {"domains": ["mobile","sdk"],                    "cap_sp": 16, "max_tasks": 3, "cu_id": "93908269"},
+    "rohithsuri":        {"domains": ["frontend","backend"],              "cap_sp": 16, "max_tasks": 3, "cu_id": "93908271"},
+    "sandeep":           {"domains": ["backend","infra"],                 "cap_sp": 16, "max_tasks": 3, "cu_id": "111928715"},
+    "sujanmahapatra":    {"domains": ["frontend","backend"],              "cap_sp": 16, "max_tasks": 3, "cu_id": "111951799"},
+    "shubhamsanjog":     {"domains": ["frontend"],                        "cap_sp": 16, "max_tasks": 3, "cu_id": "112029068"},
+    "mubinashaikh":      {"domains": ["frontend"],                        "cap_sp": 16, "max_tasks": 3, "cu_id": "111980875"},
+    "kishorkumar":       {"domains": ["backend"],                         "cap_sp": 16, "max_tasks": 3, "cu_id": "254678220"},
 }
 
 DOMAIN_KEYWORDS = {
@@ -311,6 +338,7 @@ SLACK = {
 # CLICKUP DOCS (for AI-written reports)
 # ======================================================================
 DOCS = {
-    "sprint_engine": "xnum1-4273",
-    "ai_system":     "xnum1-9333",
+    "sprint_engine":    "xnum1-4273",
+    "ai_system":        "xnum1-9333",
+    "crew_dashboard":   "xnum1-9353",
 }

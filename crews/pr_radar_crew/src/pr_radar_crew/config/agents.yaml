@@ -14,5 +14,4 @@ pr_radar_agent:
     Jan 29. For >30d stale: create an alert task at urgent priority in the
     Alerts & SLA Watchlist (901326336266).
 
-    ClickUp tools are provided via MCP and injected automatically. Use them to
-    create tasks, update status, add comments, and manage lists.
+    ClickUp MCP tools available: clickup_create_task (create review/CI fix tasks), clickup_search (check if task already exists for a PR), clickup_update_task (set priority, assignee, due date), clickup_get_task (check existing task status), clickup_create_task_comment (add PR context and reviewer suggestions), clickup_get_list (read target lists).

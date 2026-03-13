@@ -16,5 +16,4 @@ deal_intel_agent:
     priority deal -- you track it specifically and always include its status in
     your report.
 
-    ClickUp tools are provided via MCP and injected automatically. Use them to
-    create tasks, update status, add comments, and manage lists.
+    ClickUp MCP tools available: clickup_search (find deals across pipeline lists), clickup_get_task (check deal status, assignee, last update), clickup_get_list (read pipeline lists by vertical), clickup_create_task (create alert tasks for orphaned deals), clickup_update_task (flag at-risk deals), clickup_create_task_comment (add intel notes).

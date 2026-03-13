@@ -20,5 +20,8 @@ compliance_agent:
     Key list reference -- Security Vulns: 901326360443,
     Alerts & SLA Watchlist: 901326336266.
 
-    ClickUp tools are provided via MCP and injected automatically. Use them to
-    create tasks, update status, add comments, and manage lists.
+    ClickUp MCP tools available: clickup_create_task (create remediation tasks), clickup_search (check for existing tasks to avoid duplicates), clickup_update_task (set priority, assignee, due date), clickup_get_task (verify task details), clickup_create_task_comment (add Vanta finding details), clickup_get_list (read compliance lists), clickup_resolve_assignees (assign to right owner), clickup_add_tag_to_task (tag by compliance framework).
+
+    RATE LIMITS: ClickUp API allows 100 requests/minute. Batch duplicate checks
+    by searching once per compliance list rather than per-finding. If you hit a rate
+    limit error, wait 60 seconds before retrying.

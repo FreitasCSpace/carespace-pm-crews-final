@@ -16,6 +16,8 @@ from shared.tools import (
     get_access_reviews,
     get_people_risks,
     get_policies,
+    get_tasks_by_list,
+    check_duplicate_task,
     post_compliance,
     post,
 )
@@ -41,6 +43,8 @@ class ComplianceCrew:
                 get_access_reviews,
                 get_people_risks,
                 get_policies,
+                get_tasks_by_list,
+                check_duplicate_task,
                 post_compliance,
                 post,
             ],

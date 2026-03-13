@@ -7,6 +7,7 @@ from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
     get_health_summary,
+    get_tasks_by_list,
     post_exec,
     post,
 )
@@ -23,6 +24,7 @@ class ExecReportCrew:
             config=self.agents_config["exec_reporter_agent"],
             tools=[
                 get_health_summary,
+                get_tasks_by_list,
                 post_exec,
                 post,
             ],

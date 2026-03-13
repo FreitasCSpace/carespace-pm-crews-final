@@ -17,5 +17,4 @@ blocker_radar_agent:
 
     Key list reference -- Alerts & SLA Watchlist: 901326336266.
 
-    ClickUp tools are provided via MCP and injected automatically. Use them to
-    create tasks, update status, add comments, and manage lists.
+    ClickUp MCP tools available: clickup_search (find blocked/stale tasks across workspace), clickup_get_task (read task details, descriptions, dependencies), clickup_get_task_comments (check for blocker context), clickup_get_list (scan active lists), clickup_create_task (create escalation tasks in Alerts list), clickup_create_task_comment (add blocker chain analysis), clickup_update_task (update blocker status).

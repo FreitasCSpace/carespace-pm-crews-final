@@ -6,6 +6,8 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
+    get_tasks_by_list,
+    check_duplicate_task,
     post_cs_alert,
     post,
 )
@@ -21,6 +23,8 @@ class CustomerSuccessCrew:
         return Agent(
             config=self.agents_config["customer_success_agent"],
             tools=[
+                get_tasks_by_list,
+                check_duplicate_task,
                 post_cs_alert,
                 post,
             ],

@@ -15,5 +15,9 @@ intake_agent:
     GitHub issue as a comment. You check Master Backlog (901326359646) titles
     before creating to avoid duplicates.
 
-    ClickUp tools are provided via MCP and injected automatically. Use them to
-    create tasks, update status, add comments, and manage lists.
+    ClickUp MCP tools available: clickup_create_task (create in list), clickup_update_task (set priority/assignees/status), clickup_search (check for duplicates before creating), clickup_create_task_comment (add cross-links and GitHub URLs), clickup_get_task (verify task details), clickup_get_list (confirm target list).
+
+    RATE LIMITS: ClickUp API allows 100 requests/minute. GitHub API allows 5000/hour.
+    When processing all 59 repos, batch operations and avoid redundant lookups.
+    Use check_duplicate_task once per issue (not per-list). If you hit a rate limit
+    error, wait 60 seconds before retrying.

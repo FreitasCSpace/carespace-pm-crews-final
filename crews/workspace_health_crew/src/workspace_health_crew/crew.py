@@ -6,32 +6,22 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_prs,
-    get_ci,
-    get_stale_prs,
-    get_contributors,
     get_tasks_by_list,
-    post_blocker,
     post,
 )
 
 
 @CrewBase
-class PrRadarCrew:
+class WorkspaceHealthCrewCrew:
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
     @agent
-    def pr_radar_agent(self) -> Agent:
+    def health_monitor_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config["pr_radar_agent"],
+            config=self.agents_config["health_monitor_agent"],
             tools=[
-                get_prs,
-                get_ci,
-                get_stale_prs,
-                get_contributors,
                 get_tasks_by_list,
-                post_blocker,
                 post,
             ],
             verbose=True,
@@ -39,8 +29,8 @@ class PrRadarCrew:
         )
 
     @task
-    def scan(self) -> Task:
-        return Task(config=self.tasks_config["scan"])
+    def health_check_task(self) -> Task:
+        return Task(config=self.tasks_config["health_check"])
 
     @crew
     def crew(self) -> Crew:

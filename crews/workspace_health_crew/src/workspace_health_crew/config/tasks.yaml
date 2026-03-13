@@ -1,0 +1,33 @@
+health_check:
+  description: >
+    Run a comprehensive health check on the AI PM workspace:
+
+    1. SPRINT HEALTH: Check active sprint list for: total tasks, assigned vs
+       unassigned, tasks with SP vs without, status distribution (to do, in
+       progress, done). Flag if >50% tasks unassigned or >50% missing SP.
+
+    2. BUG TRIAGE HEALTH: Check Frontend Bugs (901326360436), Backend Bugs
+       (901326360437), Mobile Bugs (901326360441), Security Vulns (901326360443)
+       for: unassigned bugs, bugs without priority, bugs older than 7 days
+       without status change.
+
+    3. ALERTS HEALTH: Check Alerts & SLA Watchlist (901326336266) for: total
+       open alerts, alerts older than 48h unresolved, alert creation rate
+       (are new alerts being created? if zero in 7 days, crews may not be running).
+
+    4. BACKLOG HEALTH: Check Master Backlog (901326359646) for: total items,
+       items without priority, items older than 30 days without movement.
+
+    5. DATA QUALITY: Across all checked lists, count tasks with: no description,
+       no priority, no assignee, no due date.
+
+    Post a health summary to #engineering with: overall status (GREEN/YELLOW/RED),
+    sprint health score, bug triage score, alert pipeline score, backlog score,
+    and specific action items for any RED areas.
+  expected_output: >
+    JSON health report: {overall_status, sprint_health: {total, assigned_pct,
+    sp_coverage_pct, status_dist}, bug_health: {total, unassigned, no_priority,
+    stale_7d}, alert_health: {open, stale_48h, created_last_7d}, backlog_health:
+    {total, no_priority, stale_30d}, data_quality: {no_desc, no_priority,
+    no_assignee, no_due_date}, action_items: [...]}.
+  agent: health_monitor_agent

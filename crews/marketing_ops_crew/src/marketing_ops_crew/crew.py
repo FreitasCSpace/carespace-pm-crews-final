@@ -6,6 +6,8 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
+    get_tasks_by_list,
+    check_duplicate_task,
     post,
 )
 
@@ -20,6 +22,8 @@ class MarketingOpsCrew:
         return Agent(
             config=self.agents_config["marketing_ops_agent"],
             tools=[
+                get_tasks_by_list,
+                check_duplicate_task,
                 post,
             ],
             verbose=True,
