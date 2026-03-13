@@ -217,19 +217,10 @@ def get_members() -> str:
 
 # ---- WRITE ----
 
-@tool("Create Task")
-def create_task(list_id: str, name: str, description: str,
-                priority: str = "normal", assignee_ids: str = "",
-                due_date: str = "", tags: str = "") -> str:
-    """
-    Creates a ClickUp task in the specified list.
-    list_id: target list ID (use L dict from context.py).
-    priority: urgent / high / normal / low.
-    assignee_ids: comma-separated ClickUp numeric user IDs.
-    due_date: YYYY-MM-DD.
-    tags: comma-separated tag names (must exist in space).
-    Returns {task_id, url}.
-    """
+def _create_task_impl(list_id: str, name: str, description: str,
+                      priority: str = "normal", assignee_ids: str = "",
+                      due_date: str = "", tags: str = "") -> str:
+    """Internal helper — use directly from other tool functions."""
     body: dict = {
         "name": name,
         "markdown_description": description,
@@ -243,6 +234,22 @@ def create_task(list_id: str, name: str, description: str,
         body["tags"] = [t.strip() for t in tags.split(",") if t.strip()]
     r = _post(f"/list/{list_id}/task", body)
     return json.dumps({"task_id": r["id"], "url": r.get("url", "")})
+
+
+@tool("Create Task")
+def create_task(list_id: str, name: str, description: str,
+                priority: str = "normal", assignee_ids: str = "",
+                due_date: str = "", tags: str = "") -> str:
+    """
+    Creates a ClickUp task in the specified list.
+    list_id: target list ID (use L dict from context.py).
+    priority: urgent / high / normal / low.
+    assignee_ids: comma-separated ClickUp numeric user IDs.
+    due_date: YYYY-MM-DD.
+    tags: comma-separated tag names (must exist in space).
+    Returns {task_id, url}.
+    """
+    return _create_task_impl(list_id, name, description, priority, assignee_ids, due_date, tags)
 
 
 @tool("Update Task")
@@ -309,7 +316,7 @@ def create_alert(name: str, description: str, priority: str = "urgent") -> str:
     Use for: SLA breaches, P0 bugs, blockers, compliance failures, stale PRs >30d.
     This is the human attention queue -- anything here needs a human decision.
     """
-    return create_task(L["alerts_sla"], name, description, priority)
+    return _create_task_impl(L["alerts_sla"], name, description, priority)
 
 
 @tool("Write ClickUp Doc Page")
@@ -345,4 +352,4 @@ def log_run(crew_name: str, action: str, result: str) -> str:
         f"**Result:** {result}\n"
         f"**UTC Timestamp:** {datetime.utcnow().isoformat()}"
     )
-    return create_task(L["automation_registry"], name, desc, priority="low")
+    return _create_task_impl(L["automation_registry"], name, desc, priority="low")

@@ -67,7 +67,10 @@ def get_issues(repo: str = "", label: str = "", limit: int = 50) -> str:
             r = _repo(rname)
             kwargs: dict = {"state": "open"}
             if label: kwargs["labels"] = [label]
-            for issue in r.get_issues(**kwargs)[:limit]:
+            count = 0
+            for issue in r.get_issues(**kwargs):
+                if count >= limit:
+                    break
                 if issue.pull_request:
                     continue
                 labels = [l.name for l in issue.labels]
@@ -88,25 +91,26 @@ def get_issues(repo: str = "", label: str = "", limit: int = 50) -> str:
                     "url": issue.html_url,
                     "created_at": issue.created_at.isoformat(),
                 })
+                count += 1
         except GithubException as e:
             out.append({"repo": rname, "error": str(e)})
+        except Exception as e:
+            out.append({"repo": rname, "error": f"Unexpected: {e}"})
     return json.dumps(out, indent=2)
 
 
-@tool("Get Open Pull Requests")
-def get_prs(repo: str = "") -> str:
-    """
-    Fetches open PRs from the carespace-ai org.
-    repo: specific repo name, or empty for all repos.
-    Returns: number, title, author, branch, age_days, stale (>7d), ci_status, url.
-    """
+def _get_prs_impl(repo: str = "") -> str:
+    """Internal helper for fetching PRs — callable from other tool functions."""
     repos = [repo] if repo else list(REPO_DOMAIN.keys())
     now = datetime.utcnow()
     out = []
     for rname in repos:
         try:
             r = _repo(rname)
-            for pr in r.get_pulls(state="open")[:20]:
+            count = 0
+            for pr in r.get_pulls(state="open"):
+                if count >= 20:
+                    break
                 age = (now - pr.created_at.replace(tzinfo=None)).days
                 ci = "unknown"
                 try:
@@ -120,9 +124,20 @@ def get_prs(repo: str = "") -> str:
                     "age_days": age, "stale": age >= 7, "critical_stale": age >= 30,
                     "ci_status": ci, "url": pr.html_url,
                 })
+                count += 1
         except GithubException as e:
             out.append({"repo": rname, "error": str(e)})
     return json.dumps(out, indent=2)
+
+
+@tool("Get Open Pull Requests")
+def get_prs(repo: str = "") -> str:
+    """
+    Fetches open PRs from the carespace-ai org.
+    repo: specific repo name, or empty for all repos.
+    Returns: number, title, author, branch, age_days, stale (>7d), ci_status, url.
+    """
+    return _get_prs_impl(repo)
 
 
 @tool("Get CI Status")
@@ -151,7 +166,7 @@ def get_stale_prs(days: int = 7) -> str:
     Returns all PRs open longer than N days across all repos.
     Fast path for standup and PR radar -- pre-filters for stale only.
     """
-    all_prs = json.loads(get_prs(""))
+    all_prs = json.loads(_get_prs_impl(""))
     return json.dumps(
         [p for p in all_prs if isinstance(p, dict) and p.get("age_days", 0) >= days],
         indent=2,
