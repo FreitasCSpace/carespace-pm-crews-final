@@ -1,12 +1,23 @@
 intake_scan:
   description: >
     Scan the carespace-ai GitHub org for open issues not yet tracked in ClickUp.
-    For each issue: determine domain from REPO_DOMAIN, classify type
-    (security/bug/feature/tech_debt/task), set priority, create a task in the
-    correct ClickUp list with format '[TYPE] Short desc (repo#N)', cross-link
-    back to GitHub by commenting on the issue. Create alert tasks for security
-    issues in the Alerts & SLA Watchlist (901326336266). Post summary to
-    #engineering.
+
+    CRITICAL — DUPLICATE CHECK FIRST: For EVERY GitHub issue, BEFORE creating
+    anything, use check_duplicate_task with the repo name and issue number
+    (e.g. "repo#123") to search ClickUp. If ANY match is found (even partial
+    title match), SKIP that issue entirely — do NOT create a task, do NOT
+    comment on the GitHub issue, do NOT create an alert. Just count it as
+    "skipped" and move on.
+
+    ONLY for issues with zero ClickUp matches:
+    1. Determine domain from REPO_DOMAIN, classify type
+       (security/bug/feature/tech_debt/task), set priority
+    2. Create task in correct ClickUp list with format '[TYPE] Short desc (repo#N)'
+    3. Cross-link back to GitHub by commenting on the issue with the ClickUp URL
+    4. For security issues, also create alert in Alerts & SLA Watchlist (901326336266)
+
+    Post summary to #engineering ONLY if at least 1 new task was created.
+    If all issues were skipped (already tracked), do NOT post to Slack.
   expected_output: >
     JSON summary: {created: N, skipped: N, alerts_created: N, tasks: [{github_url,
     clickup_url, list_id, priority, type}]}
