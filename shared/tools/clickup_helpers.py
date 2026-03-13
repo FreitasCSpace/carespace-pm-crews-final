@@ -168,3 +168,74 @@ def auto_estimate_sp(list_id: str, dry_run: bool = True) -> str:
         }, indent=2)
     except Exception as e:
         return json.dumps({"error": str(e)})
+
+
+@tool("Update ClickUp Task")
+def update_clickup_task(task_id: str, updates: dict) -> str:
+    """
+    Update a ClickUp task. Supported fields in updates dict:
+    - status: str (e.g. "to do", "in progress", "done", "refinement", "qa")
+    - priority: int (1=urgent, 2=high, 3=normal, 4=low)
+    - assignees: {"add": [user_id], "rem": [user_id]}
+    - points: int (story points)
+    - due_date: epoch ms
+    Returns the updated task summary.
+    """
+    try:
+        result = _clickup_api(f"task/{task_id}", method="PUT", payload=updates)
+        return json.dumps({
+            "id": result.get("id"),
+            "name": result.get("name"),
+            "status": result.get("status", {}).get("status"),
+            "updated_fields": list(updates.keys()),
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@tool("Add Tag To Task")
+def add_tag_to_task(task_id: str, tag_name: str) -> str:
+    """
+    Add a tag to a ClickUp task. Tag name is case-insensitive.
+    Common tags: compliance-reviewed, hipaa, phi, security, blocker, stale-alert.
+    """
+    try:
+        from urllib.parse import quote
+        _clickup_api(f"task/{task_id}/tag/{quote(tag_name)}", method="POST")
+        return json.dumps({"task_id": task_id, "tag_added": tag_name})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@tool("Create ClickUp Task")
+def create_clickup_task(list_id: str, name: str, description: str = "",
+                        priority: int = 3, assignees: list = None,
+                        tags: list = None, points: int = None) -> str:
+    """
+    Create a new task in a ClickUp list.
+    list_id: target list ID from shared.config.context.L.
+    priority: 1=urgent, 2=high, 3=normal, 4=low.
+    assignees: list of ClickUp user IDs.
+    tags: list of tag name strings.
+    points: story points estimate.
+    Returns the created task id, name, and url.
+    """
+    try:
+        payload = {"name": name, "priority": priority}
+        if description:
+            payload["description"] = description
+        if assignees:
+            payload["assignees"] = assignees
+        if tags:
+            payload["tags"] = tags
+        if points is not None:
+            payload["points"] = points
+        result = _clickup_api(f"list/{list_id}/task", method="POST", payload=payload)
+        return json.dumps({
+            "id": result.get("id"),
+            "name": result.get("name"),
+            "url": result.get("url"),
+            "status": result.get("status", {}).get("status"),
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})

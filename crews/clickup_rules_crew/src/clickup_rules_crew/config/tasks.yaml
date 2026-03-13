@@ -1,0 +1,65 @@
+enforce_guard_rules:
+  description: >
+    GUARD RULES - Enforce workspace quality gates:
+
+    G1 (PHI Compliance Block): Check all bug lists and the active sprint for
+    tasks with "phi" or "hipaa" in name/tags that have status "done" or
+    "complete" but do NOT have the "compliance-reviewed" tag. If found, move
+    them back to "qa" status and add a comment or tag "needs-compliance-review".
+
+    G3 (Story Points Gate): Check the active sprint list for tasks in "to do"
+    or "in progress" status that have NO story points (points is null or 0).
+    Use the Auto-Estimate Story Points tool with dry_run=False to auto-fill
+    them. This keeps velocity tracking accurate.
+
+    G7 (HIPAA Auto-Watchers): Check all lists for tasks with "hipaa" in
+    name or tags. If found, ensure cu_ids 49000181 (fabiano/DevOps) and
+    93908266 (bhavyasaurabh/Clinical) are added as watchers by updating
+    the task assignees.
+
+    Use list IDs from the agent backstory. Report each violation found and
+    action taken.
+  expected_output: >
+    JSON report: {g1_phi_violations: [{task_id, name, action}],
+    g3_sp_filled: [{task_id, name, estimated_sp}],
+    g7_hipaa_watchers: [{task_id, name, watchers_added}]}
+  agent: rules_enforcer_agent
+
+enforce_flow_and_signal_rules:
+  description: >
+    FLOW + SIGNAL RULES - Enforce assignments and create alerts:
+
+    F6 (Auto-Assign Bugs): Check Frontend Bugs (901326360436), Backend Bugs
+    (901326360437), Mobile Bugs (901326360441), Security Vulns (901326360443).
+    Find tasks with NO assignees. Assign them to the domain team lead:
+    - Frontend bugs -> 49000180 (andreCarespace)
+    - Backend bugs -> 49000181 (fabiano-carespace)
+    - Mobile bugs -> 93908270 (YeddulaBharath)
+    - Security vulns -> 93908266 (bhavyasaurabh)
+    Use Update ClickUp Task with assignees: {"add": [user_id]}.
+
+    S1-S2 (SLA Breach Alerts): For each bug list, check tasks with priority
+    urgent/high/normal. Calculate age from date_updated (epoch ms). If age
+    exceeds SLA (urgent>4h, high>24h, normal>72h, low>168h), check if an
+    alert already exists in Alerts list (901326336266) by searching for
+    "SLA BREACH" + task name. If no existing alert, create one in the Alerts
+    list with priority=1 (urgent).
+
+    S4 (Security Alert): Check Security Vulns (901326360443) for any task.
+    Ensure all security tasks have priority=1 (urgent). If not, update them.
+
+    S6 (Stale Task Alert): Check the active sprint list for tasks in
+    "in progress" status where date_updated is older than 3 days (259200000 ms).
+    If found and no existing "STALE" alert exists for that task in Alerts list,
+    create a stale alert in the Alerts list (901326336266).
+
+    IMPORTANT: Always check for duplicate alerts before creating new ones using
+    the Check Duplicate Task tool on the Alerts list.
+  expected_output: >
+    JSON report: {f6_assigned: [{task_id, name, assigned_to}],
+    s1_s2_sla_breaches: [{task_id, name, priority, age_hours, alert_created}],
+    s4_security: [{task_id, name, priority_set}],
+    s6_stale: [{task_id, name, days_stale, alert_created}]}
+  agent: rules_enforcer_agent
+  context:
+    - enforce_guard_rules

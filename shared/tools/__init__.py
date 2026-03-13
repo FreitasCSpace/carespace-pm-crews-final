@@ -13,4 +13,5 @@ from .vanta import (
 )
 from .clickup_helpers import (
     get_tasks_by_list, check_duplicate_task, auto_estimate_sp,
+    update_clickup_task, add_tag_to_task, create_clickup_task,
 )
