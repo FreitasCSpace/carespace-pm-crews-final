@@ -209,8 +209,8 @@ def add_tag_to_task(task_id: str, tag_name: str) -> str:
 
 @tool("Create ClickUp Task")
 def create_clickup_task(list_id: str, name: str, description: str = "",
-                        priority: int = 3, assignees: list = None,
-                        tags: list = None, points: int = None) -> str:
+                        priority: int = 3, assignees: list[int] = None,
+                        tags: list[str] = None, points: int = None) -> str:
     """
     Create a new task in a ClickUp list.
     list_id: target list ID from shared.config.context.L.
