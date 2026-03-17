@@ -346,7 +346,22 @@ cp .env.example .env
 | `VANTA_CLIENT_ID` | compliance, exec_report | app.vanta.com → Settings → API |
 | `VANTA_CLIENT_SECRET` | compliance, exec_report | app.vanta.com → Settings → API |
 
-### 3. Running Standalone
+### 3. First Run (Cold Start)
+
+If you have existing GitHub issues and want to build your first sprint from them:
+
+```bash
+python orchestrator.py --bootstrap
+```
+
+This runs 3 crews **sequentially** (each depends on the previous):
+1. **intake_crew** — scans all 59 GitHub repos, creates tasks in Master Backlog with tags
+2. **triage_crew** — enforces SLAs, auto-assigns priorities, estimates story points
+3. **sprint_crew** — scores the now-populated backlog, creates Sprint 1, fills to 80% velocity, assigns engineers
+
+After bootstrap, the system runs on its own schedule. Sprint number and dates are auto-detected — no manual configuration needed.
+
+### 4. Running Standalone
 
 ```bash
 # Run all crews

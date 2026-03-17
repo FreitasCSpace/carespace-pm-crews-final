@@ -7,6 +7,7 @@ Usage:
     python orchestrator.py --daily                  # run daily schedule only
     python orchestrator.py --sprint                 # run sprint cycle crews
     python orchestrator.py --weekly                 # run weekly report crews
+    python orchestrator.py --bootstrap              # cold start: intake → triage → sprint (sequential)
 
 All crews are independent — no dependency ordering required.
 Crews run in parallel via CrewAI akickoff() + asyncio.gather().
@@ -254,24 +255,61 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--daily", action="store_true", help="Run daily schedule crews only")
     parser.add_argument("--weekly", action="store_true", help="Run weekly crews only")
     parser.add_argument("--sprint", action="store_true", help="Run sprint cycle crews only")
+    parser.add_argument(
+        "--bootstrap", action="store_true",
+        help="Cold start: intake → triage → sprint (sequential). "
+        "Use this when starting from scratch with existing GitHub issues.",
+    )
     return parser.parse_args()
+
+
+async def run_bootstrap() -> OrchestratorResult:
+    """Cold-start sequence: intake → triage → sprint (sequential).
+
+    Use when starting from scratch with existing GitHub issues.
+    1. intake_crew: scans all GitHub repos, populates Master Backlog
+    2. triage_crew: enforces SLAs, assigns priorities, estimates SP
+    3. sprint_crew: scores backlog, creates sprint, fills & assigns
+
+    These run sequentially because each depends on the previous output.
+    """
+    all_results = []
+    sequence = ["intake", "triage", "sprint"]
+
+    print("\n  BOOTSTRAP MODE — importing existing work into first sprint")
+    print("  " + "=" * 48)
+
+    for crew_name in sequence:
+        print(f"\n  Phase: {crew_name}")
+        print("  " + "-" * 48)
+        result = await run_crews([crew_name])
+        all_results.extend(result.crews)
+
+        # Stop if a phase fails
+        if any(not r.success for r in result.crews):
+            print(f"\n  Bootstrap stopped: {crew_name} failed.")
+            break
+
+    return OrchestratorResult(crews=all_results)
 
 
 def main() -> None:
     args = parse_args()
 
-    if args.crews:
+    if args.bootstrap:
+        result = asyncio.run(run_bootstrap())
+    elif args.crews:
         crew_list = args.crews.split(",")
+        result = asyncio.run(run_crews(crew_list))
     elif args.daily:
-        crew_list = SCHEDULE_GROUPS["daily"]
+        result = asyncio.run(run_crews(SCHEDULE_GROUPS["daily"]))
     elif args.weekly:
-        crew_list = SCHEDULE_GROUPS["weekly"]
+        result = asyncio.run(run_crews(SCHEDULE_GROUPS["weekly"]))
     elif args.sprint:
-        crew_list = SCHEDULE_GROUPS["sprint"]
+        result = asyncio.run(run_crews(SCHEDULE_GROUPS["sprint"]))
     else:
-        crew_list = SCHEDULE_GROUPS["all"]
+        result = asyncio.run(run_crews(SCHEDULE_GROUPS["all"]))
 
-    result = asyncio.run(run_crews(crew_list))
     print(result.summary())
 
     if any(not r.success for r in result.crews):
