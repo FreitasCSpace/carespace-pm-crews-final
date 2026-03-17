@@ -76,13 +76,30 @@ def _clickup_api(endpoint: str, method: str = "GET", payload: dict | None = None
 
 
 def _check_duplicate(title_fragment: str) -> bool:
-    """Returns True if a matching task already exists in the workspace."""
+    """Returns True if a matching task already exists in the Master Backlog."""
     try:
-        search_url = f"team/{WORKSPACE_ID}/task?search={title_fragment}&archived=false"
-        data = _clickup_api(search_url)
-        return len(data.get("tasks", [])) > 0
+        # Search ONLY within the Master Backlog list, not the whole workspace
+        data = _clickup_api(f"list/{INTAKE_TARGET}/task?archived=false")
+        tasks = data.get("tasks", [])
+        fragment_lower = title_fragment.lower()
+        return any(fragment_lower in t["name"].lower() for t in tasks)
     except Exception:
         return False  # if search fails, allow creation
+
+
+# Cache backlog tasks to avoid hitting the API for every single issue
+_backlog_cache = None
+
+def _check_duplicate_cached(title_fragment: str) -> bool:
+    """Cached version — loads backlog once, checks in memory."""
+    global _backlog_cache
+    if _backlog_cache is None:
+        try:
+            data = _clickup_api(f"list/{INTAKE_TARGET}/task?archived=false")
+            _backlog_cache = [t["name"].lower() for t in data.get("tasks", [])]
+        except Exception:
+            _backlog_cache = []
+    return any(title_fragment.lower() in name for name in _backlog_cache)
 
 
 def _create_task(list_id: str, name: str, description: str, priority: int,
@@ -143,8 +160,8 @@ def batch_import_engineering() -> str:
                 itype = _itype(issue.title)
                 dedup_key = f"{rname}#{issue.number}"
 
-                # Dedup check
-                if _check_duplicate(dedup_key):
+                # Dedup check (only against Master Backlog, not old spaces)
+                if _check_duplicate_cached(dedup_key):
                     stats["duplicates_skipped"] += 1
                     continue
 
@@ -159,6 +176,9 @@ def batch_import_engineering() -> str:
                     stats["by_domain"][domain] = stats["by_domain"].get(domain, 0) + 1
                     stats["by_type"][itype] = stats["by_type"].get(itype, 0) + 1
                     created_tasks.append({"title": title[:80], "priority": pri})
+                    # Add to cache so we don't create duplicates within same run
+                    if _backlog_cache is not None:
+                        _backlog_cache.append(title.lower())
 
                     # Cross-link back to GitHub
                     task_url = result.get("url", "")
@@ -192,9 +212,13 @@ def batch_import_compliance() -> str:
     them into the ClickUp Master Backlog in batches. Maps VantaCrews labels
     to ClickUp tags and priorities automatically.
 
-    Call this ONCE — it processes all 500+ issues and returns a summary.
+    Call this ONCE — it processes all open issues and returns a summary.
     No need to call check_duplicate_task or create_clickup_task separately.
     """
+    # Reset cache to pick up any tasks created by engineering import
+    global _backlog_cache
+    _backlog_cache = None
+
     stats = {
         "issues_found": 0, "tasks_created": 0, "duplicates_skipped": 0,
         "errors": 0, "by_tag": {}, "by_priority": {},
@@ -249,6 +273,9 @@ def batch_import_compliance() -> str:
                 for t in tags:
                     stats["by_tag"][t] = stats["by_tag"].get(t, 0) + 1
                 created_tasks.append({"title": title[:80], "priority": priority})
+                # Add to cache so we don't create duplicates within same run
+                if _backlog_cache is not None:
+                    _backlog_cache.append(title.lower())
 
                 # Cross-link back to GitHub
                 task_url = result.get("url", "")
