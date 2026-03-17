@@ -1,0 +1,34 @@
+scan_and_gather:
+  description: >
+    Pull all tasks from the current sprint list ({sprint_list_id}).
+    Categorize by status: Done (completed since last standup), In Progress, Blocked.
+    For each In Progress task, check date_updated -- if >3 days ago, mark as stale.
+    Scan task descriptions for blocker keywords: 'waiting on', 'blocked by',
+    'depends on', 'need from', 'pending'.
+    For blockers, trace dependency chains and calculate severity:
+    CRITICAL (<3d to deadline), HIGH (<7d), MEDIUM (<14d), LOW (>14d).
+    Also check GitHub: stale PRs (>7d) and CI failures on main branches.
+    Check Alerts list (901326439234) for unresolved alerts >24h.
+  expected_output: >
+    JSON with: done_items, in_progress_items, blocked_items, stale_items,
+    dependency_chains (with severity), stale_prs, ci_failures, stale_alerts.
+  agent: daily_pulse_agent
+
+post_and_escalate:
+  description: >
+    Format and post the daily standup to #standup using post_standup tool:
+    - Done: checkmark list of completed items
+    - In Progress: items with assignee and SP
+    - Blocked: items with blocker reason
+    - Needs Attention: stale tasks, stale PRs, CI failures
+
+    Then escalate each blocker individually:
+    - Post each blocker to #alerts using post_blocker with description,
+      task URL, owner, and business impact from dependency chain analysis.
+    - CRITICAL blockers: also post to #engineering.
+    - For stale tasks (>3d no update): post gentle nudge to #alerts.
+  expected_output: >
+    Confirmation of standup posted and number of escalations sent.
+  agent: daily_pulse_agent
+  context:
+    - scan_and_gather

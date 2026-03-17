@@ -1,38 +1,26 @@
 monitor:
   description: >
-    Monitor all 4 Customer Success lists and take action on each.
+    Daily scan of customer success lists:
 
-    1) Client Onboarding (901326354926): Pull all tasks from this list in
-    ClickUp. Identify onboardings that are stale for more than 7 days -- these
-    are at risk of missing the 30-day SLA. For each at-risk onboarding, add a
-    comment noting days elapsed and remaining SLA time. Find any onboardings
-    without an owner and create an alert task in Alerts & SLA Watchlist
-    (901326336266). Post to #customer-success about at-risk onboardings.
+    1. Onboarding & Accounts (901326439266):
+       - Find stale onboardings (>7d no update within 30d SLA). Add comments.
+       - Create alerts for unowned onboardings in Alerts (901326439234).
+       - Identify churn risk: no login 14+ days, >3 support tickets,
+         renewal <60 days. Create high-priority alerts.
 
-    2) Account Health (901326354930): Pull all account health records from
-    ClickUp. Identify accounts showing churn risk signals: no activity for 14+
-    days, more than 3 open support tickets referenced in comments or linked
-    tasks, or renewal date less than 60 days away. For each at-risk account,
-    add a comment documenting the risk factors. For accounts with renewal less
-    than 60 days, create an alert task at high priority. Post a churn risk
-    summary to #customer-success.
+    2. Support Escalations (901326439271):
+       - Find unassigned tickets. Create alerts.
+       - Find unresponded tickets >24h. Post to #customer-success.
+       - Find stale >48h. Create urgent alerts in Alerts list.
 
-    3) Support Escalations (901326354933): Find unassigned support tickets in
-    ClickUp. For any unassigned ticket, immediately create an alert task
-    flagging it for assignment. Find tickets without a response for more than
-    24 hours. For each stale ticket, post to #customer-success. For tickets
-    stale more than 2 days (48 hours), create an alert task at urgent priority
-    and post an urgent escalation message to #customer-success.
+    3. Client feedback items tagged 'client-feedback':
+       - For each without a linked backlog task, check_duplicate_task first.
+       - Create task in Master Backlog (901326439232) titled
+         '[FEEDBACK] summary' with tags [relevant-domain, 'feature', 'client-feedback'].
+       - Cross-link with comments on both tasks.
 
-    4) Client Feedback (901326354935): Pull all feedback items from ClickUp.
-    For each feedback task that does not already have a linked Master Backlog
-    task (check comments for existing cross-links), create a corresponding
-    task in the Master Backlog list (901326359646). The backlog task title
-    should be "[FEEDBACK] " followed by the feedback summary. Include the
-    original feedback details in the description. Add a comment on the feedback
-    task with the new backlog task URL, and add a comment on the backlog task
-    with the original feedback task URL to create a bidirectional cross-link.
+    Post summary to #customer-success only if actions taken.
   expected_output: >
-    JSON: {onboarding_at_risk: N, churn_risk: N, support_sla_breach: N,
-    feedback_logged: N}
+    JSON: {onboardings_at_risk: N, churn_risks: N, unassigned_tickets: N,
+    stale_tickets: N, feedback_routed: N, alerts_created: N}
   agent: customer_success_agent

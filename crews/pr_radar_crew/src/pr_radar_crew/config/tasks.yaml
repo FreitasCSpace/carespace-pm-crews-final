@@ -1,33 +1,18 @@
 scan:
   description: >
-    Perform a full PR and CI scan across the carespace-ai GitHub organization.
+    Full PR and CI scan across all carespace-ai repos:
 
-    Step 1 - Full PR scan: Retrieve all open PRs across every repo in the
-    carespace-ai org. Record each PR's repo, number, title, author, creation
-    date, last update date, and current reviewers.
-
-    Step 2 - Stale PR handling (>7 days): Identify PRs with no activity for
-    more than 7 days. For each stale PR: determine the best reviewer candidate
-    from repo contributors. Check if a ClickUp tracking task already exists for
-    this PR. If no task exists, create a task in ClickUp in the appropriate repo
-    list with the PR link, author, and suggested reviewer. Post to #engineering
-    with the stale PR details and suggested reviewer.
-
-    Step 3 - Critical stale PRs (>30 days): For any PR stale more than 30
-    days, create an alert task in the Alerts & SLA Watchlist (901326336266) at
-    urgent priority with full context including PR age, author, and repo. Post
-    to #engineering as a critical escalation.
-
-    Step 4 - CI failure detection: Check the latest CI status on the main
-    branch for carespace-ui, carespace-api-gateway, carespace-admin, and
-    carespace-sdk. For any failing CI run: create a high-priority task in the
-    repo's ClickUp list. Add a comment with the failure logs or link. Post to
-    #engineering.
-
-    Step 5 - Duplicate branch detection: While scanning PRs, identify PRs
-    targeting the same feature or having near-identical branch names (e.g.,
-    PR #6 and #7 on iOS). Flag these as potential duplicates by adding a
-    comment on both PRs and posting to #engineering.
+    1. Fetch all open PRs. Identify stale (>7d) and critical stale (>30d).
+    2. For stale PRs: find best reviewer via get_contributors, check
+       check_duplicate_task first, then create task in Master Backlog
+       (901326439232) with tags [domain, 'pr-review', 'github']. 2 SP.
+    3. For critical stale (>30d): create urgent alert in Alerts (901326439234).
+    4. Check CI status on main branches of: carespace-ui, carespace-api-gateway,
+       carespace-admin, carespace-sdk. For failures, check_duplicate_task first,
+       then create task in Master Backlog with tags [domain, 'ci-fix', 'github']. 3 SP.
+    5. Detect duplicate branches (PRs with similar names or same target).
+    6. Post summary to #engineering with counts and key items.
   expected_output: >
-    JSON: {stale_prs: N, critical_stale: N, ci_failures: N, tasks_created: N}
+    JSON: {total_prs: N, stale_prs: N, critical_stale: N, ci_failures: N,
+    tasks_created: N, alerts_created: N, duplicate_branches: []}
   agent: pr_radar_agent

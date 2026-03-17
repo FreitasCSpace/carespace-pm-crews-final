@@ -1,24 +1,23 @@
 intake_scan:
   description: >
-    Scan the carespace-ai GitHub org for open issues not yet tracked in ClickUp.
+    Scan all carespace-ai GitHub repos for open issues and PRs.
 
-    CRITICAL — DUPLICATE CHECK FIRST: For EVERY GitHub issue, BEFORE creating
-    anything, use check_duplicate_task with the repo name and issue number
-    (e.g. "repo#123") to search ClickUp. If ANY match is found (even partial
-    title match), SKIP that issue entirely — do NOT create a task, do NOT
-    comment on the GitHub issue, do NOT create an alert. Just count it as
-    "skipped" and move on.
+    For EVERY issue found:
+    1. Call check_duplicate_task with 'repo#N' pattern.
+       If ANY match found: SKIP. Do NOT create task, comment, alert, or Slack post.
+    2. Only if zero matches: determine domain from repo mapping, classify type
+       and priority from title/labels.
+    3. Create task in Master Backlog (901326439232) with:
+       - Title: '[TYPE] Short desc (repo#N)'
+       - Tags: [domain_tag, type_tag, 'github']
+       - Priority based on classification
+       - Description includes GitHub URL and body preview
+    4. Comment on the GitHub issue with the ClickUp task URL.
+    5. For security issues: also create alert in Alerts (901326439234).
 
-    ONLY for issues with zero ClickUp matches:
-    1. Determine domain from REPO_DOMAIN, classify type
-       (security/bug/feature/tech_debt/task), set priority
-    2. Create task in correct ClickUp list with format '[TYPE] Short desc (repo#N)'
-    3. Cross-link back to GitHub by commenting on the issue with the ClickUp URL
-    4. For security issues, also create alert in Alerts & SLA Watchlist (901326336266)
-
-    Post summary to #engineering ONLY if at least 1 new task was created.
-    If all issues were skipped (already tracked), do NOT post to Slack.
+    After scanning all repos, post summary to #engineering ONLY if
+    at least 1 new task was created. Include count by domain and type.
   expected_output: >
-    JSON summary: {created: N, skipped: N, alerts_created: N, tasks: [{github_url,
-    clickup_url, list_id, priority, type}]}
+    JSON summary: {scanned_repos: N, issues_found: N, tasks_created: N,
+    duplicates_skipped: N, security_alerts: N, by_domain: {}, by_type: {}}
   agent: intake_agent

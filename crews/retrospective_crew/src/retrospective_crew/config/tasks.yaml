@@ -1,56 +1,42 @@
 measure:
   description: >
-    Calculate sprint metrics for {sprint_name} (Sprint {sprint_number}). Pull
-    tasks from {sprint_list_id} in ClickUp to compute: planned vs completed task
-    counts, planned vs completed story points, completion rate percentage,
-    per-engineer breakdown (planned SP, done SP, planned tasks, done tasks),
-    carry-over tasks (not done at sprint end), and the recommended SP for next
-    sprint (completed_sp x 0.80). Also check for stale PRs still open at sprint
-    end. Check CI status on key repos to assess CI health at sprint close.
-    Measure commit volume on key repos during the sprint. Compile all metrics
-    into a structured report.
+    Pull all tasks from the completed sprint list ({sprint_list_id}).
+    Calculate: planned vs completed tasks and SP, completion rate,
+    per-engineer breakdown (tasks done, SP, carry-overs),
+    next sprint SP = completed_sp × 0.80.
+    Check GitHub: stale PRs, CI status, commit volume across repos.
   expected_output: >
-    JSON object with: planned_tasks, completed_tasks, completion_rate_pct,
-    planned_sp, completed_sp, next_sprint_recommended_sp, carry_over (array of
-    task names and statuses), by_engineer (object), stale_prs_at_close (count),
-    ci_health (object with repo statuses), commit_activity (object with repo
-    commit counts).
+    JSON with all metrics: completion_rate, velocity_sp, planned_sp,
+    per_engineer (array), carry_overs (array), github_health,
+    recommended_next_sp.
   agent: retrospective_agent
 
 write_retro:
   description: >
-    Write the full retrospective document page in ClickUp Docs using
-    document_id 'xnum1-4273' (Sprint Engine doc). Page name:
-    'Retro: {sprint_name}'. Content must include in markdown: 1. Sprint Overview
-    header with sprint number, dates, and health indicator (GREEN/YELLOW/RED based
-    on completion rate: >=80% GREEN, >=60% YELLOW, <60% RED). 2. Velocity section
-    with planned vs completed SP, completion rate, and trend vs previous sprints.
-    3. Per-Engineer Performance table with columns: Engineer, Planned SP, Done SP,
-    Tasks Done, Completion %. 4. Carry-Over section listing every incomplete task
-    with its status and why it didn't finish (if discernible). 5. GitHub Health
-    section with stale PR count and CI status per repo. 6. What Went Well section
-    (specific accomplishments). 7. What Needs Improvement section (specific
-    problems). 8. Action Items section -- each item must have: description,
-    assignee, due date, and measurable success criteria. 9. Next Sprint
-    Recommendation with recommended SP budget (completed_sp x 0.80) and
-    suggested focus areas based on carry-overs and patterns.
+    Write the retrospective document as a page in ClickUp Docs
+    (Sprint Engine doc: xnum1-4273). Include:
+    - Sprint Overview with health score (GREEN/YELLOW/RED)
+    - Velocity section (planned vs actual)
+    - Per-Engineer Performance table
+    - Carry-Over Analysis
+    - GitHub Health (PRs, CI)
+    - What Went Well
+    - What Needs Improvement
+    - Action Items (description, assignee, due date, success criteria)
+    - Next Sprint Recommendation
   expected_output: >
-    Confirmation that the retro page was written to ClickUp Docs with the page
-    name and document ID.
+    Confirmation with doc URL.
   agent: retrospective_agent
   context:
     - measure
 
 post_and_log:
   description: >
-    Post the retrospective summary to Slack. Post the sprint name, completion
-    percentage, velocity SP, carry-over count, and the ClickUp doc URL to
-    #sprint-board. Also post a brief one-paragraph summary to #engineering
-    highlighting the key takeaway and next sprint's recommended SP.
+    Post retro summary to #sprint-board with: completion %, velocity SP,
+    carry-overs, and doc URL. Post brief one-paragraph summary to #engineering.
+    Log velocity data as a task in Sprint History (901326439238) for tracking.
   expected_output: >
-    Confirmation that retro was posted to #sprint-board, summary posted to
-    #engineering. Include: {completion_rate, velocity_sp, carry_over_count,
-    next_sprint_sp, doc_url}.
+    Confirmation of Slack posts and velocity log.
   agent: retrospective_agent
   context:
     - write_retro

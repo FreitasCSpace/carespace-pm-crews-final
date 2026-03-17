@@ -1,202 +1,95 @@
 """
-context.py — Single source of truth for the entire CareSpace ClickUp workspace.
-Generated from live workspace analysis 2026-03-12. Update here when structure changes.
+context.py — Single source of truth for the CareSpace AI PM system.
+Simplified architecture: 2 spaces, tags for domain visibility, one backlog.
+
+Redesigned 2026-03-17. Previous version had 6 spaces / 150+ lists.
+New: 2 spaces, ~16 lists. Domain routing via tags, not separate lists.
 """
 
 WORKSPACE_ID = "31124097"
 GITHUB_ORG   = "carespace-ai"
 
 # ======================================================================
-# SPACES
+# SPACES (2 total — down from 6)
 # ======================================================================
 SPACES = {
-    "sprint_engine":       "55072448",
-    "gtm_revenue":         "901313672190",
-    "product_engineering": "901313673268",
-    "infra_devops":        "901313673272",
-    "compliance_security": "901313673273",
-    "bugs_support":        "901313673276",
+    "engine": "901313687155",      # Everything product, engineering, ops
+    "gtm":    "901313687157",      # Sales, marketing, customer success
 }
 
 # ======================================================================
 # FOLDERS
 # ======================================================================
 FOLDERS = {
-    # Sprint Engine
-    "sprint_ops":      "901317750578",
-    "sop":             "901317762375",
-    "sprint":          "901317765699",
-    # GTM
-    "sales_vertical":  "901317762698",
-    "marketing_gtm":   "901317762703",
-    "customer_success":"901317762705",
-    "revenue_analytics":"901317762710",
-    # Engineering
-    "frontend":        "901317766126",
-    "backend":         "901317766127",
-    "mobile":          "901317766130",
-    "ai_cv":           "901317766132",
-    "bots_comms":      "901317766134",
-    "video_media":     "901317766254",
-    "data_analytics":  "901317766256",
-    "docs_content":    "901317766261",
-    "dev_tools":       "901317766266",
-    # Infra
-    "docker_deploy":   "901317766146",
-    "auth_identity":   "901317766148",
-    "monitoring":      "901317766150",
-    "cicd":            "901317766151",
-    # Compliance
-    "soc2":            "901317766167",
-    "hipaa":           "901317766168",
-    "vanta":           "901317766173",
-    # Bugs
-    "bug_reports":     "901317766187",
-    "customer_support":"901317766188",
+    # CareSpace Engine
+    "backlog":    "901317811713",
+    "sprints":    "901317811717",
+    "operations": "901317811718",
+    "playbooks":  "901317811721",
+    # GTM & Revenue
+    "pipeline":          "901317811738",
+    "marketing":         "901317811726",
+    "customer_success":  "901317811730",
 }
 
 # ======================================================================
-# ALL LIST IDs
+# LISTS — The only IDs crews need
 # ======================================================================
 L = {
-    # Sprint Engine
-    "recurring_ops":         "901326336253",
-    "automation_registry":   "901326336259",
-    "task_templates":        "901326336262",
-    "alerts_sla":            "901326336266",
-    "product_roadmap":       "901326359641",
-    "master_backlog":        "901326359646",
-    "sprint_1":              "901326359655",
-    "sprint_2":              "901326359660",
-    "sprint_3":              "901326359665",
-    "sprint_4":              "901326359670",
-    "sprint_5":              "901326359674",
-    "sprint_6":              "901326359676",
+    # === CareSpace Engine ===
+    # Backlog (single intake point — everything lands here)
+    "master_backlog":       "901326439232",
 
-    # GTM / Revenue
-    "sales_healthcare":      "901326354881",
-    "sales_insurance":       "901326354882",
-    "sales_employers":       "901326354886",
-    "sales_senior":          "901326354890",
-    "sales_sports":          "901326354891",
-    "sales_construction":    "901326354896",
-    "pipeline_overview":     "901326354900",
-    "content_calendar":      "901326354907",
-    "marketing_campaigns":   "901326354910",
-    "product_launches":      "901326354911",
-    "partner_events":        "901326354916",
-    "seo_web":               "901326354920",
-    "client_onboarding":     "901326354926",
-    "account_health":        "901326354930",
-    "support_escalations":   "901326354933",
-    "client_feedback":       "901326354935",
-    "pipeline_metrics":      "901326354940",
-    "vertical_performance":  "901326354950",
-    "cohort_retention":      "901326354956",
+    # Sprints (auto-created by sprint_crew — folder starts empty)
+    # sprint_crew creates: "Sprint N — {start} to {end}" in folder 901317811717
 
-    # Product Engineering -- Frontend
-    "carespace_ui":          "901326360336",
-    "carespace_landingpage": "901326360339",
-    "carespace_site":        "901326360341",
-    "carespace_lms":         "901326360343",
-    "meta_web_view":         "901326360348",
-    "healthstartiq":         "901326360349",
+    # Operations
+    "alerts":               "901326439234",   # Alerts & Escalations
+    "sprint_history":       "901326439238",   # Sprint History & Metrics
 
-    # Product Engineering -- Backend
-    "carespace_admin":       "901326360350",
-    "carespace_gateway":     "901326360351",
-    "carespace_strapi":      "901326360352",
-    "strapi_services":       "901326360354",
+    # === GTM & Revenue ===
+    # Pipeline
+    "active_deals":         "901326439255",
+    "at_risk_deals":        "901326439258",
 
-    # Product Engineering -- Mobile
-    "mobile_android":        "901326360357",
-    "mobile_ios":            "901326360360",
-    "mobile_flutter":        "901326360361",
-    "carespace_sdk":         "901326360362",
+    # Marketing
+    "content_campaigns":    "901326439261",   # Content & Campaigns
+    "product_launches":     "901326439262",   # Product Launches
 
-    # Product Engineering -- AI & CV
-    "pose_estimator":        "901326360363",
-    "pose_classifier":       "901326360365",
-    "metahuman_coach":       "901326360366",
-    "mediapipe_video":       "901326360367",
-
-    # Product Engineering -- Bots & Comms
-    "carespace_botkit":      "901326360368",
-    "carespace_chat":        "901326360370",
-    "azure_comms":           "901326360371",
-
-    # Product Engineering -- Video & Media
-    "media_converter":       "901326360572",
-    "video_converter":       "901326360573",
-    "virtual_cam":           "901326360575",
-
-    # Product Engineering -- Data & Docs
-    "population_health":     "901326360580",
-    "product_metrics":       "901326360583",
-    "carespace_docs":        "901326360586",
-    "carespace_docs_turbo":  "901326360588",
-    "bug_tracker_repo":      "901326360591",
-    "skills_reports":        "901326360593",
-
-    # Infra & DevOps
-    "docker_nginx":          "901326360378",
-    "azure_infra":           "901326360381",
-    "fusionauth":            "901326360382",
-    "stealthid":             "901326360386",
-    "upass":                 "901326360388",
-    "monitoring_status":     "901326360393",
-    "github_actions":        "901326360395",
-    "github_clickup_sync":   "901326360404",
-
-    # Compliance & Security
-    "soc2_controls":         "901326360411",
-    "soc2_access_reviews":   "901326360412",
-    "soc2_audit":            "901326360413",
-    "hipaa_baa":             "901326360416",
-    "hipaa_phi":             "901326360417",
-    "hipaa_risk":            "901326360419",
-    "vanta_failures":        "901326360426",
-    "vendor_risk":           "901326360429",
-    "security_questionnaires":"901326360432",
-
-    # Bugs & Support
-    "frontend_bugs":         "901326360436",
-    "backend_bugs":          "901326360437",
-    "mobile_bugs":           "901326360441",
-    "security_vulns":        "901326360443",
-    "support_tickets":       "901326360444",
+    # Customer Success
+    "onboarding_accounts":  "901326439266",   # Onboarding & Accounts
+    "support_escalations":  "901326439271",   # Support Escalations
 }
 
 # ======================================================================
-# SPRINT SCHEDULE -- ordered list; ACTIVE_SPRINT computed automatically
+# TAGS — Replace separate lists for domain/type visibility
 # ======================================================================
-SPRINT_SCHEDULE = [
-    {"number": 1, "name": "Sprint 1 -- Mar 16-Mar 30",  "start": "2026-03-16", "end": "2026-03-30", "list_id": L["sprint_1"]},
-    {"number": 2, "name": "Sprint 2 -- Mar 30-Apr 13",  "start": "2026-03-30", "end": "2026-04-13", "list_id": L["sprint_2"]},
-    {"number": 3, "name": "Sprint 3 -- Apr 13-Apr 27",  "start": "2026-04-13", "end": "2026-04-27", "list_id": L["sprint_3"]},
-    {"number": 4, "name": "Sprint 4 -- Apr 27-May 11",  "start": "2026-04-27", "end": "2026-05-11", "list_id": L["sprint_4"]},
-    {"number": 5, "name": "Sprint 5 -- May 11-May 25",  "start": "2026-05-11", "end": "2026-05-25", "list_id": L["sprint_5"]},
-    {"number": 6, "name": "Sprint 6 -- May 25-Jun 8",   "start": "2026-05-25", "end": "2026-06-08", "list_id": L["sprint_6"]},
+# Crews apply these tags when creating/triaging tasks.
+# Team uses saved Views filtered by tags.
+DOMAIN_TAGS = [
+    "frontend", "backend", "mobile", "sdk",
+    "ai-cv", "infra", "bots", "video",
 ]
 
-def _get_active_sprint():
-    """Returns the sprint whose date range contains today, or the last sprint."""
-    from datetime import date
-    today = date.today().isoformat()
-    for s in SPRINT_SCHEDULE:
-        if s["start"] <= today <= s["end"]:
-            return dict(s)
-    # If between sprints or past all, return the nearest upcoming or last
-    for s in SPRINT_SCHEDULE:
-        if s["start"] > today:
-            return dict(s)
-    return dict(SPRINT_SCHEDULE[-1])
+TYPE_TAGS = [
+    "bug", "feature", "tech-debt", "security",
+    "compliance", "pr-review", "ci-fix", "task",
+]
 
-ACTIVE_SPRINT = _get_active_sprint()
+SOURCE_TAGS = [
+    "github", "vanta", "client-feedback", "internal",
+]
+
+VERTICAL_TAGS = [
+    "healthcare", "insurance", "employers", "senior-care",
+    "sports", "construction", "manufacturing", "corrections",
+    "public-services",
+]
 
 # ======================================================================
-# GITHUB -> CLICKUP ROUTING
+# GITHUB -> TAG ROUTING (replaces BUG_TARGET / FEATURE_TARGET)
 # ======================================================================
+# intake_crew tags tasks by domain — everything goes to master_backlog
 REPO_DOMAIN = {
     "carespace-ui":                        "frontend",
     "carespace-landingpage":               "frontend",
@@ -213,11 +106,11 @@ REPO_DOMAIN = {
     "carespace-mobile-ios":                "mobile",
     "carespace_mobile":                    "mobile",
     "carespace-sdk":                       "sdk",
-    "PoseEstimator":                       "ai_cv",
-    "carespace-poseestimation":            "ai_cv",
-    "carespace-poseestimation-classifier": "ai_cv",
-    "mediapipeAnnotateVideo":              "ai_cv",
-    "MetaHumanCoach":                      "ai_cv",
+    "PoseEstimator":                       "ai-cv",
+    "carespace-poseestimation":            "ai-cv",
+    "carespace-poseestimation-classifier": "ai-cv",
+    "mediapipeAnnotateVideo":              "ai-cv",
+    "MetaHumanCoach":                      "ai-cv",
     "carespace-botkit":                    "bots",
     "carespace-chat":                      "bots",
     "acs":                                 "bots",
@@ -225,73 +118,69 @@ REPO_DOMAIN = {
     "carespace-video-converter":           "video",
     "Carespace-VirtualCam":                "video",
     "carespace-docker":                    "infra",
-    "carespace-fusionauth":                "infra",
+    "carespace-fusionauth":               "infra",
     "carespace-monitoring":                "infra",
     "carespace-bug-tracker":               "infra",
 }
 
-BUG_TARGET = {
-    "frontend": L["frontend_bugs"],
-    "backend":  L["backend_bugs"],
-    "mobile":   L["mobile_bugs"],
-    "sdk":      L["security_vulns"],
-    "ai_cv":    L["frontend_bugs"],
-    "bots":     L["backend_bugs"],
-    "video":    L["frontend_bugs"],
-    "infra":    L["backend_bugs"],
-}
-
-FEATURE_TARGET = {
-    "frontend": L["carespace_ui"],
-    "backend":  L["carespace_admin"],
-    "mobile":   L["mobile_ios"],
-    "sdk":      L["carespace_sdk"],
-    "ai_cv":    L["pose_estimator"],
-    "bots":     L["carespace_botkit"],
-    "video":    L["media_converter"],
-    "infra":    L["docker_nginx"],
-}
-
-# ======================================================================
-# TEAM
-# ======================================================================
-TEAM = {
-    # Core engineering (GitHub contributors)
-    "fusuma":            {"domains": ["ai_cv","sdk","mobile","backend"], "cap_sp": 20, "max_tasks": 4, "cu_id": "48998538"},
-    "andreCarespace":    {"domains": ["frontend"],                        "cap_sp": 20, "max_tasks": 4, "cu_id": "49000180"},
-    "BMarcano":          {"domains": ["frontend"],                        "cap_sp": 18, "max_tasks": 3, "cu_id": "112101513"},
-    "bhavyasaurabh":     {"domains": ["ai_cv","frontend"],               "cap_sp": 18, "max_tasks": 3, "cu_id": "93908266"},
-    "Deekshakain":       {"domains": ["frontend"],                        "cap_sp": 16, "max_tasks": 3, "cu_id": "61019156"},
-    "binunexturn":       {"domains": ["frontend","backend"],              "cap_sp": 20, "max_tasks": 4, "cu_id": "61025897"},
-    "fabiano-carespace": {"domains": ["backend","infra"],                 "cap_sp": 18, "max_tasks": 3, "cu_id": "49000181"},
-    "YeddulaBharath":    {"domains": ["mobile","sdk"],                    "cap_sp": 16, "max_tasks": 3, "cu_id": "93908270"},
-    "R-Kapil-Kumar":     {"domains": ["mobile","sdk"],                    "cap_sp": 16, "max_tasks": 3, "cu_id": "81941440"},
-    # Nexturn extended team
-    "harshitdiyora":     {"domains": ["frontend","backend"],              "cap_sp": 16, "max_tasks": 3, "cu_id": "81942238"},
-    "ratnakumar":        {"domains": ["mobile","backend"],                "cap_sp": 16, "max_tasks": 3, "cu_id": "81941439"},
-    "sreenivas":         {"domains": ["mobile","sdk"],                    "cap_sp": 16, "max_tasks": 3, "cu_id": "93908269"},
-    "rohithsuri":        {"domains": ["frontend","backend"],              "cap_sp": 16, "max_tasks": 3, "cu_id": "93908271"},
-    "sandeep":           {"domains": ["backend","infra"],                 "cap_sp": 16, "max_tasks": 3, "cu_id": "111928715"},
-    "sujanmahapatra":    {"domains": ["frontend","backend"],              "cap_sp": 16, "max_tasks": 3, "cu_id": "111951799"},
-    "shubhamsanjog":     {"domains": ["frontend"],                        "cap_sp": 16, "max_tasks": 3, "cu_id": "112029068"},
-    "mubinashaikh":      {"domains": ["frontend"],                        "cap_sp": 16, "max_tasks": 3, "cu_id": "111980875"},
-    "kishorkumar":       {"domains": ["backend"],                         "cap_sp": 16, "max_tasks": 3, "cu_id": "254678220"},
-}
+# Everything routes to master_backlog with tags — no more per-domain lists
+INTAKE_TARGET = L["master_backlog"]
 
 DOMAIN_KEYWORDS = {
     "frontend": ["ui","react","css","storybook","design system","kiosk","dashboard","typescript","nextjs","html","component","plumb line","rom scan","onboarding ui"],
     "backend":  ["api","endpoint","gateway","strapi","auth","rbac","guard","middleware","database","prisma","nestjs","node","rest","graphql","webhook"],
     "mobile":   ["android","ios","flutter","mobile","swift","kotlin","wkwebview","offline","push notification","intake screen"],
     "sdk":      ["sdk","native sdk","production readiness","android sdk","ios sdk","sdk v1"],
-    "ai_cv":    ["pose","cv","computer vision","model","inference","mediapipe","rom analysis","poseestimator","skeleton","ml","ai","opencv","classifier"],
+    "ai-cv":    ["pose","cv","computer vision","model","inference","mediapipe","rom analysis","poseestimator","skeleton","ml","ai","opencv","classifier"],
     "infra":    ["docker","azure","kubernetes","ci","cd","pipeline","monitoring","fusionauth","nginx","ssl","devops","github actions","deployment"],
     "bots":     ["botkit","chat","acs","azure communication","risecx"],
     "video":    ["video","media","converter","virtualcam","webcam","webm"],
 }
 
 # ======================================================================
-# SPRINT SCORING
+# TEAM
 # ======================================================================
+TEAM = {
+    # Core engineering
+    "fusuma":            {"domains": ["ai-cv","sdk","mobile","backend"], "cap_sp": 20, "max_tasks": 4, "cu_id": "48998538"},
+    "andreCarespace":    {"domains": ["frontend"],                       "cap_sp": 20, "max_tasks": 4, "cu_id": "49000180"},
+    "BMarcano":          {"domains": ["frontend"],                       "cap_sp": 18, "max_tasks": 3, "cu_id": "112101513"},
+    "bhavyasaurabh":     {"domains": ["ai-cv","frontend"],              "cap_sp": 18, "max_tasks": 3, "cu_id": "93908266"},
+    "Deekshakain":       {"domains": ["frontend"],                       "cap_sp": 16, "max_tasks": 3, "cu_id": "61019156"},
+    "binunexturn":       {"domains": ["frontend","backend"],             "cap_sp": 20, "max_tasks": 4, "cu_id": "61025897"},
+    "fabiano-carespace": {"domains": ["backend","infra"],                "cap_sp": 18, "max_tasks": 3, "cu_id": "49000181"},
+    "YeddulaBharath":    {"domains": ["mobile","sdk"],                   "cap_sp": 16, "max_tasks": 3, "cu_id": "93908270"},
+    "R-Kapil-Kumar":     {"domains": ["mobile","sdk"],                   "cap_sp": 16, "max_tasks": 3, "cu_id": "81941440"},
+    # Nexturn extended team
+    "harshitdiyora":     {"domains": ["frontend","backend"],             "cap_sp": 16, "max_tasks": 3, "cu_id": "81942238"},
+    "ratnakumar":        {"domains": ["mobile","backend"],               "cap_sp": 16, "max_tasks": 3, "cu_id": "81941439"},
+    "sreenivas":         {"domains": ["mobile","sdk"],                   "cap_sp": 16, "max_tasks": 3, "cu_id": "93908269"},
+    "rohithsuri":        {"domains": ["frontend","backend"],             "cap_sp": 16, "max_tasks": 3, "cu_id": "93908271"},
+    "sandeep":           {"domains": ["backend","infra"],                "cap_sp": 16, "max_tasks": 3, "cu_id": "111928715"},
+    "sujanmahapatra":    {"domains": ["frontend","backend"],             "cap_sp": 16, "max_tasks": 3, "cu_id": "111951799"},
+    "shubhamsanjog":     {"domains": ["frontend"],                       "cap_sp": 16, "max_tasks": 3, "cu_id": "112029068"},
+    "mubinashaikh":      {"domains": ["frontend"],                       "cap_sp": 16, "max_tasks": 3, "cu_id": "111980875"},
+    "kishorkumar":       {"domains": ["backend"],                        "cap_sp": 16, "max_tasks": 3, "cu_id": "254678220"},
+}
+
+# Domain leads — for auto-assignment fallback
+DOMAIN_LEADS = {
+    "frontend": "49000180",   # andreCarespace
+    "backend":  "49000181",   # fabiano-carespace
+    "mobile":   "93908270",   # YeddulaBharath
+    "ai-cv":    "93908266",   # bhavyasaurabh
+    "sdk":      "93908270",   # YeddulaBharath
+    "infra":    "111928715",  # sandeep
+    "bots":     "49000181",   # fabiano-carespace
+    "video":    "93908266",   # bhavyasaurabh
+    "security": "93908266",   # bhavyasaurabh
+}
+
+# ======================================================================
+# SPRINT CONFIG
+# ======================================================================
+SPRINT_FOLDER_ID = FOLDERS["sprints"]  # sprint_crew creates lists here (901317811717)
+
 SCORE = {
     "priority_weight":  {"urgent": 100, "high": 70, "normal": 40, "low": 10},
     "security_multi":   2.0,
@@ -321,7 +210,7 @@ SP_ESTIMATE = {
 BUG_SLA = {"urgent": 4, "high": 24, "normal": 72, "low": 168}
 
 # ======================================================================
-# SLACK CHANNELS
+# SLACK CHANNELS (simplified — fewer, clearer)
 # ======================================================================
 SLACK = {
     "standup":     "#standup",
@@ -335,6 +224,22 @@ SLACK = {
 }
 
 # ======================================================================
+# CREW SCHEDULE (reference — actual scheduling via CrewHub)
+# ======================================================================
+CREW_SCHEDULE = {
+    "compliance_crew":        "Daily 07:00",
+    "intake_crew":            "Daily 08:00 + webhooks",
+    "daily_pulse_crew":       "Mon-Fri 08:00",
+    "pr_radar_crew":          "Daily 10:00",
+    "triage_crew":            "Every 6 hours",
+    "sprint_crew":            "Bi-weekly Sunday 18:00",
+    "retrospective_crew":     "Bi-weekly Friday 16:00",
+    "deal_intel_crew":        "Monday 07:00",
+    "customer_success_crew":  "Daily 08:30",
+    "exec_report_crew":       "Friday 17:00",
+}
+
+# ======================================================================
 # CLICKUP DOCS (for AI-written reports)
 # ======================================================================
 DOCS = {
@@ -342,3 +247,12 @@ DOCS = {
     "ai_system":        "xnum1-9333",
     "crew_dashboard":   "xnum1-9353",
 }
+
+# ======================================================================
+# SPACES TO ARCHIVE (old structure — manual cleanup)
+# ======================================================================
+# These spaces are no longer used. Archive them in ClickUp:
+# - Product Engineering:    901313673268
+# - Infrastructure & DevOps: 901313673272
+# - Compliance & Security:  901313673273
+# - Bugs & Support:         901313673276

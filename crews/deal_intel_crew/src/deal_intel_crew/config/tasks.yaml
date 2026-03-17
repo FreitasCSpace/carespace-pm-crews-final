@@ -1,38 +1,21 @@
 analyze:
   description: >
-    Analyze the entire CareSpace sales pipeline across all 9 verticals.
-
-    Pull all pipeline tasks from the GTM vertical lists in ClickUp.
-    For each vertical, count the total active deals and identify any that are
-    at risk.
-
-    At-risk criteria: A deal is at risk if it has had no update for more than
-    7 days, has no assignee, or has no defined next step in its description or
-    custom fields.
-
-    Coverage gap detection: Any vertical with zero active pipeline deals is a
-    coverage gap. Flag these prominently in the report.
-
-    Top 3 opportunities: Identify the 3 highest-value or most strategically
-    important deals to accelerate based on priority, vertical importance, and
-    deal size indicators.
-
-    Orphaned deal handling: For any deal with no assignee, immediately create
-    an alert task in the Alerts & SLA Watchlist (901326336266) flagging it as
-    an orphaned deal requiring assignment. Include the deal name, vertical,
-    and age.
-
-    Echelon tracking: Specifically locate the Echelon deal and report its
-    current status, assignee, last update date, and any blockers. Echelon
-    should always appear in the final report regardless of its status.
-
-    At-risk deal comments: For each at-risk deal, add a comment on the task
-    in ClickUp noting the risk factor (stale, unassigned, or missing next
-    step) and the number of days since last update.
-
-    GTM intelligence post: Compile the full pipeline health report and post
-    it to #gtm. Include: total deals per vertical, at-risk count, coverage
-    gaps, top 3 to accelerate, Echelon status, and orphaned deal alerts.
+    Pull all tasks from Active Deals (901326439255).
+    1. Count total deals and group by vertical tag.
+    2. Identify at-risk deals: no update >7d, no assignee, no next step.
+    3. Detect coverage gaps: verticals with zero active deals.
+    4. Identify top 3 opportunities to accelerate.
+    5. Track Echelon deal status specifically.
+    6. Move at-risk deals to At-Risk list (901326439258) by updating them.
+    7. Create alerts for orphaned deals (no assignee) in Alerts (901326439234).
+    8. Add comments on at-risk deals explaining the risk.
+    9. Post full pipeline health report to #gtm with:
+       - Pipeline summary by vertical
+       - Deals at risk count and details
+       - Coverage gaps
+       - Top 3 to accelerate
+       - Echelon status
   expected_output: >
-    Pipeline health report + Slack posted.
+    JSON: {total_deals: N, by_vertical: {}, at_risk: N, coverage_gaps: [],
+    top_3: [], echelon_status: str, alerts_created: N}
   agent: deal_intel_agent

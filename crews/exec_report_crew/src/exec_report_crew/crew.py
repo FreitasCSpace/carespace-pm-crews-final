@@ -1,35 +1,28 @@
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
-
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_health_summary,
-    get_tasks_by_list,
-    post_exec,
-    post,
+    get_health_summary, get_tasks_by_list, check_duplicate_task,
+    create_clickup_task, post_exec, post,
 )
 
 
 @CrewBase
 class ExecReportCrew:
-    agents_config = "config/agents.yaml"
-    tasks_config = "config/tasks.yaml"
+    """Weekly exec report + crew health + marketing ops — runs Friday 17:00."""
+
+    agents_config  = "config/agents.yaml"
+    tasks_config   = "config/tasks.yaml"
 
     @agent
     def exec_reporter_agent(self) -> Agent:
         return Agent(
             config=self.agents_config["exec_reporter_agent"],
             tools=[
-                get_health_summary,
-                get_tasks_by_list,
-                post_exec,
-                post,
+                get_health_summary, get_tasks_by_list, check_duplicate_task,
+                create_clickup_task, post_exec, post,
             ],
             verbose=True,
-            allow_delegation=False,
         )
 
     @task

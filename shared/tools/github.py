@@ -8,7 +8,7 @@ import os, json
 from datetime import datetime, timedelta
 from crewai.tools import tool
 from github import Github, GithubException
-from shared.config.context import REPO_DOMAIN, BUG_TARGET, FEATURE_TARGET
+from shared.config.context import REPO_DOMAIN, INTAKE_TARGET
 
 _gh = None
 ORG = "carespace-ai"
@@ -77,8 +77,6 @@ def get_issues(repo: str = "", label: str = "", limit: int = 50) -> str:
                 domain = REPO_DOMAIN.get(rname, "frontend")
                 pri = _priority(issue.title, labels)
                 itype = _itype(issue.title)
-                is_bug = pri in ("urgent", "high") or itype in ("bug", "security")
-                target = BUG_TARGET.get(domain) if is_bug else FEATURE_TARGET.get(domain)
                 out.append({
                     "repo": rname, "domain": domain, "number": issue.number,
                     "title": issue.title,
@@ -86,7 +84,8 @@ def get_issues(repo: str = "", label: str = "", limit: int = 50) -> str:
                     "labels": labels,
                     "assignee": issue.assignee.login if issue.assignee else None,
                     "priority": pri, "issue_type": itype,
-                    "target_list_id": target,
+                    "target_list_id": INTAKE_TARGET,
+                    "suggested_tags": [domain, itype],
                     "suggested_title": f"[{itype.upper()}] {issue.title} ({rname}#{issue.number})",
                     "url": issue.html_url,
                     "created_at": issue.created_at.isoformat(),
