@@ -52,9 +52,9 @@ def _itype(title: str) -> str:
 
 
 @tool("Get Open GitHub Issues")
-def get_issues(repo: str = "", label: str = "", limit: int = 50) -> str:
+def get_issues(repo: str = "", label: str = "") -> str:
     """
-    Fetches open GitHub issues from the carespace-ai org.
+    Fetches ALL open GitHub issues from the carespace-ai org.
     repo: specific repo name, or empty string for ALL repos.
     label: optional label filter (e.g. 'bug').
     Returns: repo, domain, number, title, body_preview, labels, assignee,
@@ -67,10 +67,7 @@ def get_issues(repo: str = "", label: str = "", limit: int = 50) -> str:
             r = _repo(rname)
             kwargs: dict = {"state": "open"}
             if label: kwargs["labels"] = [label]
-            count = 0
             for issue in r.get_issues(**kwargs):
-                if count >= limit:
-                    break
                 if issue.pull_request:
                     continue
                 labels = [l.name for l in issue.labels]
@@ -90,7 +87,6 @@ def get_issues(repo: str = "", label: str = "", limit: int = 50) -> str:
                     "url": issue.html_url,
                     "created_at": issue.created_at.isoformat(),
                 })
-                count += 1
         except GithubException as e:
             out.append({"repo": rname, "error": str(e)})
         except Exception as e:
@@ -209,20 +205,19 @@ def get_activity(repo: str, days: int = 14) -> str:
 
 
 @tool("Get Compliance Issues from VantaCrews")
-def get_compliance_issues(limit: int = 100) -> str:
+def get_compliance_issues() -> str:
     """
-    Fetches open issues from the CareSpace Compliance Repo (created by VantaCrews).
-    Maps VantaCrews labels to ClickUp tags and priorities.
+    Fetches ALL open issues from the CareSpace Compliance Repo (created by VantaCrews).
+    Maps VantaCrews labels to ClickUp tags and priorities. No limit — gets every
+    open issue. Currently 500+ issues across SOC 2, HIPAA, control failures,
+    evidence gaps, vulnerabilities, access reviews, vendor risks, etc.
     Returns: number, title, body_preview, labels, priority, suggested_tags,
              suggested_title, url, created_at, issue_type.
     """
     try:
         repo = _g().get_repo(COMPLIANCE_REPO)
         out = []
-        count = 0
         for issue in repo.get_issues(state="open", sort="created", direction="desc"):
-            if count >= limit:
-                break
             if issue.pull_request:
                 continue
 
@@ -269,7 +264,6 @@ def get_compliance_issues(limit: int = 100) -> str:
                 "created_at": issue.created_at.isoformat(),
                 "source": "vantacrews",
             })
-            count += 1
         return json.dumps(out, indent=2)
     except Exception as e:
         return json.dumps({"error": str(e)})
