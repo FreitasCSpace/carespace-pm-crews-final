@@ -388,20 +388,32 @@ def get_prs(repo: str = "") -> str:
 def get_ci(repo: str, branch: str = "main") -> str:
     """
     Returns latest CI check run results for a given branch.
+    Auto-falls back: main → master → develop if branch not found.
     Returns: overall (passing/failing), failing_checks, total.
     """
-    try:
-        r = _repo(repo)
-        sha = r.get_branch(branch).commit.sha
-        checks = list(r.get_commit(sha).get_check_runs())
-        failing = [c.name for c in checks if c.conclusion == "failure"]
-        return json.dumps({
-            "repo": repo, "branch": branch,
-            "overall": "failing" if failing else "passing",
-            "failing_checks": failing, "total_checks": len(checks),
-        })
-    except Exception as e:
-        return json.dumps({"repo": repo, "branch": branch, "error": str(e)})
+    r = _repo(repo)
+    branches_to_try = [branch]
+    if branch == "main":
+        branches_to_try = ["main", "master", "develop"]
+
+    for b in branches_to_try:
+        try:
+            sha = r.get_branch(b).commit.sha
+            checks = list(r.get_commit(sha).get_check_runs())
+            failing = [c.name for c in checks if c.conclusion == "failure"]
+            return json.dumps({
+                "repo": repo, "branch": b,
+                "overall": "failing" if failing else "passing",
+                "failing_checks": failing, "total_checks": len(checks),
+            })
+        except Exception:
+            continue
+
+    return json.dumps({
+        "repo": repo, "branch": branch,
+        "overall": "unknown",
+        "error": f"No branch found (tried: {', '.join(branches_to_try)})",
+    })
 
 
 @tool("Get Stale Pull Requests")

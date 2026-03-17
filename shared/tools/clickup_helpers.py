@@ -209,13 +209,13 @@ def add_tag_to_task(task_id: str, tag_name: str) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool("Create ClickUp Task")
+@tool("Create Task In List")
 def create_clickup_task(list_id: str, name: str, description: str = "",
                         priority: int = 3, assignees: list[int] = None,
                         tags: list[str] = None, points: int = None) -> str:
     """
-    Create a new task in a ClickUp list.
-    list_id: target list ID from shared.config.context.L.
+    Create a new task in a ClickUp list. USE THIS instead of MCP create_click_up_task.
+    list_id: target list ID.
     priority: 1=urgent, 2=high, 3=normal, 4=low.
     assignees: list of ClickUp user IDs.
     tags: list of tag name strings.
@@ -238,6 +238,38 @@ def create_clickup_task(list_id: str, name: str, description: str = "",
             "name": result.get("name"),
             "url": result.get("url"),
             "status": result.get("status", {}).get("status"),
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@tool("Move Task To List")
+def move_task_to_list(task_id: str, target_list_id: str) -> str:
+    """
+    Move an existing task to a different ClickUp list.
+    Use this to move tasks from Master Backlog into a Sprint list.
+    task_id: the task ID to move.
+    target_list_id: the destination list ID.
+    Returns confirmation with task name and new list.
+    """
+    try:
+        result = _clickup_api(
+            f"list/{target_list_id}/task/{task_id}",
+            method="POST",
+            payload={},
+        )
+        # ClickUp move task endpoint is different — use PUT on task
+        # Actually: move is done by updating the task's list
+        result = _clickup_api(
+            f"task/{task_id}",
+            method="PUT",
+            payload={"list": target_list_id},
+        )
+        return json.dumps({
+            "task_id": task_id,
+            "moved_to": target_list_id,
+            "name": result.get("name", ""),
+            "status": result.get("status", {}).get("status", ""),
         })
     except Exception as e:
         return json.dumps({"error": str(e)})

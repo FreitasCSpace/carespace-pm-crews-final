@@ -9,38 +9,49 @@ create_sprint_task:
 
 score_and_select_task:
   description: >
-    Read the Master Backlog (901326439232). Score every item using the formula:
+    Read the Master Backlog (901326439232) using get_tasks_by_list.
+    Score every item using the formula:
     priority_weight × security_multi × blocker_multi × compliance_multi + age_bonus.
-    Factor in human_priorities: {human_priorities}.
-    Select tasks fitting within {target_sp} SP (80% of velocity).
-    Scan GitHub for stale PRs >7d -- add 'Review: [PR]' tasks (2 SP each).
-    Check CI status on main branches -- add 'Fix CI: [repo]' tasks (3 SP each).
-    If any task has no story points, estimate by type.
-    Return the ranked selected task list with scores and SP.
+    Priority weights: urgent=100, high=70, normal=40, low=10.
+    Multipliers: security×2.0, blocker×1.8, compliance×1.5.
+
+    Select the top tasks that fit within 48 SP total (80% of velocity).
+    Estimate SP for tasks without points: compliance=5, bug=3, feature=5, security=8.
+
+    Also scan GitHub for stale PRs >7d using get_stale_pull_requests.
+    Check CI status using get_ci_status on key repos.
+    NOTE: Try branch 'main' first, if 404 try 'master'.
+
+    Return the ranked selected task list with scores.
   expected_output: >
     JSON array of selected tasks with: task_id, name, score, story_points,
-    priority, type, domain_tag, source (backlog/github_pr/github_ci).
-    Total SP must not exceed {target_sp}.
+    priority, tags. Total SP must not exceed 48.
   agent: sprint_agent
   context:
     - create_sprint_task
 
 populate_and_assign_task:
   description: >
-    Move all selected tasks from the Master Backlog into the new sprint list.
-    For GitHub-sourced tasks, create them directly in the sprint list with
-    appropriate tags (domain + type).
-    Then assign EVERY task to the best-fit engineer:
-    1. Match domain tag to engineer domains
-    2. Check workload -- never exceed max_tasks
-    3. Prefer repo contributors from GitHub history
-    4. Tie-break: lowest SP in progress
-    5. Set due dates: 1 business day (urgent), 2 days (high), 5 days (normal)
-    Update each task with story points if missing and add a comment explaining
-    why it was selected and who it was assigned to.
+    For each selected task from the backlog, use the move_task_to_list tool
+    to move it from the Master Backlog into the new sprint list.
+    IMPORTANT: Use move_task_to_list (not create_click_up_task).
+
+    For each task:
+    1. Call move_task_to_list with the task_id and sprint list_id.
+    2. Call update_clickup_task to set story points if missing.
+    3. Call update_clickup_task to assign to best-fit engineer:
+       - Match domain tags to engineer domains
+       - Domain leads: frontend=49000180, backend=49000181, mobile=93908270,
+         ai-cv=93908266, infra=111928715
+       - Set assignees via: {"assignees": {"add": [user_id]}}
+    4. Set due dates via update_clickup_task:
+       - urgent: 1 day, high: 2 days, normal: 5 days
+
+    For stale PR and CI fix tasks from GitHub, use create_task_in_list
+    to create them directly in the sprint list.
   expected_output: >
     JSON summary: {moved: N, created: N, assigned: N, total_sp: N,
-    sprint_list_id: str, assignment_summary: [{task, engineer, reason}]}
+    sprint_list_id: str}
   agent: sprint_agent
   context:
     - score_and_select_task
