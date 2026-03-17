@@ -1,17 +1,25 @@
 """
 tools/github.py
 GitHub org tools -- read issues, PRs, CI, contributors, activity
-across all 59 carespace-ai repos.
+across all carespace-ai repos + compliance repo.
+
+Batch import tools handle the heavy lifting in code (dedup, create, comment)
+so the LLM only needs to call one tool and gets a summary back.
 """
 
-import os, json
+import os, json, time
 from datetime import datetime, timedelta
 from crewai.tools import tool
 from github import Github, GithubException
-from shared.config.context import REPO_DOMAIN, INTAKE_TARGET, COMPLIANCE_REPO, COMPLIANCE_LABEL_MAP
+from shared.config.context import (
+    REPO_DOMAIN, INTAKE_TARGET, COMPLIANCE_REPO, COMPLIANCE_LABEL_MAP,
+    WORKSPACE_ID, L,
+)
 
 _gh = None
 ORG = "carespace-ai"
+BATCH_SIZE = 25  # process N issues per batch, pause between batches
+
 
 def _g():
     global _gh
@@ -50,15 +58,236 @@ def _itype(title: str) -> str:
         return "tech_debt"
     return "task"
 
+def _priority_int(pri: str) -> int:
+    return {"urgent": 1, "high": 2, "normal": 3, "low": 4}.get(pri, 3)
+
+
+# ── ClickUp API helpers (inline to avoid circular imports) ────────────────────
+
+def _clickup_api(endpoint: str, method: str = "GET", payload: dict | None = None) -> dict:
+    import urllib.request
+    token = os.environ.get("CLICKUP_PERSONAL_TOKEN", os.environ.get("CLICKUP_API_TOKEN", ""))
+    url = f"https://api.clickup.com/api/v2/{endpoint}"
+    headers = {"Authorization": token, "Content-Type": "application/json"}
+    data = json.dumps(payload).encode() if payload else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return json.loads(resp.read().decode())
+
+
+def _check_duplicate(title_fragment: str) -> bool:
+    """Returns True if a matching task already exists in the workspace."""
+    try:
+        search_url = f"team/{WORKSPACE_ID}/task?search={title_fragment}&archived=false"
+        data = _clickup_api(search_url)
+        return len(data.get("tasks", [])) > 0
+    except Exception:
+        return False  # if search fails, allow creation
+
+
+def _create_task(list_id: str, name: str, description: str, priority: int,
+                 tags: list[str]) -> dict | None:
+    """Create a ClickUp task. Returns task dict or None on failure."""
+    try:
+        payload = {
+            "name": name,
+            "description": description,
+            "priority": priority,
+            "tags": tags,
+        }
+        result = _clickup_api(f"list/{list_id}/task", method="POST", payload=payload)
+        return result
+    except Exception as e:
+        return None
+
+
+def _comment_github_issue(repo_full_name: str, issue_number: int, comment: str):
+    """Post a comment on a GitHub issue. Fails silently."""
+    try:
+        _g().get_repo(repo_full_name).get_issue(issue_number).create_comment(comment)
+    except Exception:
+        pass
+
+
+# ── Batch import: Engineering repos ───────────────────────────────────────────
+
+@tool("Batch Import Engineering Issues")
+def batch_import_engineering() -> str:
+    """
+    Scans ALL open issues across all carespace-ai GitHub repos and imports
+    them into the ClickUp Master Backlog in batches. Handles dedup, task
+    creation, and GitHub cross-linking automatically.
+
+    Call this ONCE — it processes everything and returns a summary.
+    No need to call check_duplicate_task or create_clickup_task separately.
+    """
+    repos = list(REPO_DOMAIN.keys())
+    stats = {
+        "repos_scanned": 0, "issues_found": 0, "tasks_created": 0,
+        "duplicates_skipped": 0, "errors": 0, "by_domain": {}, "by_type": {},
+    }
+    created_tasks = []
+
+    for rname in repos:
+        stats["repos_scanned"] += 1
+        try:
+            r = _repo(rname)
+            for issue in r.get_issues(state="open"):
+                if issue.pull_request:
+                    continue
+
+                stats["issues_found"] += 1
+                labels = [l.name for l in issue.labels]
+                domain = REPO_DOMAIN.get(rname, "frontend")
+                pri = _priority(issue.title, labels)
+                itype = _itype(issue.title)
+                dedup_key = f"{rname}#{issue.number}"
+
+                # Dedup check
+                if _check_duplicate(dedup_key):
+                    stats["duplicates_skipped"] += 1
+                    continue
+
+                # Create task
+                title = f"[{itype.upper()}] {issue.title} ({dedup_key})"
+                desc = f"GitHub: {issue.html_url}\n\n{(issue.body or '')[:500]}"
+                tags = [domain, itype, "github"]
+
+                result = _create_task(INTAKE_TARGET, title, desc, _priority_int(pri), tags)
+                if result:
+                    stats["tasks_created"] += 1
+                    stats["by_domain"][domain] = stats["by_domain"].get(domain, 0) + 1
+                    stats["by_type"][itype] = stats["by_type"].get(itype, 0) + 1
+                    created_tasks.append({"title": title[:80], "priority": pri})
+
+                    # Cross-link back to GitHub
+                    task_url = result.get("url", "")
+                    if task_url:
+                        _comment_github_issue(
+                            f"{ORG}/{rname}", issue.number,
+                            f"Tracked in ClickUp: {task_url}"
+                        )
+                else:
+                    stats["errors"] += 1
+
+                # Pause between batches to avoid rate limits
+                if stats["tasks_created"] % BATCH_SIZE == 0 and stats["tasks_created"] > 0:
+                    time.sleep(1)
+
+        except GithubException as e:
+            stats["errors"] += 1
+        except Exception as e:
+            stats["errors"] += 1
+
+    stats["sample_created"] = created_tasks[:10]  # show first 10 for context
+    return json.dumps(stats, indent=2)
+
+
+# ── Batch import: Compliance repo ─────────────────────────────────────────────
+
+@tool("Batch Import Compliance Issues")
+def batch_import_compliance() -> str:
+    """
+    Scans ALL open issues from the VantaCrews compliance repo and imports
+    them into the ClickUp Master Backlog in batches. Maps VantaCrews labels
+    to ClickUp tags and priorities automatically.
+
+    Call this ONCE — it processes all 500+ issues and returns a summary.
+    No need to call check_duplicate_task or create_clickup_task separately.
+    """
+    stats = {
+        "issues_found": 0, "tasks_created": 0, "duplicates_skipped": 0,
+        "errors": 0, "by_tag": {}, "by_priority": {},
+    }
+    created_tasks = []
+    alerts_created = 0
+
+    try:
+        repo = _g().get_repo(COMPLIANCE_REPO)
+        repo_short = COMPLIANCE_REPO.split("/")[-1]
+
+        for issue in repo.get_issues(state="open", sort="created", direction="desc"):
+            if issue.pull_request:
+                continue
+
+            stats["issues_found"] += 1
+            labels = [l.name for l in issue.labels]
+
+            # Map priority
+            priority = "normal"
+            for lbl in labels:
+                mapped = COMPLIANCE_LABEL_MAP.get(lbl, {})
+                if "priority" in mapped:
+                    priority = mapped["priority"]
+                    break
+
+            # Map tags
+            tags = ["compliance", "vanta"]
+            for lbl in labels:
+                mapped = COMPLIANCE_LABEL_MAP.get(lbl, {})
+                if "tag" in mapped and mapped["tag"] not in tags:
+                    tags.append(mapped["tag"])
+
+            # Dedup check
+            dedup_key = f"#{issue.number}"
+            if _check_duplicate(dedup_key):
+                stats["duplicates_skipped"] += 1
+                continue
+
+            # Create task
+            # Truncate title to avoid ClickUp limits
+            raw_title = issue.title
+            if len(raw_title) > 150:
+                raw_title = raw_title[:147] + "..."
+            title = f"[COMPLIANCE] {raw_title} ({dedup_key})"
+            desc = f"Compliance Repo: {issue.html_url}\n\n{(issue.body or '')[:500]}"
+
+            result = _create_task(INTAKE_TARGET, title, desc, _priority_int(priority), tags)
+            if result:
+                stats["tasks_created"] += 1
+                stats["by_priority"][priority] = stats["by_priority"].get(priority, 0) + 1
+                for t in tags:
+                    stats["by_tag"][t] = stats["by_tag"].get(t, 0) + 1
+                created_tasks.append({"title": title[:80], "priority": priority})
+
+                # Cross-link back to GitHub
+                task_url = result.get("url", "")
+                if task_url:
+                    _comment_github_issue(
+                        COMPLIANCE_REPO, issue.number,
+                        f"Tracked in ClickUp: {task_url}"
+                    )
+
+                # Create alert for urgent (P0) issues
+                if priority == "urgent":
+                    alert_title = f"[ALERT] {raw_title} ({dedup_key})"
+                    _create_task(L["alerts"], alert_title, desc, 1, ["compliance", "urgent"])
+                    alerts_created += 1
+            else:
+                stats["errors"] += 1
+
+            # Pause between batches
+            if stats["tasks_created"] % BATCH_SIZE == 0 and stats["tasks_created"] > 0:
+                time.sleep(1)
+
+    except Exception as e:
+        stats["errors"] += 1
+        stats["error_detail"] = str(e)
+
+    stats["alerts_created"] = alerts_created
+    stats["sample_created"] = created_tasks[:10]
+    return json.dumps(stats, indent=2)
+
+
+# ── Lightweight read-only tools (for other crews) ────────────────────────────
 
 @tool("Get Open GitHub Issues")
 def get_issues(repo: str = "", label: str = "") -> str:
     """
-    Fetches ALL open GitHub issues from the carespace-ai org.
-    repo: specific repo name, or empty string for ALL repos.
-    label: optional label filter (e.g. 'bug').
-    Returns: repo, domain, number, title, body_preview, labels, assignee,
-             priority, issue_type, target_list_id, suggested_title, url, created_at.
+    Fetches open GitHub issues from the carespace-ai org (read-only scan).
+    repo: specific repo name, or empty for ALL repos.
+    Returns summary: repo, domain, number, title, priority, issue_type.
+    Limited to 20 per repo to keep LLM context manageable.
     """
     repos = [repo] if repo else list(REPO_DOMAIN.keys())
     out = []
@@ -67,35 +296,28 @@ def get_issues(repo: str = "", label: str = "") -> str:
             r = _repo(rname)
             kwargs: dict = {"state": "open"}
             if label: kwargs["labels"] = [label]
+            count = 0
             for issue in r.get_issues(**kwargs):
+                if count >= 20:
+                    break
                 if issue.pull_request:
                     continue
                 labels = [l.name for l in issue.labels]
                 domain = REPO_DOMAIN.get(rname, "frontend")
-                pri = _priority(issue.title, labels)
-                itype = _itype(issue.title)
                 out.append({
                     "repo": rname, "domain": domain, "number": issue.number,
                     "title": issue.title,
-                    "body_preview": (issue.body or "")[:300],
-                    "labels": labels,
-                    "assignee": issue.assignee.login if issue.assignee else None,
-                    "priority": pri, "issue_type": itype,
-                    "target_list_id": INTAKE_TARGET,
-                    "suggested_tags": [domain, itype],
-                    "suggested_title": f"[{itype.upper()}] {issue.title} ({rname}#{issue.number})",
+                    "priority": _priority(issue.title, labels),
+                    "issue_type": _itype(issue.title),
                     "url": issue.html_url,
-                    "created_at": issue.created_at.isoformat(),
                 })
-        except GithubException as e:
-            out.append({"repo": rname, "error": str(e)})
-        except Exception as e:
-            out.append({"repo": rname, "error": f"Unexpected: {e}"})
+                count += 1
+        except Exception:
+            pass
     return json.dumps(out, indent=2)
 
 
 def _get_prs_impl(repo: str = "") -> str:
-    """Internal helper for fetching PRs — callable from other tool functions."""
     repos = [repo] if repo else list(REPO_DOMAIN.keys())
     now = datetime.utcnow()
     out = []
@@ -200,71 +422,6 @@ def get_activity(repo: str, days: int = 14) -> str:
             "open_issues": r.get_issues(state="open").totalCount,
             "last_push": r.pushed_at.isoformat() if r.pushed_at else None,
         })
-    except Exception as e:
-        return json.dumps({"error": str(e)})
-
-
-@tool("Get Compliance Issues from VantaCrews")
-def get_compliance_issues() -> str:
-    """
-    Fetches ALL open issues from the CareSpace Compliance Repo (created by VantaCrews).
-    Maps VantaCrews labels to ClickUp tags and priorities. No limit — gets every
-    open issue. Currently 500+ issues across SOC 2, HIPAA, control failures,
-    evidence gaps, vulnerabilities, access reviews, vendor risks, etc.
-    Returns: number, title, body_preview, labels, priority, suggested_tags,
-             suggested_title, url, created_at, issue_type.
-    """
-    try:
-        repo = _g().get_repo(COMPLIANCE_REPO)
-        out = []
-        for issue in repo.get_issues(state="open", sort="created", direction="desc"):
-            if issue.pull_request:
-                continue
-
-            labels = [l.name for l in issue.labels]
-
-            # Map VantaCrews labels → priority
-            priority = "normal"
-            for lbl in labels:
-                mapped = COMPLIANCE_LABEL_MAP.get(lbl, {})
-                if "priority" in mapped:
-                    priority = mapped["priority"]
-                    break
-
-            # Map VantaCrews labels → tags
-            tags = {"compliance", "vanta"}  # always tagged as compliance + vanta source
-            for lbl in labels:
-                mapped = COMPLIANCE_LABEL_MAP.get(lbl, {})
-                if "tag" in mapped:
-                    tags.add(mapped["tag"])
-
-            # Determine issue type from VantaCrews label patterns
-            issue_type = "compliance"
-            for lbl in labels:
-                if lbl in ("vulnerability", "risk"):
-                    issue_type = "security"
-                    break
-                if lbl == "access-review":
-                    issue_type = "compliance"
-                    break
-
-            repo_short = COMPLIANCE_REPO.split("/")[-1]
-            out.append({
-                "repo": repo_short,
-                "number": issue.number,
-                "title": issue.title,
-                "body_preview": (issue.body or "")[:500],
-                "labels": labels,
-                "priority": priority,
-                "issue_type": issue_type,
-                "target_list_id": INTAKE_TARGET,
-                "suggested_tags": sorted(tags),
-                "suggested_title": f"[COMPLIANCE] {issue.title} (#{issue.number})",
-                "url": issue.html_url,
-                "created_at": issue.created_at.isoformat(),
-                "source": "vantacrews",
-            })
-        return json.dumps(out, indent=2)
     except Exception as e:
         return json.dumps({"error": str(e)})
 

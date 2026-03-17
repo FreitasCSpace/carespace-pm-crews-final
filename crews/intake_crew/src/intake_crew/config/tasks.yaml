@@ -1,44 +1,21 @@
 intake_scan:
   description: >
-    Scan TWO sources for open issues to import into the Master Backlog.
+    Import GitHub issues into the ClickUp Master Backlog. Three steps:
 
-    PHASE 1 — ENGINEERING REPOS:
-    Call get_issues() to scan all carespace-ai GitHub repos.
-    For EVERY issue found:
-    1. Call check_duplicate_task with 'repo#N' pattern.
-       If ANY match found: SKIP silently.
-    2. Only if zero matches: determine domain, classify type and priority.
-    3. Create task in Master Backlog (901326439232) with:
-       - Title: '[TYPE] Short desc (repo#N)'
-       - Tags: [domain_tag, type_tag, 'github']
-       - Priority based on classification
-       - Description includes GitHub URL and body preview
-    4. Comment on the GitHub issue with the ClickUp task URL.
-    5. For security issues: also create alert in Alerts (901326439234).
+    1. Call batch_import_engineering — imports all open issues from
+       carespace-ai repos. Returns JSON with tasks_created, duplicates_skipped.
 
-    PHASE 2 — COMPLIANCE REPO (VantaCrews):
-    Call get_compliance_issues() to scan the CareSpace Compliance Repo.
-    VantaCrews creates pre-labeled issues for SOC 2, HIPAA, control failures,
-    evidence gaps, vulnerabilities, access reviews, vendor risks, and more.
-    For EVERY compliance issue found:
-    1. Call check_duplicate_task with '#N' or the issue title fragment.
-       If ANY match found: SKIP silently.
-    2. Only if zero matches: use the pre-mapped tags and priority from the tool.
-    3. Create task in Master Backlog (901326439232) with:
-       - Title: '[COMPLIANCE] Issue title (#N)'
-       - Tags: from suggested_tags (compliance, vanta, soc2, hipaa, security, etc.)
-       - Priority: from the tool's mapped priority (P0→urgent, P1→high, etc.)
-       - Description includes GitHub issue URL and body preview
-    4. Comment on the compliance GitHub issue with the ClickUp task URL.
-    5. For urgent compliance issues (P0): create alert in Alerts (901326439234).
+    2. Call batch_import_compliance — imports all open issues from
+       the VantaCrews compliance repo. Returns JSON with tasks_created,
+       duplicates_skipped, alerts_created.
 
-    After both phases, post summary to #engineering ONLY if at least 1 new
-    task was created. Include breakdown:
-    - Engineering: count by domain and type
-    - Compliance: count by tag (soc2, hipaa, security, etc.)
+    3. If total tasks_created > 0, post summary to #engineering:
+       'Intake complete. Engineering: X new (Y skipped). Compliance: Z new (W skipped).'
+
+    Each batch tool handles dedup, creation, tagging, and cross-linking
+    internally. You do NOT need to process individual issues.
   expected_output: >
-    JSON summary: {engineering: {scanned_repos: N, issues_found: N,
-    tasks_created: N, duplicates_skipped: N}, compliance: {issues_found: N,
-    tasks_created: N, duplicates_skipped: N, by_tag: {}},
-    total_tasks_created: N, security_alerts: N}
+    JSON summary combining both results: {engineering: {tasks_created, duplicates_skipped},
+    compliance: {tasks_created, duplicates_skipped, alerts_created},
+    total_new: N, slack_posted: bool}
   agent: intake_agent

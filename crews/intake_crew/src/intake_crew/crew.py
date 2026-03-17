@@ -6,13 +6,8 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_issues,
-    get_prs,
-    get_contributors,
-    get_tasks_by_list,
-    check_duplicate_task,
-    comment_issue,
-    get_compliance_issues,
+    batch_import_engineering,
+    batch_import_compliance,
     post,
 )
 
@@ -27,13 +22,8 @@ class IntakeCrewCrew:
         return Agent(
             config=self.agents_config["intake_agent"],
             tools=[
-                get_issues,
-                get_prs,
-                get_contributors,
-                get_compliance_issues,
-                get_tasks_by_list,
-                check_duplicate_task,
-                comment_issue,
+                batch_import_engineering,
+                batch_import_compliance,
                 post,
             ],
             verbose=True,
