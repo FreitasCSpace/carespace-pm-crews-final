@@ -1,6 +1,7 @@
 from .github import (
     get_issues, get_prs, get_ci, get_stale_prs,
     get_contributors, get_activity, comment_issue,
+    get_compliance_issues,
 )
 from .slack import (
     post, post_standup, post_sprint_plan, post_blocker, post_sla_breach,

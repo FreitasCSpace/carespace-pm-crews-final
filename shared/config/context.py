@@ -126,6 +126,39 @@ REPO_DOMAIN = {
 # Everything routes to master_backlog with tags — no more per-domain lists
 INTAKE_TARGET = L["master_backlog"]
 
+# ======================================================================
+# COMPLIANCE REPO (VantaCrews creates issues here — we ingest them)
+# ======================================================================
+COMPLIANCE_REPO = "FreitasCSpace/CareSpace-Compliance-Repo"
+
+# VantaCrews labels → our ClickUp tags + priority
+COMPLIANCE_LABEL_MAP = {
+    # Priority labels
+    "P0-critical": {"priority": "urgent"},
+    "P1-high":     {"priority": "high"},
+    "P2-medium":   {"priority": "normal"},
+    "P3-low":      {"priority": "low"},
+    # Type labels → tags
+    "compliance":      {"tag": "compliance"},
+    "soc2":            {"tag": "soc2"},
+    "HIPAA":           {"tag": "hipaa"},
+    "control-failure": {"tag": "compliance"},
+    "evidence-gap":    {"tag": "compliance"},
+    "risk":            {"tag": "security"},
+    "access-review":   {"tag": "compliance"},
+    "vendor-risk":     {"tag": "compliance"},
+    "vulnerability":   {"tag": "security"},
+    "asset":           {"tag": "infra"},
+    "personnel":       {"tag": "compliance"},
+    "tests":           {"tag": "compliance"},
+    "integration":     {"tag": "infra"},
+    "policy":          {"tag": "compliance"},
+    "document":        {"tag": "compliance"},
+    "trust-center":    {"tag": "compliance"},
+    "needs-upload":    {"tag": "compliance"},
+    "overdue":         {"tag": "compliance"},
+}
+
 DOMAIN_KEYWORDS = {
     "frontend": ["ui","react","css","storybook","design system","kiosk","dashboard","typescript","nextjs","html","component","plumb line","rom scan","onboarding ui"],
     "backend":  ["api","endpoint","gateway","strapi","auth","rbac","guard","middleware","database","prisma","nestjs","node","rest","graphql","webhook"],

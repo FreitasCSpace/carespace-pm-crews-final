@@ -7,17 +7,11 @@ from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
     get_health_summary,
-    get_controls,
-    get_failing_tests,
-    get_evidence,
     get_vulnerabilities,
-    get_vendors,
     get_baa_gaps,
-    get_access_reviews,
     get_people_risks,
-    get_policies,
     get_tasks_by_list,
-    check_duplicate_task,
+    create_clickup_task,
     post_compliance,
     post,
 )
@@ -25,6 +19,10 @@ from shared.tools import (
 
 @CrewBase
 class ComplianceCrew:
+    """Compliance health monitor — runs daily 07:00.
+    Task creation handled by VantaCrews → intake_crew pipeline.
+    This crew monitors Vanta health and posts critical alerts only.
+    """
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
@@ -34,17 +32,11 @@ class ComplianceCrew:
             config=self.agents_config["compliance_agent"],
             tools=[
                 get_health_summary,
-                get_controls,
-                get_failing_tests,
-                get_evidence,
                 get_vulnerabilities,
-                get_vendors,
                 get_baa_gaps,
-                get_access_reviews,
                 get_people_risks,
-                get_policies,
                 get_tasks_by_list,
-                check_duplicate_task,
+                create_clickup_task,
                 post_compliance,
                 post,
             ],
@@ -53,8 +45,8 @@ class ComplianceCrew:
         )
 
     @task
-    def vanta_sweep(self) -> Task:
-        return Task(config=self.tasks_config["vanta_sweep"])
+    def health_check(self) -> Task:
+        return Task(config=self.tasks_config["health_check"])
 
     @crew
     def crew(self) -> Crew:

@@ -1,27 +1,23 @@
-vanta_sweep:
+health_check:
   description: >
-    Daily Vanta compliance sweep. For EVERY finding, check_duplicate_task
-    first, then create in Master Backlog (901326439232) with tags.
+    Daily Vanta health check and critical alert monitor.
+    Task creation is NOT your job -- VantaCrews creates GitHub issues,
+    intake_crew imports them into ClickUp. You monitor and alert.
 
-    1. get_health_summary() - Record overall GREEN/YELLOW/RED.
-    2. SOC 2 failing controls: create tasks tagged ['compliance', 'soc2', 'vanta'],
-       7-day due date.
-    3. HIPAA failing controls: create tasks tagged ['compliance', 'hipaa', 'vanta'],
-       5-day due date. Post each to #compliance.
-    4. Failing automated tests: create tasks tagged ['compliance', 'vanta'].
-    5. Critical/high vulnerabilities: create tasks tagged ['security', domain_tag, 'vanta'].
-       Critical=3d due, high=7d due. Check SLA breaches.
-    6. BAA gaps: create urgent tasks tagged ['compliance', 'hipaa', 'baa', 'vanta'],
-       2-day due. Create alert in Alerts (901326439234). Immediate #compliance post.
-    7. Overdue access reviews (>90d): create critical tasks, immediate alert.
-    8. People risks: offboarded users with access -> immediate alert and task.
-       Missing MFA -> task tagged ['security', 'compliance'].
-    9. Vendor questionnaires: overdue -> create tasks.
-    10. Overdue policies: create review tasks tagged ['compliance'].
-    11. Write daily compliance report to ClickUp Docs (AI System doc: xnum1-9333)
-        with: health status, counts, new tasks, alerts sent.
+    1. Call get_health_summary() to get overall Vanta status (GREEN/YELLOW/RED).
+    2. Call get_baa_gaps() -- if any BAA gaps exist, post IMMEDIATELY to
+       #compliance via post_compliance. Create alert in Alerts (901326439234).
+    3. Call get_people_risks() -- if offboarded users have active access or
+       MFA is missing, post IMMEDIATELY to #compliance. Create alert.
+    4. Call get_vulnerabilities() -- if any critical vulns (CVSS >= 9.0),
+       post to #compliance. Create alert.
+    5. Count open compliance tasks in Master Backlog (901326439232) by
+       calling get_tasks_by_list and filtering for 'compliance' tag.
+    6. Post daily status to #compliance:
+       'Vanta Health: [GREEN/YELLOW/RED] | Open compliance tasks: N |
+       Critical alerts today: N'
+    7. Write daily health entry to ClickUp Docs (AI System: xnum1-9333).
   expected_output: >
-    JSON: {health: str, soc2_findings: N, hipaa_findings: N, vulns: N,
-    baa_gaps: N, access_reviews: N, people_risks: N, tasks_created: N,
-    alerts_sent: N}
+    JSON: {health: str, baa_gaps: N, people_risks: N, critical_vulns: N,
+    open_compliance_tasks: N, alerts_sent: N}
   agent: compliance_agent

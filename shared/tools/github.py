@@ -8,7 +8,7 @@ import os, json
 from datetime import datetime, timedelta
 from crewai.tools import tool
 from github import Github, GithubException
-from shared.config.context import REPO_DOMAIN, INTAKE_TARGET
+from shared.config.context import REPO_DOMAIN, INTAKE_TARGET, COMPLIANCE_REPO, COMPLIANCE_LABEL_MAP
 
 _gh = None
 ORG = "carespace-ai"
@@ -204,6 +204,73 @@ def get_activity(repo: str, days: int = 14) -> str:
             "open_issues": r.get_issues(state="open").totalCount,
             "last_push": r.pushed_at.isoformat() if r.pushed_at else None,
         })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@tool("Get Compliance Issues from VantaCrews")
+def get_compliance_issues(limit: int = 100) -> str:
+    """
+    Fetches open issues from the CareSpace Compliance Repo (created by VantaCrews).
+    Maps VantaCrews labels to ClickUp tags and priorities.
+    Returns: number, title, body_preview, labels, priority, suggested_tags,
+             suggested_title, url, created_at, issue_type.
+    """
+    try:
+        repo = _g().get_repo(COMPLIANCE_REPO)
+        out = []
+        count = 0
+        for issue in repo.get_issues(state="open", sort="created", direction="desc"):
+            if count >= limit:
+                break
+            if issue.pull_request:
+                continue
+
+            labels = [l.name for l in issue.labels]
+
+            # Map VantaCrews labels → priority
+            priority = "normal"
+            for lbl in labels:
+                mapped = COMPLIANCE_LABEL_MAP.get(lbl, {})
+                if "priority" in mapped:
+                    priority = mapped["priority"]
+                    break
+
+            # Map VantaCrews labels → tags
+            tags = {"compliance", "vanta"}  # always tagged as compliance + vanta source
+            for lbl in labels:
+                mapped = COMPLIANCE_LABEL_MAP.get(lbl, {})
+                if "tag" in mapped:
+                    tags.add(mapped["tag"])
+
+            # Determine issue type from VantaCrews label patterns
+            issue_type = "compliance"
+            for lbl in labels:
+                if lbl in ("vulnerability", "risk"):
+                    issue_type = "security"
+                    break
+                if lbl == "access-review":
+                    issue_type = "compliance"
+                    break
+
+            repo_short = COMPLIANCE_REPO.split("/")[-1]
+            out.append({
+                "repo": repo_short,
+                "number": issue.number,
+                "title": issue.title,
+                "body_preview": (issue.body or "")[:500],
+                "labels": labels,
+                "priority": priority,
+                "issue_type": issue_type,
+                "target_list_id": INTAKE_TARGET,
+                "suggested_tags": sorted(tags),
+                "suggested_title": f"[COMPLIANCE] {issue.title} (#{issue.number})",
+                "url": issue.html_url,
+                "created_at": issue.created_at.isoformat(),
+                "source": "vantacrews",
+            })
+            count += 1
+        return json.dumps(out, indent=2)
     except Exception as e:
         return json.dumps({"error": str(e)})
 

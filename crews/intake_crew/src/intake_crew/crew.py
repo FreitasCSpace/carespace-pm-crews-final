@@ -12,6 +12,7 @@ from shared.tools import (
     get_tasks_by_list,
     check_duplicate_task,
     comment_issue,
+    get_compliance_issues,
     post,
 )
 
@@ -29,6 +30,7 @@ class IntakeCrewCrew:
                 get_issues,
                 get_prs,
                 get_contributors,
+                get_compliance_issues,
                 get_tasks_by_list,
                 check_duplicate_task,
                 comment_issue,
