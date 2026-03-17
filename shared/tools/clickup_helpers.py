@@ -5,14 +5,16 @@ and duplicate detection. These complement the MCP-injected ClickUp tools.
 """
 
 import os, json
+from datetime import date, timedelta
 from crewai.tools import tool
-from shared.config.context import L, WORKSPACE_ID, SP_ESTIMATE
+from shared.config.context import L, WORKSPACE_ID, SP_ESTIMATE, SPRINT_FOLDER_ID
 
 
 def _clickup_api(endpoint: str, method: str = "GET", payload: dict | None = None) -> dict:
     """Direct ClickUp API v2 call for operations MCP doesn't expose."""
     import urllib.request
-    token = os.environ.get("CLICKUP_PERSONAL_TOKEN", "")
+    token = os.environ.get("CLICKUP_PERSONAL_TOKEN",
+            os.environ.get("CLICKUP_API_TOKEN", ""))
     url = f"https://api.clickup.com/api/v2/{endpoint}"
     headers = {
         "Authorization": token,
@@ -236,6 +238,57 @@ def create_clickup_task(list_id: str, name: str, description: str = "",
             "name": result.get("name"),
             "url": result.get("url"),
             "status": result.get("status", {}).get("status"),
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@tool("Create Sprint List")
+def create_sprint_list() -> str:
+    """
+    Creates a new sprint list in the Sprints folder. Auto-detects the next
+    sprint number and calculates dates (2-week sprint starting next Monday).
+    Returns the new list_id and sprint name. Call this at the start of sprint
+    planning — it handles everything.
+    """
+    try:
+        # Detect next sprint number from existing lists
+        sprint_number = 1
+        data = _clickup_api(f"folder/{SPRINT_FOLDER_ID}/list")
+        existing = data.get("lists", [])
+        for lst in existing:
+            name = lst.get("name", "")
+            for sep in ["—", "--"]:
+                if sep in name:
+                    prefix = name.split(sep)[0].strip()
+                    for p in prefix.split():
+                        if p.isdigit():
+                            sprint_number = max(sprint_number, int(p) + 1)
+
+        # Calculate dates: next Monday + 2 weeks
+        today = date.today()
+        days_until_monday = (7 - today.weekday()) % 7
+        if days_until_monday == 0:
+            start = today
+        else:
+            start = today + timedelta(days=days_until_monday)
+        end = start + timedelta(days=13)
+
+        sprint_name = f"Sprint {sprint_number} — {start.strftime('%b %d')} to {end.strftime('%b %d')}"
+
+        # Create the list
+        result = _clickup_api(
+            f"folder/{SPRINT_FOLDER_ID}/list",
+            method="POST",
+            payload={"name": sprint_name},
+        )
+
+        return json.dumps({
+            "list_id": result.get("id"),
+            "sprint_name": sprint_name,
+            "sprint_number": sprint_number,
+            "start_date": start.isoformat(),
+            "end_date": end.isoformat(),
         })
     except Exception as e:
         return json.dumps({"error": str(e)})

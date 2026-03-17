@@ -1,10 +1,10 @@
 create_sprint_task:
   description: >
-    Create a new sprint list in the Sprints folder (901317811717) in ClickUp.
-    Name it 'Sprint {sprint_number} -- {start_date} to {end_date}'.
-    Return the new list_id for subsequent tasks.
+    Call the create_sprint_list tool. It auto-detects the next sprint number
+    and dates, then creates the list in ClickUp. Returns the list_id and
+    sprint name. No inputs needed — the tool handles everything.
   expected_output: >
-    JSON with the new sprint list_id and name.
+    JSON with the new sprint list_id, sprint_name, sprint_number, start_date, end_date.
   agent: sprint_agent
 
 score_and_select_task:

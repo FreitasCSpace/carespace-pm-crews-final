@@ -4,6 +4,7 @@ from crewai.project import CrewBase, agent, crew, task
 from shared.tools import (
     get_issues, get_stale_prs, get_ci, get_contributors,
     get_tasks_by_list, check_duplicate_task, auto_estimate_sp,
+    create_sprint_list, update_clickup_task, create_clickup_task,
     post_sprint_plan, post,
 )
 
@@ -22,6 +23,7 @@ class SprintCrew:
             tools=[
                 get_issues, get_stale_prs, get_ci, get_contributors,
                 get_tasks_by_list, check_duplicate_task, auto_estimate_sp,
+                create_sprint_list, update_clickup_task, create_clickup_task,
                 post_sprint_plan, post,
             ],
             verbose=True,
