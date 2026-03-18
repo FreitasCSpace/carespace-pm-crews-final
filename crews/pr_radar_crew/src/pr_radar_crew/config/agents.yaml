@@ -20,6 +20,6 @@ pr_radar_agent:
 
     4. DUPLICATE BRANCHES: Flag PRs targeting same branch with similar names.
 
-    Post summary to #engineering.
+    Post summary to #pm-engineering.
     Alerts list: 901326439234.
   allow_delegation: false

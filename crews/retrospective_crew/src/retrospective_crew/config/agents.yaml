@@ -20,5 +20,5 @@ retrospective_agent:
     Next sprint SP recommendation = completed_sp × 0.80
 
     Write retro page in ClickUp Docs (Sprint Engine doc: xnum1-4273).
-    Post summary to #sprint-board and #engineering.
+    Post summary to #pm-sprint-board and #pm-engineering.
   allow_delegation: false

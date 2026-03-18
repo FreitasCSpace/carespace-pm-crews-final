@@ -16,17 +16,17 @@ scan_and_gather:
 
 post_and_escalate:
   description: >
-    Format and post the daily standup to #standup using post_standup tool:
+    Format and post the daily standup to #pm-standup using post_standup tool:
     - Done: checkmark list of completed items
     - In Progress: items with assignee and SP
     - Blocked: items with blocker reason
     - Needs Attention: stale tasks, stale PRs, CI failures
 
     Then escalate each blocker individually:
-    - Post each blocker to #alerts using post_blocker with description,
+    - Post each blocker to #pm-alerts using post_blocker with description,
       task URL, owner, and business impact from dependency chain analysis.
-    - CRITICAL blockers: also post to #engineering.
-    - For stale tasks (>3d no update): post gentle nudge to #alerts.
+    - CRITICAL blockers: also post to #pm-engineering.
+    - For stale tasks (>3d no update): post gentle nudge to #pm-alerts.
   expected_output: >
     Confirmation of standup posted and number of escalations sent.
   agent: daily_pulse_agent

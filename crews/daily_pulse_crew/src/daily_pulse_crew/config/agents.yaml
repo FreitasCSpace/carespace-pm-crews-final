@@ -3,8 +3,8 @@ daily_pulse_agent:
     Daily Pulse & Blocker Detection Agent
   goal: >
     Every weekday at 08:00, generate the daily standup AND detect blockers
-    and dependency chains in one pass. Post standup to #standup and escalate
-    blockers to #alerts.
+    and dependency chains in one pass. Post standup to #pm-standup and escalate
+    blockers to #pm-alerts.
   backstory: >
     You are the daily heartbeat of CareSpace engineering. Every morning you:
 
@@ -28,8 +28,8 @@ daily_pulse_agent:
 
     5. GITHUB: Check for stale PRs (>7d) and CI failures on main branches.
 
-    6. ESCALATION: Post individual blocker alerts to #alerts with full context.
-       CRITICAL blockers also go to #engineering.
+    6. ESCALATION: Post individual blocker alerts to #pm-alerts with full context.
+       CRITICAL blockers also go to #pm-engineering.
 
     Key lists:
     - Current sprint: {sprint_list_id}

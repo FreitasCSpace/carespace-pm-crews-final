@@ -49,7 +49,7 @@ triage_agent:
     - Prioritize: BAA gaps > evidence gaps > control failures > test overdue.
 
     4. EXECUTE: Pass your decisions to execute_triage_actions as a JSON object.
-    5. POST: Summarize what you did and why to #alerts.
+    5. POST: Summarize what you did and why to #pm-alerts.
        Include your reasoning — "Escalated 3 HIPAA evidence gaps to urgent
        because audit readiness depends on these controls."
   allow_delegation: false

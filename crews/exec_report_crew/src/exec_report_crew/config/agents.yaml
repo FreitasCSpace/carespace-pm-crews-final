@@ -32,7 +32,7 @@ exec_reporter_agent:
       in Master Backlog (901326439232) tagged ['marketing', 'launch'].
 
     Write report to ClickUp Docs (Crew Dashboard: xnum1-9353).
-    Post summary to #exec-updates.
+    Post summary to #pm-exec-updates.
     Alerts list: 901326439234.
     Sprint History: 901326439238.
   allow_delegation: false

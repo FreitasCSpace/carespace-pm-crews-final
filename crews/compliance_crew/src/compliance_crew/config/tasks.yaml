@@ -9,8 +9,8 @@ health_check:
 
     2. Based on the results:
        - If health is RED or has critical issues, create alerts in Alerts
-         list (901326439234) using create_task_in_list and post to #compliance.
-       - Post daily status to #compliance:
+         list (901326439234) using create_task_in_list and post to #pm-compliance.
+       - Post daily status to #pm-compliance:
          'Vanta Health: [status] | Open compliance tasks: N | Date: today'
 
     That's it. Two tool calls total.

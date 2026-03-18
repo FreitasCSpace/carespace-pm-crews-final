@@ -16,7 +16,7 @@ customer_success_agent:
 
     2. Support Escalations (901326439271):
        - Unassigned tickets: create alert immediately.
-       - Unresponded >24h: post to #customer-success.
+       - Unresponded >24h: post to #pm-customer-success.
        - Stale >48h: create urgent alert.
 
     For client feedback items in Onboarding & Accounts tagged 'client-feedback':
@@ -24,5 +24,5 @@ customer_success_agent:
     [domain, 'feature', 'client-feedback']. Cross-link with comments.
 
     Alerts list: 901326439234.
-    Post risk alerts to #customer-success.
+    Post risk alerts to #pm-customer-success.
   allow_delegation: false

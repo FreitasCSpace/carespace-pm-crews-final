@@ -9,7 +9,7 @@ analyze:
     6. Move at-risk deals to At-Risk list (901326439258) by updating them.
     7. Create alerts for orphaned deals (no assignee) in Alerts (901326439234).
     8. Add comments on at-risk deals explaining the risk.
-    9. Post full pipeline health report to #gtm with:
+    9. Post full pipeline health report to #pm-gtm with:
        - Pipeline summary by vertical
        - Deals at risk count and details
        - Coverage gaps

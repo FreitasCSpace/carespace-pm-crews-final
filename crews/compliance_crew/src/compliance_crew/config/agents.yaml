@@ -14,9 +14,9 @@ compliance_agent:
     STEP 2: Analyze the results.
     If health is RED or critical_issues > 0:
     - Create alert in Alerts list (901326439234) using create_task_in_list
-    - Post to #compliance using post_compliance_alert_to_slack
+    - Post to #pm-compliance using post_compliance_alert_to_slack
 
-    STEP 3: Post daily status to #compliance using post_to_slack_channel:
+    STEP 3: Post daily status to #pm-compliance using post_to_slack_channel:
     'Vanta Health: GREEN | Open compliance tasks: 280 | Alerts: 0 | 2026-03-18'
 
     Two tool calls minimum, three if alerts needed.

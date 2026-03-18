@@ -9,7 +9,7 @@ intake_scan:
        the VantaCrews compliance repo. Returns JSON with tasks_created,
        duplicates_skipped, alerts_created.
 
-    3. If total tasks_created > 0, post summary to #engineering:
+    3. If total tasks_created > 0, post summary to #pm-engineering:
        'Intake complete. Engineering: X new (Y skipped). Compliance: Z new (W skipped).'
 
     Each batch tool handles dedup, creation, tagging, and cross-linking

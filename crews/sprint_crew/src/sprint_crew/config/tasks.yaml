@@ -20,9 +20,9 @@ populate_sprint_task:
 
 post_sprint_plan_task:
   description: >
-    Post the sprint plan to #sprint-board using post_sprint_plan_to_slack
+    Post the sprint plan to #pm-sprint-board using post_sprint_plan_to_slack
     with the sprint name, task list, and total SP from the previous step.
-    Also post a brief summary to #engineering using post_to_slack_channel.
+    Also post a brief summary to #pm-engineering using post_to_slack_channel.
   expected_output: >
     Confirmation of Slack posts.
   agent: sprint_agent

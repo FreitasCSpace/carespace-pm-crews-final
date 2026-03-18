@@ -32,8 +32,8 @@ write_retro:
 
 post_and_log:
   description: >
-    Post retro summary to #sprint-board with: completion %, velocity SP,
-    carry-overs, and doc URL. Post brief one-paragraph summary to #engineering.
+    Post retro summary to #pm-sprint-board with: completion %, velocity SP,
+    carry-overs, and doc URL. Post brief one-paragraph summary to #pm-engineering.
     Log velocity data as a task in Sprint History (901326439238) for tracking.
   expected_output: >
     Confirmation of Slack posts and velocity log.

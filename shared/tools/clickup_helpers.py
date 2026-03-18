@@ -448,16 +448,12 @@ def execute_triage_actions(actions_json: str) -> str:
             if "first_assign_error" not in stats:
                 stats["first_assign_error"] = f"{action.get('task_id')}: {str(e)[:200]}"
 
-    # Set story points
+    # Set story points (uses _set_sp which falls back to sp-N tags)
     for action in actions.get("set_sp", []):
-        try:
-            _clickup_api(f"task/{action['task_id']}", method="PUT",
-                        payload={"points": action["points"]})
+        if _set_sp(action["task_id"], action["points"]):
             stats["sp_set"] += 1
-        except Exception as e:
+        else:
             stats["errors"] += 1
-            if "first_sp_error" not in stats:
-                stats["first_sp_error"] = f"{action.get('task_id')}: {str(e)[:200]}"
 
     # Create alerts
     for action in actions.get("create_alerts", []):
@@ -482,12 +478,29 @@ def execute_triage_actions(actions_json: str) -> str:
 
 
 def _set_sp(task_id: str, points: int) -> bool:
-    """Set story points on a task. Returns True on success."""
+    """Set story points on a task. Uses tag 'sp-N' (free, unlimited) with
+    native points as fallback. Tags work on all ClickUp plans."""
+    from urllib.parse import quote
     try:
+        # Try native points first
         _clickup_api(f"task/{task_id}", method="PUT", payload={"points": points})
         return True
     except Exception:
-        return False
+        # Fallback: use sp-N tag (free, unlimited)
+        try:
+            # Remove any existing sp- tags first
+            task_data = _clickup_api(f"task/{task_id}")
+            for tag in task_data.get("tags", []):
+                if tag["name"].startswith("sp-"):
+                    try:
+                        _clickup_api(f"task/{task_id}/tag/{quote(tag['name'])}", method="DELETE")
+                    except Exception:
+                        pass
+            # Add new sp-N tag
+            _clickup_api(f"task/{task_id}/tag/{quote(f'sp-{points}')}", method="POST")
+            return True
+        except Exception:
+            return False
 
 
 @tool("Batch Populate Sprint")
@@ -772,16 +785,14 @@ def bulk_assign_and_estimate() -> str:
             else:
                 stats["already_assigned"] += 1
 
-            # Set SP if missing
-            if points is None:
+            # Set SP if missing (check both native points and sp- tags)
+            has_sp = points is not None or any(t.startswith("sp-") for t in tags)
+            if not has_sp:
                 est = _estimate_sp(t["name"], pri)
-                try:
-                    _clickup_api(f"task/{task_id}", method="PUT", payload={"points": est})
+                if _set_sp(task_id, est):
                     stats["sp_set"] += 1
-                except Exception as e:
+                else:
                     stats["errors"] += 1
-                    if "first_sp_error" not in stats:
-                        stats["first_sp_error"] = str(e)[:200]
             else:
                 stats["already_has_sp"] += 1
 

@@ -43,8 +43,8 @@ write_and_post:
 
     3. Log a velocity/health data point in Sprint History (901326439238).
 
-    4. Post summary to #exec-updates using post_exec tool.
-       If any crew health issues found, also post to #engineering.
+    4. Post summary to #pm-exec-updates using post_exec tool.
+       If any crew health issues found, also post to #pm-engineering.
   expected_output: >
     Confirmation with doc URL and Slack post status.
   agent: exec_reporter_agent

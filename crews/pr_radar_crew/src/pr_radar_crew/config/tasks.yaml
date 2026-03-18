@@ -11,7 +11,7 @@ scan:
        carespace-admin, carespace-sdk. For failures, check_duplicate_task first,
        then create task in Master Backlog with tags [domain, 'ci-fix', 'github']. 3 SP.
     5. Detect duplicate branches (PRs with similar names or same target).
-    6. Post summary to #engineering with counts and key items.
+    6. Post summary to #pm-engineering with counts and key items.
   expected_output: >
     JSON: {total_prs: N, stale_prs: N, critical_stale: N, ci_failures: N,
     tasks_created: N, alerts_created: N, duplicate_branches: []}

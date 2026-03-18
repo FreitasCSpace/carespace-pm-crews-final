@@ -10,7 +10,7 @@ monitor:
 
     2. Support Escalations (901326439271):
        - Find unassigned tickets. Create alerts.
-       - Find unresponded tickets >24h. Post to #customer-success.
+       - Find unresponded tickets >24h. Post to #pm-customer-success.
        - Find stale >48h. Create urgent alerts in Alerts list.
 
     3. Client feedback items tagged 'client-feedback':
@@ -19,7 +19,7 @@ monitor:
          '[FEEDBACK] summary' with tags [relevant-domain, 'feature', 'client-feedback'].
        - Cross-link with comments on both tasks.
 
-    Post summary to #customer-success only if actions taken.
+    Post summary to #pm-customer-success only if actions taken.
   expected_output: >
     JSON: {onboardings_at_risk: N, churn_risks: N, unassigned_tickets: N,
     stale_tickets: N, feedback_routed: N, alerts_created: N}
