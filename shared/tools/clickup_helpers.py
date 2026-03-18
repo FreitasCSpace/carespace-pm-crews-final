@@ -671,40 +671,82 @@ def move_task_to_list(task_id: str, target_list_id: str) -> str:
         return json.dumps({"error": "Failed to move task"})
 
 
-@tool("Create Sprint List")
+@tool("Create Or Get Sprint List")
 def create_sprint_list() -> str:
     """
-    Creates a new sprint list in the Sprints folder. Auto-detects the next
-    sprint number and calculates dates (2-week sprint starting next Monday).
-    Returns the new list_id and sprint name. Call this at the start of sprint
-    planning — it handles everything.
+    Smart sprint management. Checks if a current sprint exists and is active.
+
+    - If an active sprint exists (end date hasn't passed): returns it.
+      Does NOT create a new one. The AI should update it or skip.
+    - If the last sprint ended: creates the next sprint.
+    - If no sprints exist: creates Sprint 1.
+
+    Returns: list_id, sprint_name, sprint_number, dates, and
+    'status' = 'active' (existing) or 'created' (new).
     """
+    import re
     try:
-        # Detect next sprint number from existing lists
-        sprint_number = 1
         data = _clickup_api(f"folder/{SPRINT_FOLDER_ID}/list")
         existing = data.get("lists", [])
+        today = date.today()
+
+        # Parse existing sprints to find the latest one
+        latest_sprint = None
+        latest_number = 0
         for lst in existing:
             name = lst.get("name", "")
+            # Extract sprint number
+            num = 0
             for sep in ["—", "--"]:
                 if sep in name:
                     prefix = name.split(sep)[0].strip()
                     for p in prefix.split():
                         if p.isdigit():
-                            sprint_number = max(sprint_number, int(p) + 1)
+                            num = max(num, int(p))
 
-        # Calculate dates: next Monday + 2 weeks
-        today = date.today()
+            # Extract end date from name (e.g., "Sprint 1 — Mar 23 to Apr 05")
+            end_date = None
+            date_match = re.search(r'to\s+(\w+\s+\d+)', name)
+            if date_match:
+                try:
+                    end_str = date_match.group(1)
+                    end_date = date(today.year,
+                                   list(["Jan","Feb","Mar","Apr","May","Jun",
+                                         "Jul","Aug","Sep","Oct","Nov","Dec"]).index(end_str.split()[0][:3]) + 1,
+                                   int(end_str.split()[1]))
+                except (ValueError, IndexError):
+                    end_date = None
+
+            if num > latest_number:
+                latest_number = num
+                latest_sprint = {
+                    "list_id": lst["id"],
+                    "name": name,
+                    "number": num,
+                    "end_date": end_date,
+                }
+
+        # Decision: active sprint exists?
+        if latest_sprint and latest_sprint["end_date"] and latest_sprint["end_date"] >= today:
+            # Sprint is still active — return it, don't create new
+            return json.dumps({
+                "list_id": latest_sprint["list_id"],
+                "sprint_name": latest_sprint["name"],
+                "sprint_number": latest_sprint["number"],
+                "end_date": latest_sprint["end_date"].isoformat(),
+                "status": "active",
+                "message": f"Sprint {latest_sprint['number']} is still active (ends {latest_sprint['end_date']}). No new sprint created.",
+            })
+
+        # No active sprint — create new one
+        sprint_number = latest_number + 1 if latest_number > 0 else 1
+
         days_until_monday = (7 - today.weekday()) % 7
-        if days_until_monday == 0:
-            start = today
-        else:
-            start = today + timedelta(days=days_until_monday)
+        start = today if days_until_monday == 0 else today + timedelta(days=days_until_monday)
         end = start + timedelta(days=13)
 
         sprint_name = f"Sprint {sprint_number} — {start.strftime('%b %d')} to {end.strftime('%b %d')}"
 
-        # Create the list
         result = _clickup_api(
             f"folder/{SPRINT_FOLDER_ID}/list",
             method="POST",
@@ -717,6 +759,8 @@ def create_sprint_list() -> str:
             "sprint_number": sprint_number,
             "start_date": start.isoformat(),
             "end_date": end.isoformat(),
+            "status": "created",
+            "message": f"Created {sprint_name}.",
         })
     except Exception as e:
         return json.dumps({"error": str(e)})

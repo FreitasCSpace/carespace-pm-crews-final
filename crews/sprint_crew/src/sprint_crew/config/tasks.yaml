@@ -1,18 +1,23 @@
 create_sprint_task:
   description: >
-    Call create_sprint_list to create the new sprint. Returns list_id
-    and sprint name. No inputs needed.
+    Call create_sprint_list. It checks if an active sprint exists:
+    - If status = 'active': a sprint is already running. Return it.
+    - If status = 'created': a new sprint was created. Proceed to plan it.
   expected_output: >
-    JSON with list_id, sprint_name, sprint_number, dates.
+    JSON with list_id, sprint_name, sprint_number, dates, and status.
   agent: sprint_agent
 
 scan_backlog_task:
   description: >
-    Call scan_backlog_for_sprint to get a full inventory of the backlog
-    grouped by type: bugs, features, tasks, compliance.
+    Check the previous step's status field:
+    - If status = 'active': the sprint already exists and hasn't ended.
+      Call scan_backlog_for_sprint anyway to check if more tasks should
+      be added (if sprint is underfilled), or just report the current state.
+    - If status = 'created': scan the backlog to plan the new sprint.
 
-    Each item includes: id, name, SP, priority, assignees, age in days.
-    Study this data carefully — you'll build the sprint in the next step.
+    Call scan_backlog_for_sprint to see all available work grouped by
+    type: bugs, features, tasks, compliance. Each item includes: id,
+    name, SP, priority, assignees, age in days.
   expected_output: >
     The full backlog scan JSON.
   agent: sprint_agent
@@ -21,34 +26,46 @@ scan_backlog_task:
 
 plan_and_execute_task:
   description: >
-    Based on the scan results, BUILD THE SPRINT. Analyze the backlog
-    and select tasks that create a balanced, productive 2-week sprint.
+    Based on the create_sprint_task status and scan results:
 
-    THINK THROUGH THESE DECISIONS:
-    1. Which bugs are critical and must go in? (production issues first)
-    2. Which features deliver the most value? (priority + age)
-    3. Are tasks spread across the team? (don't overload one person)
-    4. Which 2-3 compliance items are most urgent? (max 3 for Luis)
-    5. Does total SP fit within 48? (don't over-commit)
+    IF STATUS = 'active' (sprint already running):
+    - Check if the sprint needs more tasks (underfilled).
+    - If it's already well-populated, just report the status and SKIP
+      the execute step. Post a status update instead.
+    - If it needs tasks, select additional ones and execute.
 
-    After deciding, collect the task IDs and call execute_sprint_selection
-    with the sprint_list_id and your chosen task IDs as a JSON array:
-    execute_sprint_selection(sprint_list_id="...", task_ids_json='["id1","id2","id3"]')
+    IF STATUS = 'created' (new sprint):
+    - Build the sprint from scratch. Analyze the backlog and select
+      tasks that create a balanced, productive 2-week sprint.
 
-    This moves each task from backlog to sprint (copies with full metadata,
-    closes backlog original). No duplicates.
+    SPRINT BUILDING PRINCIPLES:
+    1. Budget: 48 SP total (80% of velocity)
+    2. CRITICAL BUGS FIRST: urgent/high bugs are non-negotiable
+    3. FEATURES: pick those that deliver most user value
+    4. TASKS: include tasks that unblock other work
+    5. COMPLIANCE: max 3 items (Luis handles these alone)
+    6. TEAM BALANCE: spread work across engineers, don't overload anyone
+    7. MIX: aim for ~2 bugs + ~5 features + ~2 tasks + ~3 compliance
+
+    To execute: call execute_sprint_selection with the sprint_list_id
+    and your chosen task IDs as a JSON array:
+    execute_sprint_selection(sprint_list_id="...", task_ids_json='["id1","id2"]')
+
+    This copies tasks to sprint and closes backlog originals.
   expected_output: >
-    JSON with tasks_moved, total_sp, and your reasoning for the selections.
+    JSON with tasks_moved, total_sp, reasoning. Or status report if
+    sprint was already active and didn't need changes.
   agent: sprint_agent
   context:
     - scan_backlog_task
 
 post_sprint_plan_task:
   description: >
-    Post the sprint plan to #pm-sprint-board using post_sprint_plan.
-    Include: sprint name, task list with assignees and SP, total SP.
-    Also post a brief summary to #pm-engineering explaining what's in the
-    sprint and why — your reasoning matters.
+    Post to #pm-sprint-board using post_sprint_plan.
+    - If new sprint was created: full sprint plan with task list and reasoning.
+    - If sprint was already active: status update ("Sprint N still active,
+      ends Apr 05, N tasks remaining").
+    Also post brief summary to #pm-engineering.
   expected_output: >
     Confirmation of Slack posts.
   agent: sprint_agent
