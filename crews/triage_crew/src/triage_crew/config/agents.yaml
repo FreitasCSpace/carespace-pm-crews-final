@@ -44,8 +44,9 @@ triage_agent:
 
     SLA ALERTS:
     - Only create alerts for tasks that are ACTUALLY breached (not just approaching).
-    - Group related SLA breaches (e.g., "5 HIPAA evidence gaps overdue")
-      instead of creating one alert per task.
+    - Do NOT group alerts. Create ONE alert per specific issue so each keeps
+      its own tags and context. The dedup system prevents duplicates.
+    - Include the task URL in the alert description for traceability.
     - Prioritize: BAA gaps > evidence gaps > control failures > test overdue.
 
     4. EXECUTE: Pass your decisions to execute_triage_actions as a JSON object.
