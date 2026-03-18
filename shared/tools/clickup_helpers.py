@@ -497,18 +497,37 @@ def execute_triage_actions(actions_json: str) -> str:
         else:
             stats["errors"] += 1
 
-    # Create alerts
+    # Create alerts (with dedup — check if similar alert already exists)
+    existing_alerts = []
+    try:
+        alert_data = _clickup_api(f"list/{L['alerts']}/task?archived=false")
+        existing_alerts = [t["name"].lower() for t in alert_data.get("tasks", [])]
+    except Exception:
+        pass  # if we can't load alerts, create anyway
+
     for action in actions.get("create_alerts", []):
+        alert_name = action["name"]
+        # Check if a similar alert already exists (fuzzy match on key words)
+        alert_words = set(alert_name.lower().split())
+        already_exists = any(
+            len(alert_words & set(existing.split())) >= 3
+            for existing in existing_alerts
+        )
+        if already_exists:
+            stats["alerts_skipped"] = stats.get("alerts_skipped", 0) + 1
+            continue
+
         try:
             _clickup_api(
                 f"list/{L['alerts']}/task", method="POST",
                 payload={
-                    "name": action["name"],
+                    "name": alert_name,
                     "priority": action.get("priority", 1),
                     "description": action.get("description", ""),
                 },
             )
             stats["alerts_created"] += 1
+            existing_alerts.append(alert_name.lower())  # add to cache
         except Exception:
             stats["errors"] += 1
 
