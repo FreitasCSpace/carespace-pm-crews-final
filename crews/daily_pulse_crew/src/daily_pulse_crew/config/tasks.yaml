@@ -89,11 +89,17 @@ compile_and_post:
     OR
     [🟢 OPEN SLOT: No blockers. Available for strategic discussion.]
 
-    POST THIS using post_standup tool:
-    - done: the Done section text
-    - in_progress: the In Progress section text
-    - blocked: the Blocked section text
-    - attention: the Needs Attention + Pending + Meeting Mode text
+    POST using post_standup tool with these parameters:
+    - executive_summary: 3-4 bullet points (sprint health, SP progress, risks)
+    - done: bullet list of completed items
+    - in_progress: bullet list of active items with @assignee (X SP)
+    - blocked: bullet list with blocker reason
+    - pending: bullet list of not-started items with @assignee (X SP)
+    - attention: stale PRs, CI failures, stale tasks (just the content, no headers)
+    - meeting_mode: 'STANDUP: X blockers...' or 'OPEN SLOT: No blockers...'
+
+    IMPORTANT: Do NOT add separator lines (═══) or section headers.
+    The tool adds all formatting automatically. Just pass clean content.
 
     Then escalate any 🔴 Blockers to #pm-alerts using post_blocker.
     CRITICAL blockers (team cannot ship without resolution) also go

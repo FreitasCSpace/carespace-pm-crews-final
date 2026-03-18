@@ -44,24 +44,37 @@ def post(channel: str, message: str) -> str:
 
 
 @tool("Post Daily Standup to Slack")
-def post_standup(done: str, in_progress: str, blocked: str, attention: str) -> str:
+def post_standup(executive_summary: str, done: str, in_progress: str,
+                 blocked: str, pending: str, attention: str, meeting_mode: str) -> str:
     """
-    Posts the structured daily standup to #pm-standup.
-    done: mrkdwn bullet list of completed items.
-    in_progress: mrkdwn bullet list of active items.
-    blocked: mrkdwn bullet list of blocked items.
-    attention: stale PRs, CI failures, silently stuck tasks.
+    Posts the structured daily sprint digest to #pm-standup.
+    Template is enforced — just pass the content for each section.
+    Do NOT add separators or headers — the tool handles formatting.
+
+    executive_summary: 3-4 bullet points (sprint health, progress, risks)
+    done: bullet list of completed items (or 'None')
+    in_progress: bullet list of active items with assignee and SP
+    blocked: bullet list of blocked items with reason
+    pending: bullet list of not-started items with assignee and SP
+    attention: stale PRs, CI failures, stale tasks
+    meeting_mode: either 'STANDUP: X blockers. 15-min focused session.'
+                  or 'OPEN SLOT: No blockers. Available for strategic discussion.'
     """
     today = date.today().strftime("%B %d, %Y")
-    body = (
-        f"*Done*\n{done or '_Nothing completed_'}\n\n"
-        f"*In Progress*\n{in_progress or '_Nothing active_'}\n\n"
-        f"*Blocked*\n{blocked or '_No blockers_'}\n\n"
-        f"*Needs Attention*\n{attention or '_All clear_'}"
-    )
-    r = _api(SLACK["standup"], f"Standup {today}", [
-        _hdr(f"Daily Standup -- {today}"),
-        _sec(body),
+    r = _api(SLACK["standup"], f"Sprint Digest {today}", [
+        _hdr(f"📊 Sprint Digest — {today}"),
+        _sec(f"*Executive Summary*\n{executive_summary}"),
+        _div(),
+        _sec(
+            f"*✅ Done*\n{done or '_None_'}\n\n"
+            f"*🔄 In Progress*\n{in_progress or '_None_'}\n\n"
+            f"*🚫 Blocked*\n{blocked or '_None_'}\n\n"
+            f"*⏳ Pending*\n{pending or '_None_'}"
+        ),
+        _div(),
+        _sec(f"*⚠️ Needs Attention*\n{attention or '_All clear_'}"),
+        _div(),
+        _sec(f"*🎯 Meeting Mode*\n{meeting_mode}"),
         _ctx("_Posted by CareSpace PM AI_"),
     ])
     return json.dumps({"ok": r.get("ok")})
