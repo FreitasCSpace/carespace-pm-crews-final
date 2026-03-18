@@ -444,8 +444,13 @@ def execute_triage_actions(actions_json: str) -> str:
       "set_priority": [{"task_id": "xxx", "priority": 1, "reason": "..."}],
       "assign": [{"task_id": "xxx", "user_id": "12345", "reason": "..."}],
       "set_sp": [{"task_id": "xxx", "points": 5}],
-      "create_alerts": [{"name": "...", "description": "...", "priority": 1}]
+      "create_alerts": [{"name": "...", "description": "...", "priority": 1, "tags": ["compliance", "hipaa"]}]
     }
+
+    ALERT TAGS: Always include relevant tags on alerts for filtering.
+    Common tags: compliance, hipaa, soc2, security, frontend, backend,
+    mobile, infra, github, vanta, urgent.
+    Alerts do NOT get story points — they are notifications, not work items.
 
     priority: 1=urgent, 2=high, 3=normal, 4=low
     user_id: ClickUp user ID string
@@ -521,13 +526,16 @@ def execute_triage_actions(actions_json: str) -> str:
             continue
 
         try:
+            payload = {
+                "name": alert_name,
+                "priority": action.get("priority", 1),
+                "description": action.get("description", ""),
+            }
+            if action.get("tags"):
+                payload["tags"] = action["tags"]
             _clickup_api(
                 f"list/{L['alerts']}/task", method="POST",
-                payload={
-                    "name": alert_name,
-                    "priority": action.get("priority", 1),
-                    "description": action.get("description", ""),
-                },
+                payload=payload,
             )
             stats["alerts_created"] += 1
             existing_alerts.append(alert_name.lower())  # add to cache

@@ -51,6 +51,13 @@ triage_agent:
       "[ALERT] ⏰ SLA Breach: Evidence Gap unique-user-identification — HIPAA (#227)"
       "[ALERT] 🔧 Control Failure: IAC-12 — MFA not enforced (#185)"
       "[ALERT] 🏢 Vendor Risk: Azure — Missing BAA (#180)"
+    - ALWAYS include tags on alerts for filtering. Examples:
+      tags: ["compliance", "hipaa"] for HIPAA issues
+      tags: ["compliance", "soc2"] for SOC2 issues
+      tags: ["security"] for security issues
+      tags: ["compliance", "hipaa", "soc2"] for cross-framework
+      tags: ["github", "pr-review"] for stale PRs
+    - Alerts do NOT get story points — they are notifications, not work.
     - Include the task URL in the alert description for traceability.
     - Prioritize: BAA gaps > evidence gaps > control failures > test overdue.
 

@@ -11,6 +11,7 @@ scan:
     - If no duplicate: create alert in Alerts list (901326439234) using
       create_task_in_list with priority urgent.
     - Name format: "[ALERT] 🔀 Stale PR >30d — repo PR #N: title"
+    - Tags: ["github", "pr-review", "stale"]
 
     STEP 3: For stale PRs (7-30 days):
     - Check if a task exists: check_duplicate_task with "repo#N" and
