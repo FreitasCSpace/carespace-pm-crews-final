@@ -198,16 +198,25 @@ TEAM = {
 
 # Domain leads — for auto-assignment fallback
 DOMAIN_LEADS = {
-    "frontend": "49000180",   # andreCarespace
-    "backend":  "49000181",   # fabiano-carespace
-    "mobile":   "93908270",   # YeddulaBharath
-    "ai-cv":    "93908266",   # bhavyasaurabh
-    "sdk":      "93908270",   # YeddulaBharath
-    "infra":    "111928715",  # sandeep
-    "bots":     "49000181",   # fabiano-carespace
-    "video":    "93908266",   # bhavyasaurabh
-    "security": "93908266",   # bhavyasaurabh
+    "frontend":   "49000180",   # andreCarespace
+    "backend":    "49000181",   # fabiano-carespace
+    "mobile":     "93908270",   # YeddulaBharath
+    "ai-cv":      "93908266",   # bhavyasaurabh
+    "sdk":        "93908270",   # YeddulaBharath
+    "infra":      "111928715",  # sandeep
+    "bots":       "49000181",   # fabiano-carespace
+    "video":      "93908266",   # bhavyasaurabh
+    "security":   "93908266",   # bhavyasaurabh
+    "compliance": "48998538",   # fusuma (Luis Freitas) — sole compliance owner
+    "vanta":      "48998538",   # fusuma (Luis Freitas)
+    "hipaa":      "48998538",   # fusuma (Luis Freitas)
+    "soc2":       "48998538",   # fusuma (Luis Freitas)
 }
+
+# Sprint compliance cap — max compliance tasks per sprint
+# Compliance is handled by one person (Luis Freitas), so we cap it
+# to avoid filling the entire sprint with compliance work.
+MAX_COMPLIANCE_PER_SPRINT = 3
 
 # ======================================================================
 # SPRINT CONFIG
