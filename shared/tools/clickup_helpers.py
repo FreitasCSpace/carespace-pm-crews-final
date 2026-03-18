@@ -23,8 +23,13 @@ def _clickup_api(endpoint: str, method: str = "GET", payload: dict | None = None
     }
     data = json.dumps(payload).encode() if payload else None
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return json.loads(resp.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            body = resp.read().decode()
+            return json.loads(body) if body else {}
+    except urllib.request.HTTPError as e:
+        error_body = e.read().decode() if e.fp else ""
+        raise Exception(f"HTTP {e.code}: {error_body[:200]}")
 
 
 @tool("Get Tasks By List")
@@ -427,8 +432,10 @@ def execute_triage_actions(actions_json: str) -> str:
             _clickup_api(f"task/{action['task_id']}", method="PUT",
                         payload={"priority": action["priority"]})
             stats["priorities_set"] += 1
-        except Exception:
+        except Exception as e:
             stats["errors"] += 1
+            if "first_error" not in stats:
+                stats["first_error"] = f"set_priority: {str(e)[:200]}"
 
     # Assign tasks
     for action in actions.get("assign", []):
@@ -436,8 +443,10 @@ def execute_triage_actions(actions_json: str) -> str:
             _clickup_api(f"task/{action['task_id']}", method="PUT",
                         payload={"assignees": {"add": [int(action["user_id"])]}})
             stats["tasks_assigned"] += 1
-        except Exception:
+        except Exception as e:
             stats["errors"] += 1
+            if "first_assign_error" not in stats:
+                stats["first_assign_error"] = f"{action.get('task_id')}: {str(e)[:200]}"
 
     # Set story points
     for action in actions.get("set_sp", []):
@@ -445,8 +454,10 @@ def execute_triage_actions(actions_json: str) -> str:
             _clickup_api(f"task/{action['task_id']}", method="PUT",
                         payload={"points": action["points"]})
             stats["sp_set"] += 1
-        except Exception:
+        except Exception as e:
             stats["errors"] += 1
+            if "first_sp_error" not in stats:
+                stats["first_sp_error"] = f"{action.get('task_id')}: {str(e)[:200]}"
 
     # Create alerts
     for action in actions.get("create_alerts", []):
@@ -774,8 +785,10 @@ def dedup_backlog_cleanup(dry_run: bool = True) -> str:
                         stats["tasks_deleted"] += 1
                         deleted_tasks.append({"name": dupe["name"][:60], "id": dupe["id"], "deleted": True})
                         time.sleep(0.2)
-                    except Exception:
+                    except Exception as e:
                         stats["errors"] += 1
+                        if "first_error" not in stats:
+                            stats["first_error"] = str(e)[:200]
                 else:
                     deleted_tasks.append({"name": dupe["name"][:60], "id": dupe["id"], "would_delete": True})
 
