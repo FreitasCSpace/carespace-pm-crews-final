@@ -6,7 +6,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_tasks_by_list,
+    batch_compliance_check,
     create_clickup_task,
     post_compliance,
     post,
@@ -15,10 +15,7 @@ from shared.tools import (
 
 @CrewBase
 class ComplianceCrew:
-    """Compliance health monitor — runs daily 07:00.
-    Uses MCP Vanta tools (injected by CrewHub) for health data.
-    Our custom tools only handle ClickUp and Slack.
-    """
+    """Compliance health monitor — runs daily 07:00."""
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
@@ -26,12 +23,7 @@ class ComplianceCrew:
     def compliance_agent(self) -> Agent:
         return Agent(
             config=self.agents_config["compliance_agent"],
-            tools=[
-                get_tasks_by_list,
-                create_clickup_task,
-                post_compliance,
-                post,
-            ],
+            tools=[batch_compliance_check, create_clickup_task, post_compliance, post],
             verbose=True,
             allow_delegation=False,
         )

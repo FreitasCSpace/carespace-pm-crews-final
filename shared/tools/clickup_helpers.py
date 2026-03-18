@@ -712,6 +712,67 @@ def create_sprint_list() -> str:
         return json.dumps({"error": str(e)})
 
 
+@tool("Compliance Health Check")
+def batch_compliance_check() -> str:
+    """
+    Complete daily compliance health check in one call. Pulls Vanta health
+    data AND counts open compliance tasks in the backlog. Returns everything
+    the compliance agent needs to make decisions and post status.
+
+    No other tools needed — this does the full check.
+    """
+    result = {
+        "vanta_health": None,
+        "open_compliance_tasks": 0,
+        "task_sample": [],
+        "errors": [],
+    }
+
+    # 1. Try to get Vanta health from MCP (via subprocess)
+    try:
+        import subprocess
+        # The MCP Vanta tool is not callable directly, so we use our vanta.py
+        from shared.tools.vanta import get_health_summary as _vanta_health
+        health_json = _vanta_health()
+        result["vanta_health"] = json.loads(health_json)
+    except Exception as e:
+        result["errors"].append(f"vanta_health: {str(e)[:100]}")
+        # Fallback: return unknown status
+        result["vanta_health"] = {"health_indicator": "UNKNOWN", "error": str(e)[:100]}
+
+    # 2. Count open compliance tasks in backlog (paginated)
+    try:
+        all_tasks = []
+        page = 0
+        while True:
+            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}")
+            tasks = data.get("tasks", [])
+            if not tasks:
+                break
+            all_tasks.extend(tasks)
+            if len(tasks) < 100:
+                break
+            page += 1
+
+        compliance_tasks = [
+            t for t in all_tasks
+            if any(tag["name"] == "compliance" for tag in t.get("tags", []))
+        ]
+        result["open_compliance_tasks"] = len(compliance_tasks)
+
+        # Sample of first 5 for context
+        for t in compliance_tasks[:5]:
+            result["task_sample"].append({
+                "name": t["name"][:80],
+                "priority": t.get("priority", {}).get("priority", "none") if t.get("priority") else "none",
+                "assigned": len(t.get("assignees", [])) > 0,
+            })
+    except Exception as e:
+        result["errors"].append(f"clickup: {str(e)[:100]}")
+
+    return json.dumps(result, indent=2)
+
+
 @tool("Dedup Backlog Cleanup")
 def dedup_backlog_cleanup(dry_run: bool = True) -> str:
     """
