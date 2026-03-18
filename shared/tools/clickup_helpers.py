@@ -100,8 +100,9 @@ def check_duplicate_task(title_fragment: str, list_id: str = "") -> str:
                 if fragment_lower in t["name"].lower()
             ]
         else:
-            # Search across workspace
-            search_url = f"team/{WORKSPACE_ID}/task?search={title_fragment}&archived=false"
+            # Search across workspace (URL-encode the search term)
+            from urllib.parse import quote
+            search_url = f"team/{WORKSPACE_ID}/task?search={quote(title_fragment)}&archived=false"
             data = _clickup_api(search_url)
             tasks = data.get("tasks", [])
             matches = [
@@ -232,7 +233,7 @@ def create_clickup_task(list_id: str, name: str, description: str = "",
     priority: 1=urgent, 2=high, 3=normal, 4=low.
     assignees: list of ClickUp user IDs.
     tags: list of tag name strings.
-    points: story points estimate.
+    points: story points (set via custom field after creation).
     Returns the created task id, name, and url.
     """
     try:
@@ -243,11 +244,14 @@ def create_clickup_task(list_id: str, name: str, description: str = "",
             payload["assignees"] = assignees
         if tags:
             payload["tags"] = tags
-        if points is not None:
-            payload["points"] = points
+        # Don't set native points (plan limited) — use custom field after
         result = _clickup_api(f"list/{list_id}/task", method="POST", payload=payload)
+        task_id = result.get("id")
+        # Set SP via custom field if provided
+        if points is not None and task_id:
+            _set_sp(task_id, points)
         return json.dumps({
-            "id": result.get("id"),
+            "id": task_id,
             "name": result.get("name"),
             "url": result.get("url"),
             "status": result.get("status", {}).get("status"),
