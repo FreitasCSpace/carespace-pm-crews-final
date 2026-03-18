@@ -91,23 +91,44 @@ def _check_duplicate(title_fragment: str) -> bool:
 _backlog_cache = None
 
 def _load_all_backlog_tasks() -> list[str]:
-    """Load ALL task names from Master Backlog, handling pagination."""
+    """Load ALL task names from Master Backlog (including closed/completed)
+    AND active sprint lists. This prevents intake from re-creating tasks
+    that were moved to a sprint (copy + close pattern)."""
+    from shared.config.context import SPRINT_FOLDER_ID
     names = []
-    page = 0
-    while True:
-        try:
-            data = _clickup_api(
-                f"list/{INTAKE_TARGET}/task?archived=false&page={page}"
-            )
-            tasks = data.get("tasks", [])
-            if not tasks:
+
+    # 1. Load backlog tasks (including closed — so moved-to-sprint originals are found)
+    for include_closed in ["true"]:
+        page = 0
+        while True:
+            try:
+                data = _clickup_api(
+                    f"list/{INTAKE_TARGET}/task?archived=false&include_closed={include_closed}&page={page}"
+                )
+                tasks = data.get("tasks", [])
+                if not tasks:
+                    break
+                names.extend(t["name"].lower() for t in tasks)
+                if len(tasks) < 100:
+                    break
+                page += 1
+            except Exception:
                 break
-            names.extend(t["name"].lower() for t in tasks)
-            if len(tasks) < 100:  # last page
-                break
-            page += 1
-        except Exception:
-            break
+
+    # 2. Load sprint list tasks (the copies that were moved there)
+    try:
+        sprint_data = _clickup_api(f"folder/{SPRINT_FOLDER_ID}/list")
+        for sprint_list in sprint_data.get("lists", []):
+            try:
+                sprint_tasks = _clickup_api(
+                    f"list/{sprint_list['id']}/task?archived=false&page=0"
+                )
+                names.extend(t["name"].lower() for t in sprint_tasks.get("tasks", []))
+            except Exception:
+                pass
+    except Exception:
+        pass
+
     return names
 
 
