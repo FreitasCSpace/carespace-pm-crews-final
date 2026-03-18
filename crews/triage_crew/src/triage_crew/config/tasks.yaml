@@ -1,31 +1,22 @@
-triage_and_enforce:
+dedup_task:
   description: >
-    Single-pass scan of Master Backlog (901326439232) and current sprint
-    list ({sprint_list_id}). Execute all rules:
-
-    BACKLOG TRIAGE:
-    1. Get all tasks from Master Backlog.
-    2. Security reclassification: tasks tagged 'security' must be urgent.
-    3. SLA breach detection: check task age vs thresholds
-       (urgent=4h, high=24h, normal=72h, low=168h).
-       For each breach, check_duplicate_task first, then create alert
-       in Alerts list (901326439234) with post_sla_breach.
-    4. Unassigned bugs: tasks tagged 'bug' with no assignee -- assign to
-       domain lead. Set due: 1d urgent, 2d high, 5d normal, 10d low.
-    5. Priority correction: tasks with keywords (crash, data loss, PHI,
-       HIPAA, injection, vulnerability) that aren't urgent -- escalate.
-
-    SPRINT RULES (on {sprint_list_id}):
-    6. G1: Done tasks tagged 'hipaa' or 'phi' without 'compliance-reviewed'
-       tag -- add the tag.
-    7. G3: Tasks with no story points -- auto_estimate_sp (dry_run=False).
-    8. G7: Tasks tagged 'hipaa' -- add watchers 49000181 and 93908266.
-    9. S4: Tasks tagged 'security' not urgent -- update priority.
-    10. S6: In Progress >3 days no update -- create stale alert.
-
-    Post summary to #alerts only if actions were taken.
+    Call dedup_backlog_cleanup with dry_run=False to delete duplicate
+    tasks in the Master Backlog. Returns count of duplicates found
+    and deleted.
   expected_output: >
-    JSON summary: {security_reclassified: N, sla_breaches: N, bugs_assigned: N,
-    priorities_corrected: N, compliance_tags_added: N, sp_estimated: N,
-    stale_alerts: N, total_actions: N}
+    JSON with duplicates_found, tasks_deleted, tasks_kept.
   agent: triage_agent
+
+triage_task:
+  description: >
+    Call batch_triage_backlog to enforce all quality rules on the
+    Master Backlog in one pass. Then post summary to #alerts if
+    any actions were taken.
+
+    Format: 'Triage: X dupes removed, Y priorities fixed, Z assigned,
+    W SLA breaches, V SP estimated.'
+  expected_output: >
+    JSON summary of all triage actions taken.
+  agent: triage_agent
+  context:
+    - dedup_task

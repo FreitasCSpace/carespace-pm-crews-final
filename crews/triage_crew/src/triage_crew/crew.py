@@ -2,15 +2,13 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_tasks_by_list, check_duplicate_task, auto_estimate_sp,
-    update_clickup_task, add_tag_to_task, create_clickup_task,
-    post_sla_breach, post_blocker, post,
+    batch_triage_backlog, dedup_backlog_cleanup, post,
 )
 
 
 @CrewBase
 class TriageCrew:
-    """Bug triage + rules enforcement — runs every 6 hours."""
+    """Bug triage + rules enforcement + dedup — runs every 6 hours."""
 
     agents_config  = "config/agents.yaml"
     tasks_config   = "config/tasks.yaml"
@@ -19,17 +17,17 @@ class TriageCrew:
     def triage_agent(self) -> Agent:
         return Agent(
             config=self.agents_config["triage_agent"],
-            tools=[
-                get_tasks_by_list, check_duplicate_task, auto_estimate_sp,
-                update_clickup_task, add_tag_to_task, create_clickup_task,
-                post_sla_breach, post_blocker, post,
-            ],
+            tools=[batch_triage_backlog, dedup_backlog_cleanup, post],
             verbose=True,
         )
 
     @task
-    def triage_and_enforce(self) -> Task:
-        return Task(config=self.tasks_config["triage_and_enforce"])
+    def dedup_task(self) -> Task:
+        return Task(config=self.tasks_config["dedup_task"])
+
+    @task
+    def triage_task(self) -> Task:
+        return Task(config=self.tasks_config["triage_task"])
 
     @crew
     def crew(self) -> Crew:

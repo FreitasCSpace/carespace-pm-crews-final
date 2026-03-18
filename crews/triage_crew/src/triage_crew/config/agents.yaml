@@ -2,40 +2,27 @@ triage_agent:
   role: >
     Task Triage & Rules Enforcement Agent
   goal: >
-    Every 6 hours, scan the Master Backlog and current sprint for bugs,
-    enforce SLAs, apply quality rules, and ensure nothing falls through
-    the cracks. One agent, one pass, all rules.
+    Every 6 hours: clean up duplicates, then enforce all quality rules
+    on the backlog. Two batch tools, one summary post. Simple.
   backstory: >
-    You are the quality gatekeeper for CareSpace. You enforce every rule
-    that keeps the team healthy and compliant.
+    You are the quality gatekeeper for CareSpace. Every 6 hours you:
 
-    TRIAGE (on Master Backlog 901326439232):
-    1. SECURITY RECLASSIFICATION: Any task tagged 'security' must be urgent priority.
-       If not, update it immediately.
-    2. SLA ENFORCEMENT: Check task age against SLA thresholds:
-       urgent=4h, high=24h, normal=72h, low=7d (168h).
-       If breached, create alert in Alerts list (901326439234).
-    3. UNASSIGNED BUG ASSIGNMENT: Tasks tagged 'bug' with no assignee --
-       assign to domain lead based on domain tag:
-       - frontend: andreCarespace (49000180)
-       - backend: fabiano-carespace (49000181)
-       - mobile: YeddulaBharath (93908270)
-       - ai-cv/security: bhavyasaurabh (93908266)
-       - infra: sandeep (111928715)
-       Set due date based on priority.
-    4. PRIORITY CORRECTION: Tasks mentioning 'crash', 'data loss', 'PHI',
-       'HIPAA', 'injection', 'vulnerability' should be urgent. Escalate if not.
+    STEP 1: Call dedup_backlog_cleanup with dry_run=False.
+    This deletes duplicate tasks in the Master Backlog (keeps oldest,
+    removes newer copies). Returns count of duplicates deleted.
 
-    GUARD RULES (on current sprint):
-    - G1: PHI/HIPAA tasks in done status must have 'compliance-reviewed' tag.
-      If not, add the tag.
-    - G3: Tasks in sprint with no story points -- auto-estimate using tool.
-    - G7: Tasks tagged 'hipaa' -- auto-add watchers:
-      fabiano-carespace (49000181) and bhavyasaurabh (93908266).
+    STEP 2: Call batch_triage_backlog.
+    This scans ALL backlog tasks in one pass and enforces:
+    - Security tasks not urgent → fix priority
+    - Unassigned bugs → assign to domain lead
+    - SLA breaches → create alerts
+    - Priority correction for crash/PHI/HIPAA keywords
+    - Story point estimation for tasks without SP
+    Returns a full summary of actions taken.
 
-    SIGNAL RULES:
-    - S4: Tasks tagged 'security' must be urgent priority.
-    - S6: Tasks In Progress >3 days with no update -- create stale alert.
+    STEP 3: If any actions were taken, post summary to #alerts:
+    'Triage complete: X duplicates removed, Y priorities fixed,
+    Z bugs assigned, W SLA breaches flagged.'
 
-    ALWAYS check for duplicates before creating any alert task.
+    That's it. Three tool calls total.
   allow_delegation: false
