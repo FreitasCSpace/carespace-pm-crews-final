@@ -90,15 +90,32 @@ def _check_duplicate(title_fragment: str) -> bool:
 # Cache backlog tasks to avoid hitting the API for every single issue
 _backlog_cache = None
 
+def _load_all_backlog_tasks() -> list[str]:
+    """Load ALL task names from Master Backlog, handling pagination."""
+    names = []
+    page = 0
+    while True:
+        try:
+            data = _clickup_api(
+                f"list/{INTAKE_TARGET}/task?archived=false&page={page}"
+            )
+            tasks = data.get("tasks", [])
+            if not tasks:
+                break
+            names.extend(t["name"].lower() for t in tasks)
+            if len(tasks) < 100:  # last page
+                break
+            page += 1
+        except Exception:
+            break
+    return names
+
+
 def _check_duplicate_cached(title_fragment: str) -> bool:
-    """Cached version — loads backlog once, checks in memory."""
+    """Cached version — loads full backlog once (paginated), checks in memory."""
     global _backlog_cache
     if _backlog_cache is None:
-        try:
-            data = _clickup_api(f"list/{INTAKE_TARGET}/task?archived=false")
-            _backlog_cache = [t["name"].lower() for t in data.get("tasks", [])]
-        except Exception:
-            _backlog_cache = []
+        _backlog_cache = _load_all_backlog_tasks()
     return any(title_fragment.lower() in name for name in _backlog_cache)
 
 
