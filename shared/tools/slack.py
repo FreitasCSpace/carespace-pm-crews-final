@@ -113,10 +113,10 @@ def post_sprint_plan(sprint_name: str, tasks_json: str, total_sp: int) -> str:
 @tool("Post Triage Report to Slack")
 def post_blocker(description: str, task_url: str, owner: str, impact: str = "") -> str:
     """
-    Posts a structured alert to #pm-alerts. Use for blockers, triage summaries,
-    or any escalation. The tool formats it cleanly.
+    Posts a structured alert/blocker to #pm-alerts. Template enforced.
+    Do NOT use the generic 'post' tool for alerts — use this instead.
 
-    description: what happened (e.g., 'Triage actions executed' or 'BLOCKER: API timeout')
+    description: what happened (e.g., 'BLOCKER: API timeout')
     task_url: link to the relevant task or 'N/A' for summaries
     owner: who is responsible
     impact: business impact or action summary
@@ -136,6 +136,37 @@ def post_blocker(description: str, task_url: str, owner: str, impact: str = "") 
 
     sections.append(_ctx("_Alert by CareSpace PM AI_"))
     r = _api(SLACK["alerts"], f"Alert: {description[:60]}", sections)
+    return json.dumps({"ok": r.get("ok")})
+
+
+@tool("Post Triage Summary to Slack")
+def post_triage_summary(priorities_set: str, assignments: str,
+                        story_points: str, alerts: str, reasoning: str) -> str:
+    """
+    Posts a structured triage summary to #pm-alerts. Template enforced.
+    USE THIS for triage results — not the generic 'post' tool.
+    Do NOT add separators or headers — the tool handles formatting.
+
+    priorities_set: bullet list of priority changes (or 'None')
+    assignments: bullet list of assignments made (or 'None')
+    story_points: summary of SP set (or 'None')
+    alerts: bullet list of alerts created (or 'None')
+    reasoning: why these decisions were made
+    """
+    today = date.today().strftime("%B %d, %Y")
+    r = _api(SLACK["alerts"], f"Triage Report {today}", [
+        _hdr(f"🔍 Triage Report — {today}"),
+        _sec(
+            f"*Priorities Changed*\n{priorities_set or '_None_'}\n\n"
+            f"*Assignments*\n{assignments or '_None_'}\n\n"
+            f"*Story Points*\n{story_points or '_None_'}"
+        ),
+        _div(),
+        _sec(f"*Alerts Created*\n{alerts or '_None_'}"),
+        _div(),
+        _sec(f"*Reasoning*\n{reasoning}"),
+        _ctx("_Triage by CareSpace PM AI_"),
+    ])
     return json.dumps({"ok": r.get("ok")})
 
 

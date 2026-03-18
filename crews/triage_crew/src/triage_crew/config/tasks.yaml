@@ -37,7 +37,16 @@ decide_and_execute_task:
        all overdue" is one alert, not 20)
 
     Call execute_triage_actions with your decisions.
-    Post summary with reasoning to #pm-alerts.
+
+    Then post summary using post_triage_summary (NOT the generic post tool):
+    - priorities_set: bullet list of priority changes
+    - assignments: bullet list of assignments made
+    - story_points: summary of SP set
+    - alerts: bullet list of alerts created
+    - reasoning: why you made these decisions
+
+    IMPORTANT: Use post_triage_summary for formatted output. Do NOT use
+    the generic 'post' tool — it produces ugly unformatted text.
   expected_output: >
     JSON summary of actions taken with reasoning.
   agent: triage_agent
