@@ -26,9 +26,13 @@ scan_and_gather:
 
     5. Check GitHub: stale PRs (>7d) using get_stale_pull_requests.
 
-    6. Check CI failures using get_ci_status on repos:
+    6. Check CI using get_ci_status on repos:
        carespace-ui, carespace-admin, carespace-api-gateway, carespace-sdk.
        NOTE: Try 'main' first, if 404 try 'master'.
+       IMPORTANT: Only report FAILING CI checks. Do NOT include passing repos.
+       If all repos pass, just note "All CI passing" — don't list them individually.
+       For failures, include the GitHub Actions link:
+       https://github.com/carespace-ai/{repo}/actions
 
     7. Check Alerts list (901326439234) for unresolved alerts >24h.
 
@@ -77,10 +81,11 @@ compile_and_post:
     • [Task name] — @assignee — last updated X days ago
 
     Stale PRs:
-    • repo PR #N — Xd old — [link]
+    • repo PR #N — Xd old — https://github.com/carespace-ai/repo/pull/N
 
-    CI Failures:
-    • [repo] (branch) — [status]
+    CI Failures (ONLY if failing — skip if all passing):
+    • [repo] (branch) — FAILING — https://github.com/carespace-ai/repo/actions
+    If all CI is passing, just write: "All CI checks passing ✅"
 
     ═══════════════════════════════════
     🎯 MEETING MODE
