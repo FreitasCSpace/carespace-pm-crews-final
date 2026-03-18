@@ -2,10 +2,8 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_issues, get_stale_prs, get_ci, get_contributors,
-    get_tasks_by_list, check_duplicate_task, auto_estimate_sp,
-    create_sprint_list, update_clickup_task, create_clickup_task,
-    move_task_to_list, post_sprint_plan, post,
+    create_sprint_list, batch_populate_sprint,
+    post_sprint_plan, post,
 )
 
 
@@ -21,10 +19,8 @@ class SprintCrew:
         return Agent(
             config=self.agents_config["sprint_agent"],
             tools=[
-                get_issues, get_stale_prs, get_ci, get_contributors,
-                get_tasks_by_list, check_duplicate_task, auto_estimate_sp,
-                create_sprint_list, update_clickup_task, create_clickup_task,
-                move_task_to_list, post_sprint_plan, post,
+                create_sprint_list, batch_populate_sprint,
+                post_sprint_plan, post,
             ],
             verbose=True,
         )
@@ -34,12 +30,8 @@ class SprintCrew:
         return Task(config=self.tasks_config["create_sprint_task"])
 
     @task
-    def score_and_select_task(self) -> Task:
-        return Task(config=self.tasks_config["score_and_select_task"])
-
-    @task
-    def populate_and_assign_task(self) -> Task:
-        return Task(config=self.tasks_config["populate_and_assign_task"])
+    def populate_sprint_task(self) -> Task:
+        return Task(config=self.tasks_config["populate_sprint_task"])
 
     @task
     def post_sprint_plan_task(self) -> Task:

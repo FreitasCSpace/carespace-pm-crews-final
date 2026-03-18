@@ -243,34 +243,150 @@ def create_clickup_task(list_id: str, name: str, description: str = "",
         return json.dumps({"error": str(e)})
 
 
+def _move_task(task_id: str, target_list_id: str) -> bool:
+    """Move a task to a different list. Returns True on success."""
+    try:
+        _clickup_api(f"task/{task_id}", method="PUT", payload={"list": target_list_id})
+        return True
+    except Exception:
+        return False
+
+
+def _assign_task(task_id: str, user_id: str) -> bool:
+    """Assign a task to a user. Returns True on success."""
+    try:
+        _clickup_api(f"task/{task_id}", method="PUT",
+                     payload={"assignees": {"add": [int(user_id)]}})
+        return True
+    except Exception:
+        return False
+
+
+def _set_sp(task_id: str, points: int) -> bool:
+    """Set story points on a task. Returns True on success."""
+    try:
+        _clickup_api(f"task/{task_id}", method="PUT", payload={"points": points})
+        return True
+    except Exception:
+        return False
+
+
+@tool("Batch Populate Sprint")
+def batch_populate_sprint(sprint_list_id: str, max_sp: int = 48) -> str:
+    """
+    Reads the Master Backlog, scores all tasks, selects the top ones that
+    fit within max_sp story points, moves them to the sprint list, estimates
+    SP, and assigns to domain leads. Does EVERYTHING in one call.
+
+    Call this ONCE after create_sprint_list. Returns a full summary.
+    """
+    from shared.config.context import DOMAIN_LEADS, SCORE
+
+    priority_weight = SCORE["priority_weight"]
+    domain_lead_map = DOMAIN_LEADS
+
+    stats = {
+        "tasks_scored": 0, "tasks_selected": 0, "tasks_moved": 0,
+        "tasks_assigned": 0, "total_sp": 0, "errors": 0,
+    }
+    sprint_tasks = []
+
+    try:
+        # 1. Load all backlog tasks
+        data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false")
+        tasks = data.get("tasks", [])
+        stats["tasks_scored"] = len(tasks)
+
+        # 2. Score each task
+        scored = []
+        for t in tasks:
+            pri = t.get("priority", {}).get("priority", "normal") if t.get("priority") else "normal"
+            tags = [tag["name"] for tag in t.get("tags", [])]
+            base = priority_weight.get(pri, 40)
+            multi = 1.0
+            if "security" in tags:
+                multi *= 2.0
+            if "compliance" in tags:
+                multi *= 1.5
+            if "hipaa" in tags:
+                multi *= 1.3
+            score = base * multi
+
+            # Estimate SP
+            sp = t.get("points")
+            if sp is None:
+                sp = _estimate_sp(t["name"], pri)
+
+            scored.append({
+                "id": t["id"],
+                "name": t["name"],
+                "score": score,
+                "sp": sp,
+                "priority": pri,
+                "tags": tags,
+            })
+
+        # 3. Sort by score descending, select until budget full
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        selected = []
+        running_sp = 0
+        for item in scored:
+            if running_sp + item["sp"] > max_sp:
+                continue
+            selected.append(item)
+            running_sp += item["sp"]
+            if running_sp >= max_sp:
+                break
+
+        stats["tasks_selected"] = len(selected)
+
+        # 4. Move, assign, set SP for each selected task
+        for item in selected:
+            # Move to sprint
+            if _move_task(item["id"], sprint_list_id):
+                stats["tasks_moved"] += 1
+            else:
+                stats["errors"] += 1
+                continue
+
+            # Set SP
+            _set_sp(item["id"], item["sp"])
+
+            # Assign to domain lead based on tags
+            assigned_to = None
+            for tag in item["tags"]:
+                if tag in domain_lead_map:
+                    if _assign_task(item["id"], domain_lead_map[tag]):
+                        stats["tasks_assigned"] += 1
+                        assigned_to = tag
+                    break
+
+            stats["total_sp"] += item["sp"]
+            sprint_tasks.append({
+                "name": item["name"][:80],
+                "sp": item["sp"],
+                "priority": item["priority"],
+                "score": item["score"],
+                "assigned_domain": assigned_to,
+            })
+
+    except Exception as e:
+        stats["error_detail"] = str(e)
+
+    stats["sprint_list_id"] = sprint_list_id
+    stats["sprint_tasks"] = sprint_tasks
+    return json.dumps(stats, indent=2)
+
+
 @tool("Move Task To List")
 def move_task_to_list(task_id: str, target_list_id: str) -> str:
     """
-    Move an existing task to a different ClickUp list.
-    Use this to move tasks from Master Backlog into a Sprint list.
-    task_id: the task ID to move.
-    target_list_id: the destination list ID.
-    Returns confirmation with task name and new list.
+    Move a single task to a different ClickUp list.
+    For bulk moves, use batch_populate_sprint instead.
     """
     try:
-        result = _clickup_api(
-            f"list/{target_list_id}/task/{task_id}",
-            method="POST",
-            payload={},
-        )
-        # ClickUp move task endpoint is different — use PUT on task
-        # Actually: move is done by updating the task's list
-        result = _clickup_api(
-            f"task/{task_id}",
-            method="PUT",
-            payload={"list": target_list_id},
-        )
-        return json.dumps({
-            "task_id": task_id,
-            "moved_to": target_list_id,
-            "name": result.get("name", ""),
-            "status": result.get("status", {}).get("status", ""),
-        })
+        _clickup_api(f"task/{task_id}", method="PUT", payload={"list": target_list_id})
+        return json.dumps({"task_id": task_id, "moved_to": target_list_id, "success": True})
     except Exception as e:
         return json.dumps({"error": str(e)})
 

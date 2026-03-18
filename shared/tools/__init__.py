@@ -15,5 +15,5 @@ from .vanta import (
 from .clickup_helpers import (
     get_tasks_by_list, check_duplicate_task, auto_estimate_sp,
     update_clickup_task, add_tag_to_task, create_clickup_task,
-    move_task_to_list, create_sprint_list,
+    move_task_to_list, create_sprint_list, batch_populate_sprint,
 )
