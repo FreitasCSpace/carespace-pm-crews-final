@@ -2,14 +2,14 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    create_sprint_list, batch_populate_sprint,
-    post_sprint_plan, post,
+    create_sprint_list, scan_backlog_for_sprint,
+    execute_sprint_selection, post_sprint_plan, post,
 )
 
 
 @CrewBase
 class SprintCrew:
-    """Sprint planning + assignment crew — runs bi-weekly Sunday 18:00."""
+    """AI-driven sprint planning — runs bi-weekly Sunday 18:00."""
 
     agents_config  = "config/agents.yaml"
     tasks_config   = "config/tasks.yaml"
@@ -19,8 +19,8 @@ class SprintCrew:
         return Agent(
             config=self.agents_config["sprint_agent"],
             tools=[
-                create_sprint_list, batch_populate_sprint,
-                post_sprint_plan, post,
+                create_sprint_list, scan_backlog_for_sprint,
+                execute_sprint_selection, post_sprint_plan, post,
             ],
             verbose=True,
         )
@@ -30,8 +30,12 @@ class SprintCrew:
         return Task(config=self.tasks_config["create_sprint_task"])
 
     @task
-    def populate_sprint_task(self) -> Task:
-        return Task(config=self.tasks_config["populate_sprint_task"])
+    def scan_backlog_task(self) -> Task:
+        return Task(config=self.tasks_config["scan_backlog_task"])
+
+    @task
+    def plan_and_execute_task(self) -> Task:
+        return Task(config=self.tasks_config["plan_and_execute_task"])
 
     @task
     def post_sprint_plan_task(self) -> Task:

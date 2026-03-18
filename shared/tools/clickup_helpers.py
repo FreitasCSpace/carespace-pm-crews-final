@@ -519,30 +519,22 @@ def _set_sp(task_id: str, points: int) -> bool:
         return False
 
 
-@tool("Batch Populate Sprint")
-def batch_populate_sprint(sprint_list_id: str, max_sp: int = 48) -> str:
+@tool("Scan Backlog For Sprint Planning")
+def scan_backlog_for_sprint() -> str:
     """
-    Scores backlog tasks, selects the top ones within SP budget, and moves
-    them to the sprint list. Tasks already have SP and assignees from triage.
+    Loads ALL backlog tasks and returns a structured summary for the AI
+    sprint planner to analyze. Groups by type (bugs, features, tasks,
+    compliance) with SP, priority, assignee, and age for each.
 
-    Sprint crew ONLY selects and moves. Does NOT re-assign or re-estimate SP.
-    Engineering tasks first, compliance capped at 3 per sprint.
-
-    Call this ONCE after create_sprint_list. Returns a full summary.
+    The AI decides what goes in the sprint. This tool just presents the data.
     """
-    from shared.config.context import SCORE, MAX_COMPLIANCE_PER_SPRINT
-
-    priority_weight = SCORE["priority_weight"]
-
-    stats = {
-        "tasks_in_backlog": 0, "tasks_selected": 0, "tasks_moved": 0,
-        "total_sp": 0, "errors": 0,
-        "compliance_selected": 0, "engineering_selected": 0,
+    summary = {
+        "total_tasks": 0,
+        "bugs": [], "features": [], "tasks": [], "compliance": [], "other": [],
+        "by_priority": {}, "by_assignee": {}, "total_sp_available": 0,
     }
-    sprint_tasks = []
 
     try:
-        # 1. Load ALL backlog tasks (paginated)
         all_tasks = []
         page = 0
         while True:
@@ -555,104 +547,112 @@ def batch_populate_sprint(sprint_list_id: str, max_sp: int = 48) -> str:
                 break
             page += 1
 
-        stats["tasks_in_backlog"] = len(all_tasks)
-
-        # 2. Score and categorize each task
-        compliance_tasks = []
-        engineering_tasks = []
+        summary["total_tasks"] = len(all_tasks)
+        from datetime import datetime
+        now_ms = int(datetime.utcnow().timestamp() * 1000)
 
         for t in all_tasks:
-            pri = t.get("priority", {}).get("priority", "normal") if t.get("priority") else "normal"
             tags = [tag["name"] for tag in t.get("tags", [])]
-            is_compliance = "compliance" in tags or "vanta" in tags
+            pri = t.get("priority", {}).get("priority", "normal") if t.get("priority") else "normal"
+            assignees = [a.get("username", "") for a in t.get("assignees", [])]
+            created_ms = int(t.get("date_created", "0"))
+            age_days = round((now_ms - created_ms) / (1000 * 3600 * 24), 1) if created_ms else 0
 
-            # Get SP from custom field (set by triage), fallback to estimate
             cf_sp = next((cf.get("value") for cf in t.get("custom_fields", [])
                          if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), None)
             sp = int(cf_sp) if cf_sp is not None else _estimate_sp(t["name"], pri)
 
-            # Score: priority × multipliers
-            base = priority_weight.get(pri, 40)
-            multi = 1.0
-            if "security" in tags:
-                multi *= 2.0
-            if not is_compliance:
-                if "bug" in tags:
-                    multi *= 1.8
-                if "feature" in tags:
-                    multi *= 1.3
-            score = base * multi
-
-            assignees = [a.get("username", "") for a in t.get("assignees", [])]
-
             item = {
                 "id": t["id"],
-                "name": t["name"],
-                "score": score,
+                "name": t["name"][:100],
                 "sp": sp,
                 "priority": pri,
-                "tags": tags,
-                "is_compliance": is_compliance,
                 "assignees": assignees,
+                "age_days": age_days,
+                "tags": tags,
             }
 
+            summary["total_sp_available"] += sp
+            summary["by_priority"][pri] = summary["by_priority"].get(pri, 0) + 1
+            for a in assignees:
+                summary["by_assignee"][a] = summary["by_assignee"].get(a, 0) + 1
+
+            # Categorize
+            is_compliance = "compliance" in tags or "vanta" in tags
             if is_compliance:
-                compliance_tasks.append(item)
+                summary["compliance"].append(item)
+            elif "bug" in tags:
+                summary["bugs"].append(item)
+            elif "feature" in tags:
+                summary["features"].append(item)
             else:
-                engineering_tasks.append(item)
+                summary["tasks"].append(item)
 
-        # 3. Sort by score descending
-        engineering_tasks.sort(key=lambda x: x["score"], reverse=True)
-        compliance_tasks.sort(key=lambda x: x["score"], reverse=True)
+        # Sort each group by priority (urgent first) then age (oldest first)
+        pri_order = {"urgent": 0, "high": 1, "normal": 2, "low": 3, "none": 4}
+        for group in ["bugs", "features", "tasks", "compliance"]:
+            summary[group].sort(key=lambda x: (pri_order.get(x["priority"], 4), -x["age_days"]))
 
-        # 4. Select: engineering first, then compliance (capped)
-        selected = []
-        running_sp = 0
-
-        for item in engineering_tasks:
-            if running_sp + item["sp"] > max_sp:
-                continue
-            selected.append(item)
-            running_sp += item["sp"]
-            stats["engineering_selected"] += 1
-
-        compliance_count = 0
-        for item in compliance_tasks:
-            if compliance_count >= MAX_COMPLIANCE_PER_SPRINT:
-                break
-            if running_sp + item["sp"] > max_sp:
-                continue
-            selected.append(item)
-            running_sp += item["sp"]
-            compliance_count += 1
-            stats["compliance_selected"] += 1
-
-        stats["tasks_selected"] = len(selected)
-
-        # 5. Move selected tasks to sprint (copy + close backlog original)
-        for item in selected:
-            new_id = _move_task_to_sprint(item["id"], sprint_list_id)
-            if new_id:
-                stats["tasks_moved"] += 1
-            else:
-                stats["errors"] += 1
-                continue
-
-            stats["total_sp"] += item["sp"]
-            sprint_tasks.append({
-                "name": item["name"][:80],
-                "sp": item["sp"],
-                "priority": item["priority"],
-                "score": round(item["score"], 1),
-                "assignees": item["assignees"],
-                "type": "compliance" if item["is_compliance"] else "engineering",
-            })
+        # Truncate for LLM context — show top items per category
+        summary["bugs_total"] = len(summary["bugs"])
+        summary["features_total"] = len(summary["features"])
+        summary["tasks_total"] = len(summary["tasks"])
+        summary["compliance_total"] = len(summary["compliance"])
+        summary["bugs"] = summary["bugs"][:15]
+        summary["features"] = summary["features"][:15]
+        summary["tasks"] = summary["tasks"][:15]
+        summary["compliance"] = summary["compliance"][:10]
 
     except Exception as e:
-        stats["error_detail"] = str(e)
+        summary["error"] = str(e)
+
+    return json.dumps(summary, indent=2)
+
+
+@tool("Execute Sprint Selection")
+def execute_sprint_selection(sprint_list_id: str, task_ids_json: str) -> str:
+    """
+    Moves selected tasks from the Master Backlog into the sprint list.
+    Takes a JSON array of task IDs chosen by the AI sprint planner.
+
+    For each task: copies to sprint (with all metadata: name, description,
+    assignees, tags, SP) and closes the backlog original.
+
+    task_ids_json: JSON array of task ID strings, e.g. ["86ag8gpt1", "86ag8fehm"]
+    """
+    try:
+        task_ids = json.loads(task_ids_json)
+    except json.JSONDecodeError:
+        return json.dumps({"error": "Invalid JSON in task_ids_json"})
+
+    stats = {"tasks_moved": 0, "total_sp": 0, "errors": 0, "moved_tasks": []}
+
+    for task_id in task_ids:
+        new_id = _move_task_to_sprint(task_id, sprint_list_id)
+        if new_id:
+            stats["tasks_moved"] += 1
+            # Get SP from the new task
+            try:
+                new_task = _clickup_api(f"task/{new_id}")
+                cf_sp = next((cf.get("value") for cf in new_task.get("custom_fields", [])
+                             if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), None)
+                sp = int(cf_sp) if cf_sp is not None else 0
+                stats["total_sp"] += sp
+                stats["moved_tasks"].append({
+                    "name": new_task.get("name", "")[:80],
+                    "sp": sp,
+                    "assignees": [a.get("username", "") for a in new_task.get("assignees", [])],
+                })
+            except Exception:
+                stats["moved_tasks"].append({"id": new_id, "sp": 0})
+        else:
+            stats["errors"] += 1
+
+        # Rate limit
+        if stats["tasks_moved"] % 5 == 0 and stats["tasks_moved"] > 0:
+            time.sleep(0.5)
 
     stats["sprint_list_id"] = sprint_list_id
-    stats["sprint_tasks"] = sprint_tasks
     return json.dumps(stats, indent=2)
 
 

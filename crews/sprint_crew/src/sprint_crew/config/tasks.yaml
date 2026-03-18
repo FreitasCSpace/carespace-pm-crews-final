@@ -1,30 +1,56 @@
 create_sprint_task:
   description: >
-    Call create_sprint_list. It auto-detects the sprint number and dates,
-    creates the list in ClickUp. Returns list_id and sprint name.
+    Call create_sprint_list to create the new sprint. Returns list_id
+    and sprint name. No inputs needed.
   expected_output: >
-    JSON with list_id, sprint_name, sprint_number, start_date, end_date.
+    JSON with list_id, sprint_name, sprint_number, dates.
   agent: sprint_agent
 
-populate_sprint_task:
+scan_backlog_task:
   description: >
-    Call batch_populate_sprint with the sprint list_id from the previous step.
-    It scores all backlog tasks, selects the top ones within 48 SP,
-    moves them to the sprint, estimates story points, and assigns to
-    domain leads. All in one call. Returns a full summary.
+    Call scan_backlog_for_sprint to get a full inventory of the backlog
+    grouped by type: bugs, features, tasks, compliance.
+
+    Each item includes: id, name, SP, priority, assignees, age in days.
+    Study this data carefully — you'll build the sprint in the next step.
   expected_output: >
-    JSON with tasks_moved, tasks_assigned, total_sp, sprint_tasks array.
+    The full backlog scan JSON.
   agent: sprint_agent
   context:
     - create_sprint_task
 
+plan_and_execute_task:
+  description: >
+    Based on the scan results, BUILD THE SPRINT. Analyze the backlog
+    and select tasks that create a balanced, productive 2-week sprint.
+
+    THINK THROUGH THESE DECISIONS:
+    1. Which bugs are critical and must go in? (production issues first)
+    2. Which features deliver the most value? (priority + age)
+    3. Are tasks spread across the team? (don't overload one person)
+    4. Which 2-3 compliance items are most urgent? (max 3 for Luis)
+    5. Does total SP fit within 48? (don't over-commit)
+
+    After deciding, collect the task IDs and call execute_sprint_selection
+    with the sprint_list_id and your chosen task IDs as a JSON array:
+    execute_sprint_selection(sprint_list_id="...", task_ids_json='["id1","id2","id3"]')
+
+    This moves each task from backlog to sprint (copies with full metadata,
+    closes backlog original). No duplicates.
+  expected_output: >
+    JSON with tasks_moved, total_sp, and your reasoning for the selections.
+  agent: sprint_agent
+  context:
+    - scan_backlog_task
+
 post_sprint_plan_task:
   description: >
-    Post the sprint plan to #pm-sprint-board using post_sprint_plan_to_slack
-    with the sprint name, task list, and total SP from the previous step.
-    Also post a brief summary to #pm-engineering using post_to_slack_channel.
+    Post the sprint plan to #pm-sprint-board using post_sprint_plan_to_slack.
+    Include: sprint name, task list with assignees and SP, total SP.
+    Also post a brief summary to #pm-engineering explaining what's in the
+    sprint and why — your reasoning matters.
   expected_output: >
     Confirmation of Slack posts.
   agent: sprint_agent
   context:
-    - populate_sprint_task
+    - plan_and_execute_task
