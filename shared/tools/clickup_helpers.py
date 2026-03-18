@@ -8,7 +8,7 @@ import os, json, time
 from datetime import date, timedelta
 from collections import defaultdict
 from crewai.tools import tool
-from shared.config.context import L, WORKSPACE_ID, SP_ESTIMATE, SPRINT_FOLDER_ID
+from shared.config.context import L, WORKSPACE_ID, SP_ESTIMATE, SPRINT_FOLDER_ID, SP_CUSTOM_FIELD_ID
 
 
 def _clickup_api(endpoint: str, method: str = "GET", payload: dict | None = None) -> dict:
@@ -478,29 +478,14 @@ def execute_triage_actions(actions_json: str) -> str:
 
 
 def _set_sp(task_id: str, points: int) -> bool:
-    """Set story points on a task. Uses tag 'sp-N' (free, unlimited) with
-    native points as fallback. Tags work on all ClickUp plans."""
-    from urllib.parse import quote
+    """Set story points via the SP custom field (free, unlimited, visible as column).
+    Custom field ID from context.py SP_CUSTOM_FIELD_ID."""
     try:
-        # Try native points first
-        _clickup_api(f"task/{task_id}", method="PUT", payload={"points": points})
+        _clickup_api(f"task/{task_id}/field/{SP_CUSTOM_FIELD_ID}",
+                     method="POST", payload={"value": points})
         return True
     except Exception:
-        # Fallback: use sp-N tag (free, unlimited)
-        try:
-            # Remove any existing sp- tags first
-            task_data = _clickup_api(f"task/{task_id}")
-            for tag in task_data.get("tags", []):
-                if tag["name"].startswith("sp-"):
-                    try:
-                        _clickup_api(f"task/{task_id}/tag/{quote(tag['name'])}", method="DELETE")
-                    except Exception:
-                        pass
-            # Add new sp-N tag
-            _clickup_api(f"task/{task_id}/tag/{quote(f'sp-{points}')}", method="POST")
-            return True
-        except Exception:
-            return False
+        return False
 
 
 @tool("Batch Populate Sprint")
@@ -785,8 +770,10 @@ def bulk_assign_and_estimate() -> str:
             else:
                 stats["already_assigned"] += 1
 
-            # Set SP if missing (check both native points and sp- tags)
-            has_sp = points is not None or any(t.startswith("sp-") for t in tags)
+            # Set SP if missing (check native points + custom field)
+            cf_sp = next((cf.get("value") for cf in t.get("custom_fields", [])
+                         if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), None)
+            has_sp = points is not None or cf_sp is not None
             if not has_sp:
                 est = _estimate_sp(t["name"], pri)
                 if _set_sp(task_id, est):

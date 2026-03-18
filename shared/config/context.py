@@ -223,6 +223,9 @@ MAX_COMPLIANCE_PER_SPRINT = 3
 # ======================================================================
 SPRINT_FOLDER_ID = FOLDERS["sprints"]  # sprint_crew creates lists here (901317811717)
 
+# Custom field ID for Story Points (Number field, space-level)
+SP_CUSTOM_FIELD_ID = "1662e3e7-b018-47b7-8881-e30f6831c674"
+
 SCORE = {
     "priority_weight":  {"urgent": 100, "high": 70, "normal": 40, "low": 10},
     "security_multi":   2.0,
