@@ -279,19 +279,31 @@ def post_exec(report_summary: str) -> str:
 
 # ── Compliance ────────────────────────────────────────────────────────────────
 
-@tool("Post Compliance Alert to Slack")
-def post_compliance(control_name: str, severity: str, finding: str) -> str:
-    """Posts a compliance alert to #pm-compliance."""
+@tool("Post Compliance Report to Slack")
+def post_compliance(vanta_health: str, open_tasks: str,
+                    critical_findings: str, status_summary: str) -> str:
+    """
+    Posts the daily compliance health report to #pm-compliance as ONE message.
+    Template enforced — just pass content for each section.
+
+    vanta_health: Vanta status (e.g., 'GREEN — 0 critical issues' or 'RED — 3 critical')
+    open_tasks: open compliance task count and sample
+    critical_findings: bullet list of critical findings (or 'None')
+    status_summary: one-line status (e.g., 'Vanta Health: GREEN | Tasks: 268 | Alerts: 0')
+    """
     today = date.today().strftime("%B %d, %Y")
-    emoji = "🔴" if severity.lower() in ("critical", "urgent") else "🟡"
-    r = _api(SLACK["compliance"], f"Compliance: {control_name}", [
-        _hdr(f"🔒 Compliance Alert — {today}"),
-        _sec(
-            f"*{emoji} {severity.upper()}*\n\n"
-            f"*Control:* {control_name}\n"
-            f"*Finding:* {finding}"
-        ),
-        _ctx("_Compliance alert by CareSpace PM AI_"),
+    health_upper = vanta_health.split("—")[0].strip().upper() if "—" in vanta_health else vanta_health.upper()
+    emoji = "🟢" if "GREEN" in health_upper else ("🟡" if "YELLOW" in health_upper else "🔴")
+    r = _api(SLACK["compliance"], f"Compliance Report {today}", [
+        _hdr(f"🔒 Compliance Health — {today}"),
+        _sec(f"*{emoji} {vanta_health}*"),
+        _div(),
+        _sec(f"*Open Compliance Tasks*\n{open_tasks or '_None_'}"),
+        _div(),
+        _sec(f"*Critical Findings*\n{critical_findings or '_None — all clear_'}"),
+        _div(),
+        _sec(f"*{status_summary}*"),
+        _ctx("_Compliance report by CareSpace PM AI_"),
     ])
     return json.dumps({"ok": r.get("ok")})
 
