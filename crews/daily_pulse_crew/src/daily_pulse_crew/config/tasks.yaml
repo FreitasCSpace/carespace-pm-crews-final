@@ -1,61 +1,105 @@
 find_sprint_task:
   description: >
     Call create_or_get_sprint_list to find the active sprint.
-    It returns the sprint list_id and status ('active' or 'created').
-    If status is 'active', use that list_id for the standup scan.
-    If no active sprint exists, report that in the standup.
+    Returns sprint list_id, name, and end date.
   expected_output: >
-    JSON with list_id, sprint_name, status.
+    JSON with list_id, sprint_name, end_date, status.
   agent: daily_pulse_agent
 
 scan_and_gather:
   description: >
-    Using the sprint list_id from the previous step, pull all tasks
-    from the current sprint using get_tasks_by_list (with include_closed=True
-    to capture recently completed tasks).
+    Gather ALL data needed for the daily digest:
 
-    Categorize ALL tasks by status:
-    - Done: tasks with status 'complete' or 'done' (completed since yesterday)
-    - In Progress: tasks with status 'in progress'
-    - Blocked: tasks with status 'blocked'
-    - Pending: tasks with status 'to do' or 'pending' (not yet started)
+    1. Pull sprint tasks using get_tasks_by_list (include_closed=True).
+       For each task note: name, status, assignee, SP, last updated, tags.
 
-    For In Progress tasks, check date_updated — if >3 days, mark stale.
-    Scan descriptions for blocker keywords: 'waiting on', 'blocked by',
-    'depends on', 'need from', 'pending'.
+    2. Calculate sprint health:
+       - Total tasks, done count, in progress count, blocked count, pending count
+       - SP completed vs total SP
+       - Days remaining in sprint (from end_date)
+       - Completion percentage
 
-    Also check:
-    - GitHub stale PRs (>7d) using get_stale_pull_requests
-    - CI failures using get_ci_status on key repos
-    - Alerts list (901326439234) for unresolved alerts >24h
+    3. Find stale tasks: in progress but date_updated >3 days ago.
 
-    If no active sprint was found, scan the Master Backlog (901326439232)
-    instead and report on backlog health.
+    4. Scan descriptions for blocker keywords: 'waiting on', 'blocked by',
+       'depends on', 'need from'.
+
+    5. Check GitHub: stale PRs (>7d) using get_stale_pull_requests.
+
+    6. Check CI failures using get_ci_status on repos:
+       carespace-ui, carespace-admin, carespace-api-gateway, carespace-sdk.
+       NOTE: Try 'main' first, if 404 try 'master'.
+
+    7. Check Alerts list (901326439234) for unresolved alerts >24h.
+
+    If no active sprint: scan Master Backlog (901326439232) instead
+    and report on backlog health.
   expected_output: >
-    JSON with done_items, in_progress_items, blocked_items, pending_items,
-    stale_items, stale_prs, ci_failures, stale_alerts.
+    Complete data JSON for digest compilation.
   agent: daily_pulse_agent
   context:
     - find_sprint_task
 
-post_and_escalate:
+compile_and_post:
   description: >
-    Post the daily standup to #pm-standup using post_standup:
-    - Done: completed items with checkmarks
-    - In Progress: items with assignee and SP
-    - Blocked: items with blocker reason
-    - Needs Attention: stale tasks, stale PRs, CI failures, pending items
-      that haven't started yet
+    Compile the data into a STRUCTURED DIGEST and post it.
 
-    Include a summary line at the top:
-    'Sprint N: X done, Y in progress, Z blocked, W pending | Total: T tasks'
+    FORMAT THE STANDUP AS FOLLOWS (use this exact structure):
 
-    Escalate blockers:
-    - Post each to #pm-alerts using post_blocker
-    - CRITICAL blockers: also post to #pm-engineering
-    - Stale tasks (>3d): gentle nudge to #pm-alerts
+    ═══════════════════════════════════
+    📊 EXECUTIVE SUMMARY
+    ═══════════════════════════════════
+    • Sprint N — X of Y days remaining
+    • Progress: Z% complete (A/B SP delivered)
+    • Status: [🟢 On Track / 🟡 At Risk / 🔴 Blocked]
+    • [Key risk or win in one line]
+
+    ═══════════════════════════════════
+    📋 SPRINT STATUS
+    ═══════════════════════════════════
+
+    ✅ Done (since yesterday):
+    • [Task name] — @assignee (X SP)
+
+    🔄 In Progress:
+    • [Task name] — @assignee (X SP)
+
+    ⏳ Pending (not started):
+    • [Task name] — @assignee (X SP)
+
+    🚫 Blocked:
+    • [Task name] — @assignee — Reason: [blocker description]
+
+    ═══════════════════════════════════
+    ⚠️ NEEDS ATTENTION
+    ═══════════════════════════════════
+    Stale (>3d no update):
+    • [Task name] — @assignee — last updated X days ago
+
+    Stale PRs:
+    • repo PR #N — Xd old — [link]
+
+    CI Failures:
+    • [repo] (branch) — [status]
+
+    ═══════════════════════════════════
+    🎯 MEETING MODE
+    ═══════════════════════════════════
+    [🔴 STANDUP MODE: X blockers. 15-min focused session.]
+    OR
+    [🟢 OPEN SLOT: No blockers. Available for strategic discussion.]
+
+    POST THIS using post_standup tool:
+    - done: the Done section text
+    - in_progress: the In Progress section text
+    - blocked: the Blocked section text
+    - attention: the Needs Attention + Pending + Meeting Mode text
+
+    Then escalate any 🔴 Blockers to #pm-alerts using post_blocker.
+    CRITICAL blockers (team cannot ship without resolution) also go
+    to #pm-engineering.
   expected_output: >
-    Confirmation of standup posted and escalations sent.
+    Confirmation of standup posted to #pm-standup and any escalations.
   agent: daily_pulse_agent
   context:
     - scan_and_gather

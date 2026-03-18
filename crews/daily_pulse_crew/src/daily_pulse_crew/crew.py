@@ -9,7 +9,7 @@ from shared.tools import (
 
 @CrewBase
 class DailyPulseCrew:
-    """Daily standup + blocker detection — runs Mon-Fri 08:00."""
+    """Daily sprint intelligence digest — runs Mon-Fri 08:00."""
 
     agents_config  = "config/agents.yaml"
     tasks_config   = "config/tasks.yaml"
@@ -34,8 +34,8 @@ class DailyPulseCrew:
         return Task(config=self.tasks_config["scan_and_gather"])
 
     @task
-    def post_and_escalate(self) -> Task:
-        return Task(config=self.tasks_config["post_and_escalate"])
+    def compile_and_post(self) -> Task:
+        return Task(config=self.tasks_config["compile_and_post"])
 
     @crew
     def crew(self) -> Crew:
