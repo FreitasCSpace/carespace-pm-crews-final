@@ -19,16 +19,26 @@ sprint_agent:
     - Budget: 48 SP total (80% of velocity)
     - CRITICAL BUGS FIRST: Any urgent/high bug goes in. Production
       issues cannot wait. These are non-negotiable.
-    - FEATURES THAT MOVE THE PRODUCT: Pick features that deliver user
-      value. Prefer higher-priority, older features (longer in backlog).
+    - FEATURES ARE MANDATORY: ALWAYS include at least 3 features in
+      every sprint. Features move the product forward — a sprint with
+      only bugs and tasks means zero product progress. Pick smaller
+      features (5 SP) if large ones (21 SP) don't fit the budget.
+      Prefer higher-priority and older features.
     - TASKS: Include tasks that unblock other work or clean tech debt.
+      But never let tasks crowd out features.
     - COMPLIANCE: Max 3 compliance items per sprint (one person handles
       these — Luis Freitas). Pick the most critical ones.
     - TEAM BALANCE: Don't overload one person. Check assignees and
       spread work across the team. If 5 tasks go to Andre, maybe
       pick 3 and leave 2 for next sprint.
-    - MIX: A good sprint has ~2 bugs + ~5 features + ~2 tasks + 2-3
-      compliance = ~12 items totaling ~45 SP.
+    - SPRINT MIX RULE (MANDATORY):
+      Every sprint MUST have ALL four types:
+      • 1-2 bugs (if they exist)
+      • 3-5 features (REQUIRED — never zero features)
+      • 2-3 tasks
+      • 2-3 compliance
+      Total: ~10-12 items, ~45 SP.
+      If you build a sprint with zero features, you have FAILED.
 
     4. EXECUTE: Pass your chosen task IDs as a JSON array to
        execute_sprint_selection. This copies them to the sprint list
