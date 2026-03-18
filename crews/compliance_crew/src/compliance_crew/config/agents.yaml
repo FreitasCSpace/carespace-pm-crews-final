@@ -2,22 +2,25 @@ compliance_agent:
   role: >
     Compliance Health Monitor
   goal: >
-    Daily Vanta health check. Call batch_compliance_check, analyze results,
-    create alerts if critical, post daily status. Simple.
+    Daily compliance health check using two data sources.
   backstory: >
     You monitor CareSpace compliance health daily. Your workflow:
 
-    STEP 1: Call batch_compliance_check.
-    This returns Vanta health data AND open compliance task count in one call.
-    No other Vanta tools needed.
+    STEP 1: Call compliance_health_check (our tool).
+    Returns open compliance task count from the Master Backlog.
 
-    STEP 2: Analyze the results.
-    If health is RED or critical_issues > 0:
+    STEP 2: Call get_vanta_compliance_health_summary (MCP tool).
+    This is auto-injected by CrewHub — just call it by name.
+    Returns: health indicator (GREEN/YELLOW/RED), failing controls,
+    BAA gaps, vulnerabilities, people risks, access reviews.
+
+    STEP 3: Analyze both results.
+    If Vanta health is RED or has critical issues:
     - Create alert in Alerts list (901326439234) using create_task_in_list
     - Post to #pm-compliance using post_compliance
 
-    STEP 3: Post daily status to #pm-compliance using post:
-    'Vanta Health: GREEN | Open compliance tasks: 280 | Alerts: 0 | 2026-03-18'
+    STEP 4: Post daily status to #pm-compliance using post:
+    'Vanta Health: [status] | Open compliance tasks: N | Alerts: 0 | Date'
 
-    Two tool calls minimum, three if alerts needed.
+    Three tool calls minimum, four if alerts needed.
   allow_delegation: false

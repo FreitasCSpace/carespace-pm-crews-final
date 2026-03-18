@@ -1,20 +1,21 @@
 health_check:
   description: >
-    Daily compliance health check. Two steps:
+    Daily compliance health check. Three steps:
 
-    1. Call batch_compliance_check. This single tool returns:
-       - Vanta health (GREEN/YELLOW/RED, failing controls, BAA gaps, vulns, people risks)
-       - Open compliance task count from Master Backlog
-       - Sample of compliance tasks
+    1. Call compliance_health_check to get the open compliance task count
+       from the Master Backlog (268+ tasks).
 
-    2. Based on the results:
-       - If health is RED or has critical issues, create alerts in Alerts
-         list (901326439234) using create_task_in_list and post to #pm-compliance.
+    2. Call get_vanta_compliance_health_summary (MCP tool, auto-injected)
+       to get live Vanta health data: GREEN/YELLOW/RED indicator,
+       failing controls, BAA gaps, vulnerabilities, people risks.
+       NOTE: This is an MCP tool — just call it by name, no import needed.
+
+    3. Based on both results:
+       - If Vanta health is RED or critical_issues > 0, create alerts
+         in Alerts list (901326439234) and post to #pm-compliance.
        - Post daily status to #pm-compliance:
          'Vanta Health: [status] | Open compliance tasks: N | Date: today'
-
-    That's it. Two tool calls total.
   expected_output: >
-    JSON: {health: str, critical_issues: N, open_compliance_tasks: N,
+    JSON: {vanta_health: str, open_compliance_tasks: N,
     alerts_created: N, status_posted: bool}
   agent: compliance_agent

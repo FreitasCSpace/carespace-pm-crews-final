@@ -858,25 +858,15 @@ def batch_compliance_check() -> str:
     No other tools needed — this does the full check.
     """
     result = {
-        "vanta_health": None,
+        "vanta_health": {"health_indicator": "CHECK_MCP", "note": "Use get_vanta_compliance_health_summary MCP tool for live Vanta data"},
         "open_compliance_tasks": 0,
         "task_sample": [],
         "errors": [],
     }
 
-    # 1. Try to get Vanta health from MCP (via subprocess)
-    try:
-        import subprocess
-        # The MCP Vanta tool is not callable directly, so we use our vanta.py
-        from shared.tools.vanta import get_health_summary as _vanta_health
-        health_json = _vanta_health()
-        result["vanta_health"] = json.loads(health_json)
-    except Exception as e:
-        result["errors"].append(f"vanta_health: {str(e)[:100]}")
-        # Fallback: return unknown status
-        result["vanta_health"] = {"health_indicator": "UNKNOWN", "error": str(e)[:100]}
-
-    # 2. Count open compliance tasks in backlog (paginated)
+    # 1. Count open compliance tasks in backlog (paginated)
+    # Vanta health comes from MCP tool (injected by CrewHub) — the AI agent
+    # should call get_vanta_compliance_health_summary separately if needed.
     try:
         all_tasks = []
         page = 0
