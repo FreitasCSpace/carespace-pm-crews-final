@@ -507,6 +507,9 @@ def execute_triage_actions(actions_json: str) -> str:
 
     for action in actions.get("create_alerts", []):
         alert_name = action["name"]
+        # Enforce naming: always start with [ALERT]
+        if not alert_name.startswith("[ALERT]"):
+            alert_name = f"[ALERT] {alert_name}"
         # Check if a similar alert already exists (fuzzy match on key words)
         alert_words = set(alert_name.lower().split())
         already_exists = any(

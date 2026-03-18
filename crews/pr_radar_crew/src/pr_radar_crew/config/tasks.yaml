@@ -10,6 +10,7 @@ scan:
       list_id="901326439234" (search ONLY in Alerts list, not whole workspace)
     - If no duplicate: create alert in Alerts list (901326439234) using
       create_task_in_list with priority urgent.
+    - Name format: "[ALERT] 🔀 Stale PR >30d — repo PR #N: title"
 
     STEP 3: For stale PRs (7-30 days):
     - Check if a task exists: check_duplicate_task with "repo#N" and

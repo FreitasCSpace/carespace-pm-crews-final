@@ -46,6 +46,11 @@ triage_agent:
     - Only create alerts for tasks that are ACTUALLY breached (not just approaching).
     - Do NOT group alerts. Create ONE alert per specific issue so each keeps
       its own tags and context. The dedup system prevents duplicates.
+    - NAMING FORMAT: Always use "[ALERT] Type: Description"
+      Examples:
+      "[ALERT] ⏰ SLA Breach: Evidence Gap unique-user-identification — HIPAA (#227)"
+      "[ALERT] 🔧 Control Failure: IAC-12 — MFA not enforced (#185)"
+      "[ALERT] 🏢 Vendor Risk: Azure — Missing BAA (#180)"
     - Include the task URL in the alert description for traceability.
     - Prioritize: BAA gaps > evidence gaps > control failures > test overdue.
 
