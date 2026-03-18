@@ -2,7 +2,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_stale_prs, get_ci, get_tasks_by_list,
+    create_sprint_list, get_stale_prs, get_ci, get_tasks_by_list,
     post_standup, post_blocker, post,
 )
 
@@ -19,11 +19,15 @@ class DailyPulseCrew:
         return Agent(
             config=self.agents_config["daily_pulse_agent"],
             tools=[
-                get_stale_prs, get_ci, get_tasks_by_list,
+                create_sprint_list, get_stale_prs, get_ci, get_tasks_by_list,
                 post_standup, post_blocker, post,
             ],
             verbose=True,
         )
+
+    @task
+    def find_sprint_task(self) -> Task:
+        return Task(config=self.tasks_config["find_sprint_task"])
 
     @task
     def scan_and_gather(self) -> Task:
