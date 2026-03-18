@@ -207,10 +207,10 @@ DOMAIN_LEADS = {
     "bots":       "49000181",   # fabiano-carespace
     "video":      "93908266",   # bhavyasaurabh
     "security":   "93908266",   # bhavyasaurabh
-    "compliance": "48998538",   # fusuma (Luis Freitas) — sole compliance owner
-    "vanta":      "48998538",   # fusuma (Luis Freitas)
-    "hipaa":      "48998538",   # fusuma (Luis Freitas)
-    "soc2":       "48998538",   # fusuma (Luis Freitas)
+    "compliance": "118004891",  # luis freitas — sole compliance owner
+    "vanta":      "118004891",  # luis freitas
+    "hipaa":      "118004891",  # luis freitas
+    "soc2":       "118004891",  # luis freitas
 }
 
 # Sprint compliance cap — max compliance tasks per sprint

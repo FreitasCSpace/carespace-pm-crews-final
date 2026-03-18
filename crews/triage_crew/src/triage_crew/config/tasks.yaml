@@ -38,7 +38,7 @@ decide_and_execute_task:
 
     2. ASSIGNMENTS: Who should own each unassigned task?
        Match by domain expertise. For compliance tasks, assign to
-       Luis Freitas (48998538). For engineering, match the domain tag.
+       Luis Freitas (118004891). For engineering, match the domain tag.
 
     3. STORY POINTS: Estimate effort for tasks without SP.
        Consider the actual scope described in the title, not just type.
@@ -50,7 +50,7 @@ decide_and_execute_task:
     Build your decisions as JSON and call execute_triage_actions:
     {
       "set_priority": [{"task_id": "xxx", "priority": 1, "reason": "..."}],
-      "assign": [{"task_id": "xxx", "user_id": "48998538", "reason": "compliance task"}],
+      "assign": [{"task_id": "xxx", "user_id": "118004891", "reason": "compliance task"}],
       "set_sp": [{"task_id": "xxx", "points": 5}],
       "create_alerts": [{"name": "[ALERT] ...", "description": "...", "priority": 1}]
     }

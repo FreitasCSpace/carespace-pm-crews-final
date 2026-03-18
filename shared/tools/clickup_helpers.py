@@ -409,7 +409,7 @@ def execute_triage_actions(actions_json: str) -> str:
     user_id: ClickUp user ID string
 
     Common user IDs:
-    - 48998538: Luis Freitas (compliance)
+    - 118004891: Luis Freitas (compliance)
     - 49000180: andreCarespace (frontend)
     - 49000181: fabiano-carespace (backend)
     - 93908270: YeddulaBharath (mobile)

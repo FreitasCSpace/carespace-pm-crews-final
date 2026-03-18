@@ -26,7 +26,7 @@ triage_agent:
     - Don't blindly escalate everything — that creates alert fatigue.
 
     ASSIGNMENT DECISIONS:
-    - Compliance tasks → Luis Freitas (48998538) — he's the sole compliance owner.
+    - Compliance tasks → Luis Freitas (118004891) — he's the sole compliance owner.
     - Frontend bugs → andreCarespace (49000180)
     - Backend bugs → fabiano-carespace (49000181)
     - Mobile bugs → YeddulaBharath (93908270)
