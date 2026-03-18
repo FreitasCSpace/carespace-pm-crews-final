@@ -249,20 +249,51 @@ def create_clickup_task(list_id: str, name: str, description: str = "",
         return json.dumps({"error": str(e)})
 
 
-def _move_task(task_id: str, target_list_id: str) -> bool:
-    """Move a task to a different list. Returns True on success.
-    Uses the correct ClickUp API: PUT /list/{list_id}/task/{task_id}
+def _move_task_to_sprint(task_id: str, target_list_id: str) -> str | None:
+    """Move a task from backlog to sprint by creating a full copy in the
+    sprint list and closing the backlog original. Returns the new task ID
+    or None on failure.
+
+    ClickUp v2 API does NOT support moving tasks between lists.
+    This is the only reliable approach: copy + close.
     """
     try:
-        # ClickUp move task API: PUT /list/{target}/task/{task_id}
-        _clickup_api(
-            f"list/{target_list_id}/task/{task_id}",
-            method="PUT",
-            payload={},
+        # 1. Get full source task details
+        src = _clickup_api(f"task/{task_id}")
+
+        # 2. Create copy in sprint with all metadata
+        pri_map = {"urgent": 1, "high": 2, "normal": 3, "low": 4}
+        pri = src.get("priority", {}).get("priority", "normal") if src.get("priority") else "normal"
+        assignee_ids = [a["id"] for a in src.get("assignees", [])]
+        tag_names = [t["name"] for t in src.get("tags", [])]
+
+        new_task = _clickup_api(
+            f"list/{target_list_id}/task",
+            method="POST",
+            payload={
+                "name": src["name"],
+                "description": src.get("description", ""),
+                "priority": pri_map.get(pri, 3),
+                "assignees": assignee_ids,
+                "tags": tag_names,
+            },
         )
-        return True
+        new_id = new_task.get("id")
+        if not new_id:
+            return None
+
+        # 3. Copy SP custom field to new task
+        src_sp = next((cf.get("value") for cf in src.get("custom_fields", [])
+                       if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), None)
+        if src_sp is not None:
+            _set_sp(new_id, int(src_sp))
+
+        # 4. Close backlog original (status: complete)
+        _clickup_api(f"task/{task_id}", method="PUT", payload={"status": "complete"})
+
+        return new_id
     except Exception:
-        return False
+        return None
 
 
 def _assign_task(task_id: str, user_id: str) -> bool:
@@ -598,33 +629,14 @@ def batch_populate_sprint(sprint_list_id: str, max_sp: int = 48) -> str:
 
         stats["tasks_selected"] = len(selected)
 
-        # 5. Move selected tasks to sprint (no re-assign, no re-estimate)
+        # 5. Move selected tasks to sprint (copy + close backlog original)
         for item in selected:
-            task_id = item["id"]
-
-            if _move_task(task_id, sprint_list_id):
+            new_id = _move_task_to_sprint(item["id"], sprint_list_id)
+            if new_id:
                 stats["tasks_moved"] += 1
             else:
-                # Move failed — create copy in sprint
-                try:
-                    pri_int = {"urgent": 1, "high": 2, "normal": 3, "low": 4}.get(item["priority"], 3)
-                    result = _clickup_api(
-                        f"list/{sprint_list_id}/task",
-                        method="POST",
-                        payload={
-                            "name": item["name"],
-                            "priority": pri_int,
-                            "tags": item["tags"],
-                            "description": f"From backlog: https://app.clickup.com/t/{task_id}",
-                        },
-                    )
-                    new_id = result.get("id")
-                    if new_id:
-                        _set_sp(new_id, item["sp"])
-                    stats["tasks_moved"] += 1
-                except Exception:
-                    stats["errors"] += 1
-                    continue
+                stats["errors"] += 1
+                continue
 
             stats["total_sp"] += item["sp"]
             sprint_tasks.append({
@@ -644,17 +656,19 @@ def batch_populate_sprint(sprint_list_id: str, max_sp: int = 48) -> str:
     return json.dumps(stats, indent=2)
 
 
-@tool("Move Task To List")
+@tool("Move Task To Sprint")
 def move_task_to_list(task_id: str, target_list_id: str) -> str:
     """
-    Move a single task to a different ClickUp list.
-    For bulk moves, use batch_populate_sprint instead.
+    Move a single task to a sprint list. Creates a full copy in the sprint
+    (preserving name, description, assignees, tags, SP) and closes the
+    backlog original. ClickUp API does not support direct moves.
     """
-    try:
-        _clickup_api(f"list/{target_list_id}/task/{task_id}", method="PUT", payload={})
-        return json.dumps({"task_id": task_id, "moved_to": target_list_id, "success": True})
-    except Exception as e:
-        return json.dumps({"error": str(e)})
+    new_id = _move_task_to_sprint(task_id, target_list_id)
+    if new_id:
+        return json.dumps({"task_id": task_id, "new_task_id": new_id,
+                          "moved_to": target_list_id, "success": True})
+    else:
+        return json.dumps({"error": "Failed to move task"})
 
 
 @tool("Create Sprint List")
