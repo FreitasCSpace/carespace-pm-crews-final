@@ -255,14 +255,14 @@ BUG_SLA = {"urgent": 4, "high": 24, "normal": 72, "low": 168}
 # SLACK CHANNELS (simplified — fewer, clearer)
 # ======================================================================
 SLACK = {
-    "standup":     "#standup",
-    "sprint":      "#sprint-board",
-    "engineering": "#engineering",
-    "alerts":      "#alerts",
-    "gtm":         "#gtm",
-    "exec":        "#exec-updates",
-    "compliance":  "#compliance",
-    "cs":          "#customer-success",
+    "standup":     "#pm-standup",
+    "sprint":      "#pm-sprint-board",
+    "engineering": "#pm-engineering",
+    "alerts":      "#pm-alerts",
+    "gtm":         "#pm-gtm",
+    "exec":        "#pm-exec-updates",
+    "compliance":  "#pm-compliance",
+    "cs":          "#pm-customer-success",
 }
 
 # ======================================================================
