@@ -4,8 +4,9 @@ Helper tools that wrap ClickUp MCP search to provide list-level task queries
 and duplicate detection. These complement the MCP-injected ClickUp tools.
 """
 
-import os, json
+import os, json, time
 from datetime import date, timedelta
+from collections import defaultdict
 from crewai.tools import tool
 from shared.config.context import L, WORKSPACE_ID, SP_ESTIMATE, SPRINT_FOLDER_ID
 
@@ -498,3 +499,89 @@ def create_sprint_list() -> str:
         })
     except Exception as e:
         return json.dumps({"error": str(e)})
+
+
+@tool("Dedup Backlog Cleanup")
+def dedup_backlog_cleanup(dry_run: bool = True) -> str:
+    """
+    Scans the Master Backlog for duplicate tasks and deletes them.
+    Keeps the OLDEST task (first created), deletes newer duplicates.
+
+    Duplicates detected by matching identifier in title:
+    - Engineering: 'repo#N' pattern (e.g. carespace-ui#159)
+    - Compliance: '#N' at the end (e.g. #229)
+
+    dry_run=True (default): shows what WOULD be deleted without deleting.
+    dry_run=False: actually deletes the duplicate tasks.
+    """
+    import re
+
+    stats = {
+        "total_tasks": 0, "duplicate_groups": 0, "duplicates_found": 0,
+        "tasks_deleted": 0, "tasks_kept": 0, "errors": 0, "dry_run": dry_run,
+    }
+    deleted_tasks = []
+    kept_tasks = []
+
+    try:
+        # 1. Load ALL tasks (paginated)
+        all_tasks = []
+        page = 0
+        while True:
+            data = _clickup_api(
+                f"list/{L['master_backlog']}/task?archived=false&page={page}"
+            )
+            tasks = data.get("tasks", [])
+            if not tasks:
+                break
+            all_tasks.extend(tasks)
+            if len(tasks) < 100:
+                break
+            page += 1
+
+        stats["total_tasks"] = len(all_tasks)
+
+        # 2. Group by identifier extracted from title
+        groups = defaultdict(list)
+        for t in all_tasks:
+            name = t["name"]
+            match = re.search(r'\(([^)]*#\d+)\)\s*$', name)
+            if match:
+                key = match.group(1).lower()
+            else:
+                key = re.sub(r'\s+', ' ', name.lower().strip())
+            groups[key].append({
+                "id": t["id"],
+                "name": t["name"],
+                "date_created": t.get("date_created", "0"),
+            })
+
+        # 3. Find groups with duplicates — keep oldest, delete rest
+        for key, task_group in groups.items():
+            if len(task_group) <= 1:
+                continue
+            stats["duplicate_groups"] += 1
+            task_group.sort(key=lambda x: x["date_created"])
+            keep = task_group[0]
+            dupes = task_group[1:]
+            kept_tasks.append({"name": keep["name"][:80], "id": keep["id"]})
+
+            for dupe in dupes:
+                stats["duplicates_found"] += 1
+                if not dry_run:
+                    try:
+                        _clickup_api(f"task/{dupe['id']}", method="DELETE")
+                        stats["tasks_deleted"] += 1
+                        deleted_tasks.append({"name": dupe["name"][:60], "id": dupe["id"], "deleted": True})
+                        time.sleep(0.2)
+                    except Exception:
+                        stats["errors"] += 1
+                else:
+                    deleted_tasks.append({"name": dupe["name"][:60], "id": dupe["id"], "would_delete": True})
+
+        stats["tasks_kept"] = len(kept_tasks)
+    except Exception as e:
+        stats["error_detail"] = str(e)
+
+    stats["sample_duplicates"] = deleted_tasks[:20]
+    return json.dumps(stats, indent=2)
