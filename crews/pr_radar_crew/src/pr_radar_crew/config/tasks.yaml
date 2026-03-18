@@ -27,9 +27,12 @@ scan:
       list_id="901326439232" (search ONLY in Master Backlog)
     - If no duplicate: create task in Master Backlog with tags [domain, 'ci-fix', 'github'].
 
-    STEP 5: Post summary to #pm-engineering using post:
-    Include: total open PRs, stale count, critical stale, CI status,
-    tasks created, alerts created. Include PR links.
+    STEP 5: Post summary using post_pr_radar_report (NOT generic post):
+    - stale_prs: bullet list of stale PRs with age and link
+    - critical_prs: bullet list of critical (>30d) PRs
+    - ci_status: failures or 'All passing ✅'
+    - tasks_created: what tasks/alerts were created
+    - summary: one-line totals (e.g. '5 stale, 1 critical, 0 CI failures')
 
     NOTE: This crew typically handles 5-15 PRs — small enough for
     individual tool calls. No batch tool needed.

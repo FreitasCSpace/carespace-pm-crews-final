@@ -170,6 +170,37 @@ def post_triage_summary(priorities_set: str, assignments: str,
     return json.dumps({"ok": r.get("ok")})
 
 
+@tool("Post PR Radar Report to Slack")
+def post_pr_radar(stale_prs: str, critical_prs: str, ci_status: str,
+                  tasks_created: str, summary: str) -> str:
+    """
+    Posts the PR & CI radar report to #pm-engineering. Template enforced.
+    Do NOT use the generic 'post' tool — use this instead.
+
+    stale_prs: bullet list of stale PRs with age and link
+    critical_prs: bullet list of critical stale PRs (>30d)
+    ci_status: CI status summary (failures or 'All passing ✅')
+    tasks_created: what tasks/alerts were created
+    summary: one-line totals (e.g. '5 stale PRs, 1 critical, 0 CI failures')
+    """
+    today = date.today().strftime("%B %d, %Y")
+    r = _api(SLACK["engineering"], f"PR Radar {today}", [
+        _hdr(f"🔀 PR & CI Radar — {today}"),
+        _sec(f"*{summary}*"),
+        _div(),
+        _sec(
+            f"*⚠️ Stale PRs (>7d)*\n{stale_prs or '_None_'}\n\n"
+            f"*🔴 Critical (>30d)*\n{critical_prs or '_None_'}"
+        ),
+        _div(),
+        _sec(f"*🔧 CI Status*\n{ci_status or '_All passing ✅_'}"),
+        _div(),
+        _sec(f"*📋 Actions Taken*\n{tasks_created or '_None_'}"),
+        _ctx("_PR Radar by CareSpace PM AI_"),
+    ])
+    return json.dumps({"ok": r.get("ok")})
+
+
 @tool("Post SLA Breach Alert to Slack")
 def post_sla_breach(bug_name: str, task_url: str, priority: str, hours_open: int) -> str:
     """

@@ -8,7 +8,7 @@ from crewai.project import CrewBase, agent, crew, task
 from shared.tools import (
     get_prs, get_ci, get_stale_prs, get_contributors,
     get_tasks_by_list, check_duplicate_task, create_clickup_task,
-    post_blocker, post,
+    post_blocker, post_pr_radar, post,
 )
 
 
@@ -24,7 +24,7 @@ class PrRadarCrew:
             tools=[
                 get_prs, get_ci, get_stale_prs, get_contributors,
                 get_tasks_by_list, check_duplicate_task, create_clickup_task,
-                post_blocker, post,
+                post_blocker, post_pr_radar, post,
             ],
             verbose=True,
             allow_delegation=False,
