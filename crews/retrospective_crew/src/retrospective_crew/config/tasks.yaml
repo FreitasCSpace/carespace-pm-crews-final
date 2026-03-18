@@ -1,42 +1,52 @@
-measure:
+find_sprint_task:
   description: >
-    Pull all tasks from the completed sprint list ({sprint_list_id}).
-    Calculate: planned vs completed tasks and SP, completion rate,
-    per-engineer breakdown (tasks done, SP, carry-overs),
-    next sprint SP = completed_sp × 0.80.
-    Check GitHub: stale PRs, CI status, commit volume across repos.
+    Call create_or_get_sprint_list to find the active sprint.
+    Returns sprint list_id, name, and end date.
   expected_output: >
-    JSON with all metrics: completion_rate, velocity_sp, planned_sp,
-    per_engineer (array), carry_overs (array), github_health,
-    recommended_next_sp.
+    JSON with list_id, sprint_name, status.
   agent: retrospective_agent
 
-write_retro:
+measure:
   description: >
-    Write the retrospective document as a page in ClickUp Docs
-    (Sprint Engine doc: xnum1-4273). Include:
-    - Sprint Overview with health score (GREEN/YELLOW/RED)
-    - Velocity section (planned vs actual)
-    - Per-Engineer Performance table
-    - Carry-Over Analysis
-    - GitHub Health (PRs, CI)
-    - What Went Well
-    - What Needs Improvement
-    - Action Items (description, assignee, due date, success criteria)
-    - Next Sprint Recommendation
+    Using the sprint list_id from previous step, pull ALL tasks
+    via get_tasks_by_list (include_closed=True to capture done tasks).
+
+    Calculate:
+    - Total tasks, done count, in progress count, pending count
+    - Completion rate (done / total)
+    - Velocity: sum of SP from completed tasks (points field)
+    - Per-engineer breakdown: how many tasks/SP each person completed
+    - Carry-overs: tasks still in progress or pending (incomplete)
+    - Recommended next sprint SP = completed_sp × 0.80
+
+    Also check GitHub:
+    - Stale PRs (>7d) using get_stale_pull_requests
+    - CI health using get_ci_status on key repos
+    - Commit activity using get_repo_activity on carespace-ui
   expected_output: >
-    Confirmation with doc URL.
+    JSON with completion_rate, velocity_sp, planned_sp, per_engineer,
+    carry_overs, github_health, recommended_next_sp.
   agent: retrospective_agent
   context:
-    - measure
+    - find_sprint_task
 
 post_and_log:
   description: >
-    Post retro summary to #pm-sprint-board with: completion %, velocity SP,
-    carry-overs, and doc URL. Post brief one-paragraph summary to #pm-engineering.
-    Log velocity data as a task in Sprint History (901326439238) for tracking.
+    Post the retro summary to #pm-sprint-board using post_retro:
+    - sprint_name: from the sprint data
+    - completion_pct: percentage (e.g., 80.0)
+    - velocity_sp: total SP completed
+    - carry_over: number of incomplete tasks
+    - doc_url: "N/A" (no ClickUp Doc — report is in Slack)
+
+    Also post a brief summary to #pm-engineering using post.
+
+    Log velocity data by creating a task in Sprint History (901326439238)
+    using create_task_in_list:
+    - name: "Sprint N Velocity: X SP (Y% completion)"
+    - description: full metrics summary
   expected_output: >
     Confirmation of Slack posts and velocity log.
   agent: retrospective_agent
   context:
-    - write_retro
+    - measure
