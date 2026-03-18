@@ -266,12 +266,30 @@ def post_gtm(headline: str, deals_at_risk: int, pipeline_value: str,
 # ── Executive Report ──────────────────────────────────────────────────────────
 
 @tool("Post Executive Report to Slack")
-def post_exec(report_summary: str) -> str:
-    """Posts the weekly executive summary to #pm-exec-updates."""
+def post_exec(health_dashboard: str, sprint_status: str, compliance: str,
+              risks: str, wins: str) -> str:
+    """
+    Posts the weekly executive report to #pm-exec-updates. Template enforced.
+    Do NOT use generic 'post' — use this for the exec report.
+
+    health_dashboard: traffic light status per dimension (engineering, GTM, compliance, etc.)
+    sprint_status: sprint progress summary (tasks done, SP, % complete)
+    compliance: compliance health summary
+    risks: top 3 risks with owner and mitigation
+    wins: wins this week
+    """
     today = date.today().strftime("%B %d, %Y")
     r = _api(SLACK["exec"], "Weekly Status Report", [
         _hdr(f"📊 CareSpace Weekly Status — {today}"),
-        _sec(report_summary),
+        _sec(f"*Health Dashboard*\n{health_dashboard}"),
+        _div(),
+        _sec(f"*Sprint Status*\n{sprint_status}"),
+        _div(),
+        _sec(f"*Compliance*\n{compliance}"),
+        _div(),
+        _sec(f"*Top Risks*\n{risks}"),
+        _div(),
+        _sec(f"*Wins This Week*\n{wins}"),
         _ctx("_Executive report by CareSpace PM AI_"),
     ])
     return json.dumps({"ok": r.get("ok")})

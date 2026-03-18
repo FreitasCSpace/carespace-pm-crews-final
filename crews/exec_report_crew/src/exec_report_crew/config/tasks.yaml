@@ -2,51 +2,62 @@ gather:
   description: >
     Collect data across all dimensions:
 
-    1. ENGINEERING: Pull current sprint tasks, calculate completion %, velocity,
-       stale tasks. Check Sprint History (901326439238) for trend.
-    2. GTM: Pull Active Deals (901326439255) and At-Risk (901326439258).
-       Count deals at risk, estimate pipeline value.
-    3. COMPLIANCE: Call get_vanta_compliance_health_summary (MCP tool). Count failing controls.
-    4. CUSTOMER SUCCESS: Check Onboarding & Accounts (901326439266) for churn risk.
-    5. BUG HEALTH: Pull Master Backlog (901326439232) tasks tagged 'bug'.
-       Count open bugs, calculate average age, find SLA breaches.
-    6. CREW HEALTH: Check Alerts list (901326439234) for stale alerts (>48h),
-       verify alerts exist in last 7 days (if none, crews may not be running).
-       Check backlog data quality: tasks missing priority, assignee, description.
-    7. MARKETING: Check Content & Campaigns (901326439261) for overdue items.
-       Check Product Launches (901326439262) for launches within 14 days.
-    8. Identify top 3 risks and wins of the week.
+    1. Call create_or_get_sprint_list to find the active sprint.
+       Use the list_id to pull sprint tasks via get_tasks_by_list.
+       Calculate: total tasks, done, in progress, pending, SP progress.
+
+    2. Call batch_compliance_check for compliance task count.
+
+    3. Call get_vanta_compliance_health_summary (MCP tool) for Vanta health.
+
+    4. Pull Active Deals (901326439255) and At-Risk (901326439258)
+       via get_tasks_by_list for GTM health.
+
+    5. Pull Alerts list (901326439234) via get_tasks_by_list.
+       Count open alerts, check for stale >48h.
+
+    6. Count bugs in Master Backlog (901326439232) — filter for 'bug' tag.
+
+    7. Identify top 3 risks and wins of the week.
   expected_output: >
-    JSON with all dimensions: engineering_health, gtm_health, compliance_health,
-    cs_health, bug_health, crew_health, marketing_status, top_risks, wins.
-    Each health dimension includes a GREEN/YELLOW/RED score.
+    Complete data JSON with all dimensions.
   agent: exec_reporter_agent
 
 write_and_post:
   description: >
-    Create the weekly executive report:
+    Compile and post the executive report using post_executive_report
+    (NOT the generic post tool). Pass these 5 parameters:
 
-    1. For product launches <=14 days away without GTM checklist, create
-       checklist tasks in Master Backlog (901326439232) tagged
-       ['marketing', 'launch']: press release, sales deck, demo script,
-       partner notification. Check duplicates first.
+    health_dashboard: Traffic light per dimension, e.g.:
+    "🟢 Engineering: Sprint 80% complete (36/45 SP)
+    🟡 GTM: 2 deals at risk, pipeline needs attention
+    🔴 Compliance: RED — 16 failing controls, BAA gaps
+    🟡 Customer Success: Onboarding list empty
+    🟢 Bug Health: 0 open bugs"
 
-    2. Write report to ClickUp Docs (Crew Dashboard: xnum1-9353) with:
-       - Health Dashboard table (5 dimensions with scores)
-       - Sprint Status section
-       - GTM Pipeline highlights
-       - Compliance snapshot
-       - Crew & System Health
-       - Marketing status
-       - Top 3 Risks (with owner and mitigation)
-       - Wins This Week
+    sprint_status: Sprint progress, e.g.:
+    "Sprint 1 — Mar 23 to Apr 05
+    • 3 done, 5 in progress, 2 pending
+    • 36/45 SP delivered (80%)"
 
-    3. Log a velocity/health data point in Sprint History (901326439238).
+    compliance: Compliance summary, e.g.:
+    "Vanta: RED | 268 open tasks | 16 failing controls
+    • BAA gaps: Azure, Google Workspace
+    • Evidence gaps: 20+ HIPAA items overdue"
 
-    4. Post summary to #pm-exec-updates using post_exec tool.
-       If any crew health issues found, also post to #pm-engineering.
+    risks: Top 3 risks, e.g.:
+    "1. HIPAA evidence gaps blocking audit readiness — Owner: Luis
+    2. Stale PR #36 (35d) blocking onboarding feature — Owner: binunexturn
+    3. MFA enforcement gaps in Google Workspace — Owner: IT"
+
+    wins: Wins, e.g.:
+    "• Vendor risk task for Azure completed
+    • All CI checks passing
+    • Sprint populated with 10 tasks"
+
+    IMPORTANT: Use post_executive_report for formatted output.
   expected_output: >
-    Confirmation with doc URL and Slack post status.
+    Confirmation of Slack post.
   agent: exec_reporter_agent
   context:
     - gather

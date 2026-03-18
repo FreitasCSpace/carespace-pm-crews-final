@@ -2,16 +2,14 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_tasks_by_list, check_duplicate_task,
-    create_clickup_task, post_exec, post,
+    create_sprint_list, get_tasks_by_list, batch_compliance_check,
+    check_duplicate_task, create_clickup_task, post_exec, post,
 )
 
 
 @CrewBase
 class ExecReportCrew:
-    """Weekly exec report + crew health + marketing ops — runs Friday 17:00.
-    Uses MCP Vanta tools (injected by CrewHub) for compliance health data.
-    """
+    """Weekly exec report — runs Friday 17:00."""
 
     agents_config  = "config/agents.yaml"
     tasks_config   = "config/tasks.yaml"
@@ -21,8 +19,8 @@ class ExecReportCrew:
         return Agent(
             config=self.agents_config["exec_reporter_agent"],
             tools=[
-                get_tasks_by_list, check_duplicate_task,
-                create_clickup_task, post_exec, post,
+                create_sprint_list, get_tasks_by_list, batch_compliance_check,
+                check_duplicate_task, create_clickup_task, post_exec, post,
             ],
             verbose=True,
         )
