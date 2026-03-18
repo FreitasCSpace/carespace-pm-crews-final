@@ -244,9 +244,16 @@ def create_clickup_task(list_id: str, name: str, description: str = "",
 
 
 def _move_task(task_id: str, target_list_id: str) -> bool:
-    """Move a task to a different list. Returns True on success."""
+    """Move a task to a different list. Returns True on success.
+    Uses the correct ClickUp API: PUT /list/{list_id}/task/{task_id}
+    """
     try:
-        _clickup_api(f"task/{task_id}", method="PUT", payload={"list": target_list_id})
+        # ClickUp move task API: PUT /list/{target}/task/{task_id}
+        _clickup_api(
+            f"list/{target_list_id}/task/{task_id}",
+            method="PUT",
+            payload={},
+        )
         return True
     except Exception:
         return False
@@ -373,21 +380,40 @@ def batch_populate_sprint(sprint_list_id: str, max_sp: int = 48) -> str:
 
         stats["tasks_selected"] = len(selected)
 
-        # 5. Move, assign, set SP for each selected task
+        # 5. Move (or copy) tasks to sprint, assign, set SP
         for item in selected:
-            if _move_task(item["id"], sprint_list_id):
+            task_id = item["id"]
+
+            # Try to move first
+            if _move_task(task_id, sprint_list_id):
                 stats["tasks_moved"] += 1
             else:
-                stats["errors"] += 1
-                continue
+                # Move failed — create a copy in the sprint list instead
+                try:
+                    result = _clickup_api(
+                        f"list/{sprint_list_id}/task",
+                        method="POST",
+                        payload={
+                            "name": item["name"],
+                            "priority": {"urgent": 1, "high": 2, "normal": 3, "low": 4}.get(item["priority"], 3),
+                            "tags": item["tags"],
+                            "points": item["sp"],
+                            "description": f"From backlog task: https://app.clickup.com/t/{task_id}",
+                        },
+                    )
+                    task_id = result.get("id", task_id)  # use new task ID for assignment
+                    stats["tasks_moved"] += 1
+                except Exception:
+                    stats["errors"] += 1
+                    continue
 
-            _set_sp(item["id"], item["sp"])
+            _set_sp(task_id, item["sp"])
 
             # Assign to domain lead based on tags
             assigned_to = None
             for tag in item["tags"]:
                 if tag in domain_lead_map:
-                    if _assign_task(item["id"], domain_lead_map[tag]):
+                    if _assign_task(task_id, domain_lead_map[tag]):
                         stats["tasks_assigned"] += 1
                         assigned_to = tag
                     break
@@ -417,7 +443,7 @@ def move_task_to_list(task_id: str, target_list_id: str) -> str:
     For bulk moves, use batch_populate_sprint instead.
     """
     try:
-        _clickup_api(f"task/{task_id}", method="PUT", payload={"list": target_list_id})
+        _clickup_api(f"list/{target_list_id}/task/{task_id}", method="PUT", payload={})
         return json.dumps({"task_id": task_id, "moved_to": target_list_id, "success": True})
     except Exception as e:
         return json.dumps({"error": str(e)})
