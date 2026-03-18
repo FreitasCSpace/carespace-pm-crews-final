@@ -48,6 +48,13 @@ def get_tasks_by_list(list_id: str, status: str = "", include_closed: bool = Fal
         tasks = data.get("tasks", [])
         out = []
         for t in tasks:
+            # Get SP from custom field (preferred) or native points (fallback)
+            sp = t.get("points")
+            for cf in t.get("custom_fields", []):
+                if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None:
+                    sp = int(cf["value"])
+                    break
+
             out.append({
                 "id": t["id"],
                 "name": t["name"],
@@ -57,7 +64,7 @@ def get_tasks_by_list(list_id: str, status: str = "", include_closed: bool = Fal
                     for a in t.get("assignees", [])
                 ],
                 "priority": t.get("priority", {}).get("priority", "none") if t.get("priority") else "none",
-                "points": t.get("points"),
+                "points": sp,
                 "due_date": t.get("due_date"),
                 "tags": [tag["name"] for tag in t.get("tags", [])],
                 "date_updated": t.get("date_updated"),
