@@ -272,16 +272,18 @@ SLACK = {
 # CREW SCHEDULE (reference — actual scheduling via CrewHub)
 # ======================================================================
 CREW_SCHEDULE = {
-    "compliance_crew":        "Daily 07:00",
-    "intake_crew":            "Daily 08:00 + webhooks",
-    "daily_pulse_crew":       "Mon-Fri 08:00",
-    "pr_radar_crew":          "Daily 10:00",
-    "triage_crew":            "Every 6 hours",
-    "sprint_crew":            "Bi-weekly Sunday 18:00",
-    "retrospective_crew":     "Bi-weekly Friday 16:00",
-    "deal_intel_crew":        "Monday 07:00",
-    "customer_success_crew":  "Daily 08:30",
-    "exec_report_crew":       "Friday 17:00",
+    # Times in Lisbon (UTC+0 winter / UTC+1 summer)
+    # CrewHub server runs UTC — adjust crons accordingly
+    "compliance_crew":        "Daily 07:00 Lisbon (cron: 0 6 * * *)",
+    "intake_crew":            "Daily 08:00 Lisbon (cron: 0 7 * * *)",
+    "daily_pulse_crew":       "Mon-Fri 08:00 Lisbon (cron: 0 7 * * 1-5)",
+    "customer_success_crew":  "Daily 08:30 Lisbon (cron: 30 7 * * *)",
+    "pr_radar_crew":          "Daily 10:00 Lisbon (cron: 0 9 * * *)",
+    "triage_crew":            "Every 6 hours (cron: 0 */6 * * *)",
+    "deal_intel_crew":        "Monday 07:00 Lisbon (cron: 0 6 * * 1)",
+    "exec_report_crew":       "Friday 17:00 Lisbon (cron: 0 16 * * 5)",
+    "retrospective_crew":     "Bi-weekly Friday 16:00 Lisbon (cron: 0 15 * * 5)",
+    "sprint_crew":            "Bi-weekly Sunday 18:00 Lisbon (cron: 0 17 * * 0)",
 }
 
 # ======================================================================
