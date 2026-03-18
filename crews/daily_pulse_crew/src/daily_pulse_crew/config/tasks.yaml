@@ -11,9 +11,15 @@ find_sprint_task:
 scan_and_gather:
   description: >
     Using the sprint list_id from the previous step, pull all tasks
-    from the current sprint using get_tasks_by_list.
+    from the current sprint using get_tasks_by_list (with include_closed=True
+    to capture recently completed tasks).
 
-    Categorize by status: Done, In Progress, Blocked.
+    Categorize ALL tasks by status:
+    - Done: tasks with status 'complete' or 'done' (completed since yesterday)
+    - In Progress: tasks with status 'in progress'
+    - Blocked: tasks with status 'blocked'
+    - Pending: tasks with status 'to do' or 'pending' (not yet started)
+
     For In Progress tasks, check date_updated — if >3 days, mark stale.
     Scan descriptions for blocker keywords: 'waiting on', 'blocked by',
     'depends on', 'need from', 'pending'.
@@ -26,8 +32,8 @@ scan_and_gather:
     If no active sprint was found, scan the Master Backlog (901326439232)
     instead and report on backlog health.
   expected_output: >
-    JSON with done_items, in_progress_items, blocked_items, stale_items,
-    stale_prs, ci_failures, stale_alerts.
+    JSON with done_items, in_progress_items, blocked_items, pending_items,
+    stale_items, stale_prs, ci_failures, stale_alerts.
   agent: daily_pulse_agent
   context:
     - find_sprint_task
@@ -35,10 +41,14 @@ scan_and_gather:
 post_and_escalate:
   description: >
     Post the daily standup to #pm-standup using post_standup:
-    - Done: completed items
+    - Done: completed items with checkmarks
     - In Progress: items with assignee and SP
     - Blocked: items with blocker reason
-    - Needs Attention: stale tasks, stale PRs, CI failures
+    - Needs Attention: stale tasks, stale PRs, CI failures, pending items
+      that haven't started yet
+
+    Include a summary line at the top:
+    'Sprint N: X done, Y in progress, Z blocked, W pending | Total: T tasks'
 
     Escalate blockers:
     - Post each to #pm-alerts using post_blocker
