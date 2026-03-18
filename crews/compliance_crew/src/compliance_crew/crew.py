@@ -6,10 +6,6 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    get_health_summary,
-    get_vulnerabilities,
-    get_baa_gaps,
-    get_people_risks,
     get_tasks_by_list,
     create_clickup_task,
     post_compliance,
@@ -20,8 +16,8 @@ from shared.tools import (
 @CrewBase
 class ComplianceCrew:
     """Compliance health monitor — runs daily 07:00.
-    Task creation handled by VantaCrews → intake_crew pipeline.
-    This crew monitors Vanta health and posts critical alerts only.
+    Uses MCP Vanta tools (injected by CrewHub) for health data.
+    Our custom tools only handle ClickUp and Slack.
     """
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
@@ -31,10 +27,6 @@ class ComplianceCrew:
         return Agent(
             config=self.agents_config["compliance_agent"],
             tools=[
-                get_health_summary,
-                get_vulnerabilities,
-                get_baa_gaps,
-                get_people_risks,
                 get_tasks_by_list,
                 create_clickup_task,
                 post_compliance,

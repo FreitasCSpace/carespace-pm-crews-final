@@ -1,23 +1,25 @@
 health_check:
   description: >
-    Daily Vanta health check and critical alert monitor.
-    Task creation is NOT your job -- VantaCrews creates GitHub issues,
-    intake_crew imports them into ClickUp. You monitor and alert.
+    Daily Vanta health check. Three steps:
 
-    1. Call get_health_summary() to get overall Vanta status (GREEN/YELLOW/RED).
-    2. Call get_baa_gaps() -- if any BAA gaps exist, post IMMEDIATELY to
-       #compliance via post_compliance. Create alert in Alerts (901326439234).
-    3. Call get_people_risks() -- if offboarded users have active access or
-       MFA is missing, post IMMEDIATELY to #compliance. Create alert.
-    4. Call get_vulnerabilities() -- if any critical vulns (CVSS >= 9.0),
-       post to #compliance. Create alert.
-    5. Count open compliance tasks in Master Backlog (901326439232) by
-       calling get_tasks_by_list and filtering for 'compliance' tag.
-    6. Post daily status to #compliance:
-       'Vanta Health: [GREEN/YELLOW/RED] | Open compliance tasks: N |
-       Critical alerts today: N'
-    7. Write daily health entry to ClickUp Docs (AI System: xnum1-9333).
+    1. Call get_vanta_compliance_health_summary (MCP tool) to get the
+       full health report. This single tool returns: health indicator,
+       failing controls (SOC2 + HIPAA), BAA gaps, vulnerabilities,
+       people risks, access reviews, upcoming deadlines.
+
+    2. Analyze the health summary:
+       - If health_indicator is RED or critical_issues_total > 0,
+         create alerts in Alerts list (901326439234) for each critical finding.
+         Post each to #compliance via post_compliance_alert_to_slack.
+       - If health is GREEN with 0 issues, no alerts needed.
+
+    3. Count open compliance tasks by calling get_tasks_by_list on
+       Master Backlog (901326439232). Count tasks tagged 'compliance'.
+
+    4. Post daily status to #compliance via post_to_slack_channel:
+       'Vanta Health: [status] | Open compliance tasks: N |
+       Critical alerts: N | Date: today'
   expected_output: >
-    JSON: {health: str, baa_gaps: N, people_risks: N, critical_vulns: N,
-    open_compliance_tasks: N, alerts_sent: N}
+    JSON: {health: str, critical_issues: N, open_compliance_tasks: N,
+    alerts_created: N, status_posted: bool}
   agent: compliance_agent

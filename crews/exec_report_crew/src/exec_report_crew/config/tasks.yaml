@@ -6,7 +6,7 @@ gather:
        stale tasks. Check Sprint History (901326439238) for trend.
     2. GTM: Pull Active Deals (901326439255) and At-Risk (901326439258).
        Count deals at risk, estimate pipeline value.
-    3. COMPLIANCE: Call get_health_summary from Vanta. Count failing controls.
+    3. COMPLIANCE: Call get_vanta_compliance_health_summary (MCP tool). Count failing controls.
     4. CUSTOMER SUCCESS: Check Onboarding & Accounts (901326439266) for churn risk.
     5. BUG HEALTH: Pull Master Backlog (901326439232) tasks tagged 'bug'.
        Count open bugs, calculate average age, find SLA breaches.
