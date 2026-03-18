@@ -270,33 +270,40 @@ def _assign_task(task_id: str, user_id: str) -> bool:
         return False
 
 
-@tool("Batch Triage Backlog")
-def batch_triage_backlog() -> str:
+@tool("Scan Backlog For Triage")
+def scan_backlog_for_triage() -> str:
     """
-    Scans ALL Master Backlog tasks and enforces quality rules in one pass.
-    Does everything in code — no LLM reasoning needed per task.
+    Scans ALL Master Backlog tasks and returns a structured summary
+    for the AI agent to analyze and make decisions on.
 
-    Rules enforced:
-    1. Security reclassification: tasks tagged 'security' not urgent → fix
-    2. Unassigned bugs: tagged 'bug' with no assignee → assign domain lead
-    3. Unassigned compliance: tagged 'compliance' with no assignee → assign Luis (48998538)
-    4. Priority correction: title has crash/PHI/HIPAA/vulnerability → urgent
-    5. Story point estimation: tasks without SP → auto-estimate
-    6. SLA breach detection: task age vs thresholds → create alert
+    Returns:
+    - total_tasks: count
+    - unassigned: list of {id, name, tags, priority, age_hours} for tasks with no assignee
+    - wrong_priority: list of tasks that may need priority adjustment
+    - no_story_points: list of tasks missing SP estimates
+    - sla_at_risk: list of tasks approaching or breaching SLA
+    - by_tag: count of tasks per tag
+    - by_priority: count of tasks per priority level
 
-    Returns summary of all actions taken.
+    The AI agent should analyze this data and decide what actions to take,
+    then pass those decisions to execute_triage_actions.
     """
-    from shared.config.context import DOMAIN_LEADS, BUG_SLA
+    from shared.config.context import BUG_SLA
     from datetime import datetime
 
-    stats = {
-        "total_tasks": 0, "security_reclassified": 0, "bugs_assigned": 0,
-        "compliance_assigned": 0, "priorities_corrected": 0,
-        "sp_estimated": 0, "sla_breaches": 0, "errors": 0,
+    now_ms = int(datetime.utcnow().timestamp() * 1000)
+
+    summary = {
+        "total_tasks": 0,
+        "unassigned": [],
+        "wrong_priority": [],
+        "no_story_points": [],
+        "sla_at_risk": [],
+        "by_tag": {},
+        "by_priority": {},
     }
 
     try:
-        # Load all backlog tasks (paginated)
         all_tasks = []
         page = 0
         while True:
@@ -309,94 +316,156 @@ def batch_triage_backlog() -> str:
                 break
             page += 1
 
-        stats["total_tasks"] = len(all_tasks)
-        now_ms = int(datetime.utcnow().timestamp() * 1000)
+        summary["total_tasks"] = len(all_tasks)
 
         for t in all_tasks:
-            task_id = t["id"]
-            name = t["name"]
             tags = [tag["name"] for tag in t.get("tags", [])]
             pri = t.get("priority", {}).get("priority", "none") if t.get("priority") else "none"
             assignees = t.get("assignees", [])
             points = t.get("points")
             created_ms = int(t.get("date_created", "0"))
-            age_hours = (now_ms - created_ms) / (1000 * 3600) if created_ms else 0
-            name_lower = name.lower()
+            age_hours = round((now_ms - created_ms) / (1000 * 3600), 1) if created_ms else 0
+            name = t["name"]
 
-            # 1. Security reclassification
-            if "security" in tags and pri != "urgent":
-                try:
-                    _clickup_api(f"task/{task_id}", method="PUT", payload={"priority": 1})
-                    stats["security_reclassified"] += 1
-                    pri = "urgent"
-                except Exception:
-                    stats["errors"] += 1
+            # Count by tag and priority
+            for tag in tags:
+                summary["by_tag"][tag] = summary["by_tag"].get(tag, 0) + 1
+            summary["by_priority"][pri] = summary["by_priority"].get(pri, 0) + 1
 
-            # 2. Priority correction — keywords that should be urgent
-            if pri not in ("urgent",) and any(w in name_lower for w in
-                    ["crash", "data loss", "phi", "hipaa", "injection", "vulnerability", "breach"]):
-                try:
-                    _clickup_api(f"task/{task_id}", method="PUT", payload={"priority": 1})
-                    stats["priorities_corrected"] += 1
-                    pri = "urgent"
-                except Exception:
-                    stats["errors"] += 1
+            task_info = {
+                "id": t["id"],
+                "name": name[:100],
+                "tags": tags,
+                "priority": pri,
+                "age_hours": age_hours,
+                "has_sp": points is not None,
+                "assignee_count": len(assignees),
+            }
 
-            # 3. Unassigned bug assignment
-            if "bug" in tags and not assignees:
-                for tag in tags:
-                    if tag in DOMAIN_LEADS:
-                        if _assign_task(task_id, DOMAIN_LEADS[tag]):
-                            stats["bugs_assigned"] += 1
-                        break
+            # Unassigned tasks
+            if not assignees:
+                summary["unassigned"].append(task_info)
 
-            # 4. Unassigned compliance assignment → Luis
-            if "compliance" in tags and not assignees:
-                if _assign_task(task_id, DOMAIN_LEADS.get("compliance", "48998538")):
-                    stats["compliance_assigned"] += 1
-
-            # 5. Story point estimation
+            # No story points
             if points is None:
-                est = _estimate_sp(name, pri)
-                try:
-                    _clickup_api(f"task/{task_id}", method="PUT", payload={"points": est})
-                    stats["sp_estimated"] += 1
-                except Exception:
-                    stats["errors"] += 1
+                summary["no_story_points"].append({"id": t["id"], "name": name[:80], "priority": pri})
 
-            # 6. SLA breach detection
+            # SLA at risk
             sla_hours = BUG_SLA.get(pri, 168)
-            if age_hours > sla_hours and pri in ("urgent", "high"):
-                # Create alert if not already exists
-                alert_name = f"[SLA BREACH] {name[:100]}"
-                try:
-                    # Check if alert already exists
-                    existing = _clickup_api(f"list/{L['alerts']}/task?archived=false")
-                    alert_exists = any(
-                        alert_name[:50].lower() in at["name"].lower()
-                        for at in existing.get("tasks", [])
-                    )
-                    if not alert_exists:
-                        _clickup_api(
-                            f"list/{L['alerts']}/task",
-                            method="POST",
-                            payload={
-                                "name": alert_name,
-                                "priority": 1,
-                                "description": f"Task {name} has been open {int(age_hours)}h (SLA: {sla_hours}h)\nTask: https://app.clickup.com/t/{task_id}",
-                            },
-                        )
-                        stats["sla_breaches"] += 1
-                except Exception:
-                    stats["errors"] += 1
+            if age_hours > sla_hours * 0.8:  # 80% of SLA = at risk
+                task_info["sla_hours"] = sla_hours
+                task_info["breached"] = age_hours > sla_hours
+                summary["sla_at_risk"].append(task_info)
+
+            # Potential wrong priority (AI should verify)
+            name_lower = name.lower()
+            if pri not in ("urgent",):
+                if "security" in tags:
+                    summary["wrong_priority"].append({**task_info, "reason": "security tag but not urgent"})
+                elif any(w in name_lower for w in ["crash", "data loss", "breach", "unauthorized"]):
+                    summary["wrong_priority"].append({**task_info, "reason": f"title suggests critical issue"})
+                elif any(w in name_lower for w in ["hipaa", "phi", "baa gap"]):
+                    summary["wrong_priority"].append({**task_info, "reason": "HIPAA/PHI related, may need urgent"})
+
+        # Truncate lists if too long (keep it manageable for LLM)
+        if len(summary["unassigned"]) > 30:
+            summary["unassigned_total"] = len(summary["unassigned"])
+            summary["unassigned"] = summary["unassigned"][:30]
+            summary["unassigned_truncated"] = True
+        if len(summary["no_story_points"]) > 30:
+            summary["no_sp_total"] = len(summary["no_story_points"])
+            summary["no_story_points"] = summary["no_story_points"][:30]
+            summary["no_sp_truncated"] = True
+        if len(summary["sla_at_risk"]) > 20:
+            summary["sla_total"] = len(summary["sla_at_risk"])
+            summary["sla_at_risk"] = summary["sla_at_risk"][:20]
 
     except Exception as e:
-        stats["error_detail"] = str(e)
+        summary["error"] = str(e)
+
+    return json.dumps(summary, indent=2)
+
+
+@tool("Execute Triage Actions")
+def execute_triage_actions(actions_json: str) -> str:
+    """
+    Executes triage actions decided by the AI agent. Takes a JSON string
+    with arrays of actions to perform.
+
+    Expected format:
+    {
+      "set_priority": [{"task_id": "xxx", "priority": 1, "reason": "..."}],
+      "assign": [{"task_id": "xxx", "user_id": "12345", "reason": "..."}],
+      "set_sp": [{"task_id": "xxx", "points": 5}],
+      "create_alerts": [{"name": "...", "description": "...", "priority": 1}]
+    }
+
+    priority: 1=urgent, 2=high, 3=normal, 4=low
+    user_id: ClickUp user ID string
+
+    Common user IDs:
+    - 48998538: Luis Freitas (compliance)
+    - 49000180: andreCarespace (frontend)
+    - 49000181: fabiano-carespace (backend)
+    - 93908270: YeddulaBharath (mobile)
+    - 93908266: bhavyasaurabh (ai-cv, security)
+    - 111928715: sandeep (infra)
+    """
+    try:
+        actions = json.loads(actions_json)
+    except json.JSONDecodeError:
+        return json.dumps({"error": "Invalid JSON in actions_json"})
+
+    stats = {
+        "priorities_set": 0, "tasks_assigned": 0,
+        "sp_set": 0, "alerts_created": 0, "errors": 0,
+    }
+
+    # Set priorities
+    for action in actions.get("set_priority", []):
+        try:
+            _clickup_api(f"task/{action['task_id']}", method="PUT",
+                        payload={"priority": action["priority"]})
+            stats["priorities_set"] += 1
+        except Exception:
+            stats["errors"] += 1
+
+    # Assign tasks
+    for action in actions.get("assign", []):
+        try:
+            _clickup_api(f"task/{action['task_id']}", method="PUT",
+                        payload={"assignees": {"add": [int(action["user_id"])]}})
+            stats["tasks_assigned"] += 1
+        except Exception:
+            stats["errors"] += 1
+
+    # Set story points
+    for action in actions.get("set_sp", []):
+        try:
+            _clickup_api(f"task/{action['task_id']}", method="PUT",
+                        payload={"points": action["points"]})
+            stats["sp_set"] += 1
+        except Exception:
+            stats["errors"] += 1
+
+    # Create alerts
+    for action in actions.get("create_alerts", []):
+        try:
+            _clickup_api(
+                f"list/{L['alerts']}/task", method="POST",
+                payload={
+                    "name": action["name"],
+                    "priority": action.get("priority", 1),
+                    "description": action.get("description", ""),
+                },
+            )
+            stats["alerts_created"] += 1
+        except Exception:
+            stats["errors"] += 1
 
     stats["total_actions"] = (
-        stats["security_reclassified"] + stats["bugs_assigned"] +
-        stats["compliance_assigned"] + stats["priorities_corrected"] +
-        stats["sp_estimated"] + stats["sla_breaches"]
+        stats["priorities_set"] + stats["tasks_assigned"] +
+        stats["sp_set"] + stats["alerts_created"]
     )
     return json.dumps(stats, indent=2)
 

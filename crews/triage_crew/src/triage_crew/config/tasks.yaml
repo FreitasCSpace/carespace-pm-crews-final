@@ -1,22 +1,64 @@
 dedup_task:
   description: >
-    Call dedup_backlog_cleanup with dry_run=False to delete duplicate
-    tasks in the Master Backlog. Returns count of duplicates found
-    and deleted.
+    Call dedup_backlog_cleanup with dry_run=False to remove duplicate
+    tasks from the Master Backlog. Keep the oldest copy of each task.
   expected_output: >
-    JSON with duplicates_found, tasks_deleted, tasks_kept.
+    JSON with duplicates_found and tasks_deleted counts.
   agent: triage_agent
 
-triage_task:
+scan_task:
   description: >
-    Call batch_triage_backlog to enforce all quality rules on the
-    Master Backlog in one pass. Then post summary to #alerts if
-    any actions were taken.
+    Call scan_backlog_for_triage to get a comprehensive health report
+    of the Master Backlog. This returns:
+    - Unassigned tasks (who should own them?)
+    - Tasks with potentially wrong priority (should they be escalated?)
+    - Tasks missing story points (how complex are they?)
+    - Tasks at risk of SLA breach (which ones need immediate attention?)
+    - Distribution by tag and priority
 
-    Format: 'Triage: X dupes removed, Y priorities fixed, Z assigned,
-    W SLA breaches, V SP estimated.'
+    Study this data carefully. You'll make decisions in the next step.
   expected_output: >
-    JSON summary of all triage actions taken.
+    The full scan results JSON for analysis.
   agent: triage_agent
   context:
     - dedup_task
+
+decide_and_execute_task:
+  description: >
+    Based on the scan results, ANALYZE the backlog and make decisions.
+    Think like a senior PM — don't just apply rules blindly.
+
+    For each issue found, decide:
+    1. PRIORITY CHANGES: Which tasks genuinely need priority adjustment?
+       Not every compliance task needs to be urgent. Focus on:
+       - Active security threats (unauthorized access, MFA failures)
+       - HIPAA evidence gaps that block audit readiness
+       - Production bugs affecting users
+       Don't escalate low-risk items just because they match a keyword.
+
+    2. ASSIGNMENTS: Who should own each unassigned task?
+       Match by domain expertise. For compliance tasks, assign to
+       Luis Freitas (48998538). For engineering, match the domain tag.
+
+    3. STORY POINTS: Estimate effort for tasks without SP.
+       Consider the actual scope described in the title, not just type.
+
+    4. ALERTS: Create alerts ONLY for genuinely critical situations.
+       Group related items. "5 overdue HIPAA evidence gaps" is better
+       than 5 separate alerts.
+
+    Build your decisions as JSON and call execute_triage_actions:
+    {
+      "set_priority": [{"task_id": "xxx", "priority": 1, "reason": "..."}],
+      "assign": [{"task_id": "xxx", "user_id": "48998538", "reason": "compliance task"}],
+      "set_sp": [{"task_id": "xxx", "points": 5}],
+      "create_alerts": [{"name": "[ALERT] ...", "description": "...", "priority": 1}]
+    }
+
+    After executing, post a summary to #alerts explaining what you did
+    and WHY. Include your reasoning.
+  expected_output: >
+    JSON summary of actions taken with reasoning.
+  agent: triage_agent
+  context:
+    - scan_task

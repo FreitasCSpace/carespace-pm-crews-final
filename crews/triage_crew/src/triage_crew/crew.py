@@ -2,7 +2,8 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
 from shared.tools import (
-    batch_triage_backlog, dedup_backlog_cleanup, post,
+    dedup_backlog_cleanup, scan_backlog_for_triage,
+    execute_triage_actions, post,
 )
 
 
@@ -17,7 +18,10 @@ class TriageCrew:
     def triage_agent(self) -> Agent:
         return Agent(
             config=self.agents_config["triage_agent"],
-            tools=[batch_triage_backlog, dedup_backlog_cleanup, post],
+            tools=[
+                dedup_backlog_cleanup, scan_backlog_for_triage,
+                execute_triage_actions, post,
+            ],
             verbose=True,
         )
 
@@ -26,8 +30,12 @@ class TriageCrew:
         return Task(config=self.tasks_config["dedup_task"])
 
     @task
-    def triage_task(self) -> Task:
-        return Task(config=self.tasks_config["triage_task"])
+    def scan_task(self) -> Task:
+        return Task(config=self.tasks_config["scan_task"])
+
+    @task
+    def decide_and_execute_task(self) -> Task:
+        return Task(config=self.tasks_config["decide_and_execute_task"])
 
     @crew
     def crew(self) -> Crew:
