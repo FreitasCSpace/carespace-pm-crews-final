@@ -1,18 +1,34 @@
 scan:
   description: >
-    Full PR and CI scan across all carespace-ai repos:
+    Full PR and CI scan across all carespace-ai repos.
 
-    1. Fetch all open PRs. Identify stale (>7d) and critical stale (>30d).
-    2. For stale PRs: find best reviewer via get_contributors, check
-       check_duplicate_task first, then create task in Master Backlog
-       (901326439232) with tags [domain, 'pr-review', 'github']. 2 SP.
-    3. For critical stale (>30d): create urgent alert in Alerts (901326439234).
-    4. Check CI status on main branches of: carespace-ui, carespace-api-gateway,
-       carespace-admin, carespace-sdk. For failures, check_duplicate_task first,
-       then create task in Master Backlog with tags [domain, 'ci-fix', 'github']. 3 SP.
-    5. Detect duplicate branches (PRs with similar names or same target).
-    6. Post summary to #pm-engineering with counts and key items.
+    STEP 1: Call get_stale_pull_requests to find all PRs older than 7 days.
+    For each stale PR, note: repo, PR number, title, author, age, CI status.
+
+    STEP 2: For CRITICAL stale PRs (>30 days):
+    - Check if an alert already exists: check_duplicate_task with "PR #N"
+    - If no duplicate: create alert in Alerts list (901326439234) using
+      create_task_in_list with priority urgent.
+
+    STEP 3: For stale PRs (7-30 days):
+    - Check if a task already exists: check_duplicate_task with "repo#N"
+    - If no duplicate: create task in Master Backlog (901326439232) using
+      create_task_in_list with tags [domain, 'pr-review', 'github'].
+    - Find best reviewer using get_contributors for that repo.
+
+    STEP 4: Check CI on key repos using get_ci_status:
+    carespace-ui, carespace-admin, carespace-api-gateway, carespace-sdk.
+    Only report FAILURES. For each failure:
+    - Check if task exists: check_duplicate_task with "CI repo"
+    - If no duplicate: create task in Master Backlog with tags [domain, 'ci-fix', 'github'].
+
+    STEP 5: Post summary to #pm-engineering using post:
+    Include: total open PRs, stale count, critical stale, CI status,
+    tasks created, alerts created. Include PR links.
+
+    NOTE: This crew typically handles 5-15 PRs — small enough for
+    individual tool calls. No batch tool needed.
   expected_output: >
     JSON: {total_prs: N, stale_prs: N, critical_stale: N, ci_failures: N,
-    tasks_created: N, alerts_created: N, duplicate_branches: []}
+    tasks_created: N, alerts_created: N}
   agent: pr_radar_agent
