@@ -6,12 +6,14 @@ scan:
     For each stale PR, note: repo, PR number, title, author, age, CI status.
 
     STEP 2: For CRITICAL stale PRs (>30 days):
-    - Check if an alert already exists: check_duplicate_task with "PR #N"
+    - Check if an alert exists: check_duplicate_task with "PR #N" and
+      list_id="901326439234" (search ONLY in Alerts list, not whole workspace)
     - If no duplicate: create alert in Alerts list (901326439234) using
       create_task_in_list with priority urgent.
 
     STEP 3: For stale PRs (7-30 days):
-    - Check if a task already exists: check_duplicate_task with "repo#N"
+    - Check if a task exists: check_duplicate_task with "repo#N" and
+      list_id="901326439232" (search ONLY in Master Backlog)
     - If no duplicate: create task in Master Backlog (901326439232) using
       create_task_in_list with tags [domain, 'pr-review', 'github'].
     - Find best reviewer using get_contributors for that repo.
@@ -19,7 +21,8 @@ scan:
     STEP 4: Check CI on key repos using get_ci_status:
     carespace-ui, carespace-admin, carespace-api-gateway, carespace-sdk.
     Only report FAILURES. For each failure:
-    - Check if task exists: check_duplicate_task with "CI repo"
+    - Check if task exists: check_duplicate_task with "CI repo" and
+      list_id="901326439232" (search ONLY in Master Backlog)
     - If no duplicate: create task in Master Backlog with tags [domain, 'ci-fix', 'github'].
 
     STEP 5: Post summary to #pm-engineering using post:
