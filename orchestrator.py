@@ -227,11 +227,18 @@ async def run_crews(crew_names: list[str]) -> OrchestratorResult:
         print("  No crews selected.")
         return OrchestratorResult()
 
-    # Resolve active sprint for crews that need it
+    # Build shared context from context.py — all {variables} in YAML resolve from this
+    from shared.config.context import crew_context
     sprint_id = _resolve_active_sprint()
+    base_ctx = crew_context(sprint_list_id=sprint_id)
+
+    # Merge base context into each crew's inputs (crew-specific inputs take precedence)
     for info in active.values():
+        merged = dict(base_ctx)
+        merged.update(info.get("inputs", {}))
         if "sprint_list_id" in info.get("inputs", {}):
-            info["inputs"]["sprint_list_id"] = sprint_id
+            merged["sprint_list_id"] = sprint_id
+        info["inputs"] = merged
 
     print(f"\n  Running {len(active)} crews in parallel...")
     print("  " + "-" * 48)

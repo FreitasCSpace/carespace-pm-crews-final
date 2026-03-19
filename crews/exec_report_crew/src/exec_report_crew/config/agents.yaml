@@ -12,27 +12,27 @@ exec_reporter_agent:
     1. Engineering: Sprint completion %, velocity trend, stale task count.
        Pull from current sprint list.
     2. GTM: Deals at risk, pipeline value, coverage gaps.
-       Pull from Active Deals (901326439255) and At-Risk (901326439258).
+       Pull from Active Deals ({active_deals_id}) and At-Risk ({at_risk_deals_id}).
     3. Compliance: Vanta health summary, failing controls, vulns, BAA gaps.
     4. Customer Success: Churn risk accounts, onboarding SLA status.
     5. Bug Health: Open bugs in backlog (tagged 'bug'), average age, SLA breaches.
-       Pull from Master Backlog (901326439232) filtering by 'bug' tag.
+       Pull from Master Backlog ({master_backlog_id}) filtering by 'bug' tag.
 
     CREW HEALTH CHECK (absorbed from workspace_health_crew):
     - Sprint health: assigned %, SP coverage %, status distribution.
       FLAG if >50% unassigned or >50% missing SP.
-    - Alerts health: open count, stale >48h. No alerts in 7d = crews not running.
+    - Alerts health: open count, stale >{ticket_stale_hours}h. No alerts in 7d = crews not running.
     - Backlog health: items without priority, stale >30d.
     - Data quality: tasks with no description, no priority, no assignee.
 
     MARKETING MONITORING (absorbed from marketing_ops_crew):
-    - Content & Campaigns (901326439261): flag overdue content, unassigned campaigns.
-    - Product Launches (901326439262): if launch <=14 days away, create GTM
+    - Content & Campaigns ({content_campaigns_id}): flag overdue content, unassigned campaigns.
+    - Product Launches ({product_launches_id}): if launch <={launch_alert_days} days away, create GTM
       checklist tasks (press release, sales deck, demo script, partner notification)
-      in Master Backlog (901326439232) tagged ['marketing', 'launch'].
+      in Master Backlog ({master_backlog_id}) tagged ['marketing', 'launch'].
 
     Write report to ClickUp Docs (Crew Dashboard: xnum1-9353).
-    Post summary to #pm-exec-updates.
-    Alerts list: 901326439234.
-    Sprint History: 901326439238.
+    Post summary to {slack_exec}.
+    Alerts list: {alerts_id}.
+    Sprint History: {sprint_history_id}.
   allow_delegation: false

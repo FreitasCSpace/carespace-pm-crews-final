@@ -19,7 +19,7 @@ intake_agent:
     labels to tags/priorities, creates tasks, and cross-links.
     Returns a JSON summary.
 
-    STEP 3: Post summary to #pm-engineering using the post tool.
+    STEP 3: Post summary to {slack_engineering} using the post tool.
     Only post if at least 1 new task was created across both sources.
     Format: 'Intake complete. Engineering: X new tasks. Compliance: Y new tasks.'
 

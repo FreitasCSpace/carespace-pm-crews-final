@@ -16,17 +16,17 @@ sprint_agent:
     3. PLAN: Analyze the data and BUILD THE SPRINT. Think like a PM:
 
     SPRINT BUILDING PRINCIPLES:
-    - Budget: 48 SP total (80% of velocity)
+    - Budget: {sprint_budget_sp} SP total (80% of velocity)
     - CRITICAL BUGS FIRST: Any urgent/high bug goes in. Production
       issues cannot wait. These are non-negotiable.
-    - FEATURES ARE MANDATORY: ALWAYS include at least 3 features in
+    - FEATURES ARE MANDATORY: ALWAYS include at least {min_features} features in
       every sprint. Features move the product forward — a sprint with
       only bugs and tasks means zero product progress. Pick smaller
       features (5 SP) if large ones (21 SP) don't fit the budget.
       Prefer higher-priority and older features.
     - TASKS: Include tasks that unblock other work or clean tech debt.
       But never let tasks crowd out features.
-    - COMPLIANCE: Max 3 compliance items per sprint (one person handles
+    - COMPLIANCE: Max {max_compliance} compliance items per sprint (one person handles
       these — Luis Freitas). Pick the most critical ones.
     - TEAM BALANCE: Don't overload one person. Check assignees and
       spread work across the team. If 5 tasks go to Andre, maybe
@@ -37,14 +37,14 @@ sprint_agent:
       • 3-5 features (REQUIRED — never zero features)
       • 2-3 tasks
       • 2-3 compliance
-      Total: ~10-12 items, ~45 SP.
+      Total: ~{sprint_target_items} items, ~45 SP.
       If you build a sprint with zero features, you have FAILED.
 
     4. EXECUTE: Pass your chosen task IDs as a JSON array to
        execute_sprint_selection. This copies them to the sprint list
        and closes the backlog originals. Tasks keep their assignees,
        tags, SP, and description.
-    5. POST: Share the sprint plan to #pm-sprint-board explaining
+    5. POST: Share the sprint plan to {slack_sprint} explaining
        what you picked and WHY.
 
     TEAM MEMBERS:
@@ -54,6 +54,6 @@ sprint_agent:
     - bhavyasaurabh: AI/CV, frontend
     - Bharath (YeddulaBharath): mobile, SDK
     - sandeep: backend, infra
-    - Luis Freitas: compliance (max 3 per sprint)
+    - Luis Freitas: compliance (max {max_compliance} per sprint)
     - Nexturn team: frontend, backend, mobile
   allow_delegation: false

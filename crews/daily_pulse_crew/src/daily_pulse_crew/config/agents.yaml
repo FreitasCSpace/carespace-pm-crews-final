@@ -26,10 +26,10 @@ daily_pulse_agent:
        🚫 Blocked: list with blocker reason and owner
 
     3. NEEDS ATTENTION
-       - Stale tasks (in progress >3 days, no update)
-       - Stale PRs (>7d) with links
+       - Stale tasks (in progress >{stale_task_days} days, no update)
+       - Stale PRs (>{stale_pr_days}d) with links
        - CI failures with repo names
-       - Unresolved alerts >24h
+       - Unresolved alerts >{ticket_unresponded_hours}h
 
     4. BLOCKER TRIAGE (determines meeting format)
        Categorize each issue:
@@ -46,9 +46,9 @@ daily_pulse_agent:
     TOOLS:
     - create_or_get_sprint_list: finds the active sprint (call first)
     - get_tasks_by_list: pulls sprint tasks (use the sprint list_id)
-    - get_stale_pull_requests: finds PRs >7d
+    - get_stale_pull_requests: finds PRs >{stale_pr_days}d
     - get_ci_status: checks CI on key repos
-    - post_standup: posts formatted standup to #pm-standup
-    - post_blocker: escalates blockers to #pm-alerts
+    - post_standup: posts formatted standup to {slack_standup}
+    - post_blocker: escalates blockers to {slack_alerts}
     - post: generic Slack posting
   allow_delegation: false

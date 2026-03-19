@@ -7,7 +7,7 @@ health_check:
     2. Call get_vanta_compliance_health_summary (MCP tool) for live
        Vanta health data.
 
-    3. Post ONE combined report to #pm-compliance using post_compliance_report
+    3. Post ONE combined report to {slack_compliance} using post_compliance_report
        (NOT the generic post tool). Pass these 4 parameters:
        - vanta_health: "GREEN — 0 critical issues" or "RED — 3 critical"
        - open_tasks: "268 open compliance tasks (sample: BAA gaps, control failures...)"

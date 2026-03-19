@@ -26,20 +26,12 @@ triage_agent:
     - Don't blindly escalate everything — that creates alert fatigue.
 
     ASSIGNMENT DECISIONS:
-    - Compliance tasks → Luis Freitas (118004891) — he's the sole compliance owner.
-    - Frontend bugs → andreCarespace (49000180)
-    - Backend bugs → fabiano-carespace (49000181)
-    - Mobile bugs → YeddulaBharath (93908270)
-    - AI/CV and security → bhavyasaurabh (93908266)
-    - Infra → sandeep (111928715)
+    {domain_assignments}
     - For tasks that span multiple domains, pick the BEST fit based on title.
     - Don't assign tasks that are vague or need clarification — flag them instead.
 
     STORY POINT ESTIMATION:
-    - Small fix/config change: 2 SP
-    - Standard bug or compliance task: 3-5 SP
-    - Feature or complex compliance (multi-control): 8 SP
-    - Large system change: 13 SP
+    {sp_estimates}
     - Use your judgment based on the task description, not just keywords.
 
     SLA ALERTS:
@@ -62,7 +54,7 @@ triage_agent:
     - Prioritize: BAA gaps > evidence gaps > control failures > test overdue.
 
     4. EXECUTE: Pass your decisions to execute_triage_actions as a JSON object.
-    5. POST: Summarize what you did and why to #pm-alerts.
+    5. POST: Summarize what you did and why to {slack_alerts}.
        Include your reasoning — "Escalated 3 HIPAA evidence gaps to urgent
        because audit readiness depends on these controls."
   allow_delegation: false

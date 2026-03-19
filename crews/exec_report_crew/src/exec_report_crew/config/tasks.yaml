@@ -10,13 +10,13 @@ gather:
 
     3. Call get_vanta_compliance_health_summary (MCP tool) for Vanta health.
 
-    4. Pull Active Deals (901326439255) and At-Risk (901326439258)
+    4. Pull Active Deals ({active_deals_id}) and At-Risk ({at_risk_deals_id})
        via get_tasks_by_list for GTM health.
 
-    5. Pull Alerts list (901326439234) via get_tasks_by_list.
-       Count open alerts, check for stale >48h.
+    5. Pull Alerts list ({alerts_id}) via get_tasks_by_list.
+       Count open alerts, check for stale >{ticket_stale_hours}h.
 
-    6. Count bugs in Master Backlog (901326439232) — filter for 'bug' tag.
+    6. Count bugs in Master Backlog ({master_backlog_id}) — filter for 'bug' tag.
 
     7. Identify top 3 risks and wins of the week.
   expected_output: >

@@ -298,6 +298,133 @@ DOCS = {
 }
 
 # ======================================================================
+# THRESHOLDS — Tunable values injected into crew YAML via {variables}
+# ======================================================================
+THRESHOLDS = {
+    # PR & code health
+    "stale_pr_days":           7,
+    "critical_stale_pr_days":  30,
+    "stale_task_days":         3,
+
+    # Customer success
+    "onboarding_sla_days":     30,
+    "stale_onboarding_days":   7,
+    "churn_no_login_days":     14,
+    "churn_open_tickets":      3,
+    "churn_renewal_days":      60,
+    "ticket_unresponded_hours": 24,
+    "ticket_stale_hours":      48,
+
+    # Deal intel
+    "at_risk_deal_days":       7,
+
+    # Exec report
+    "launch_alert_days":       14,
+}
+
+# Key repos for CI health checks (daily_pulse, pr_radar)
+CI_CHECK_REPOS = [
+    "carespace-ui",
+    "carespace-admin",
+    "carespace-api-gateway",
+    "carespace-sdk",
+]
+
+# Sprint planning rules
+SPRINT_RULES = {
+    "budget_sp":      int(SCORE["default_velocity"] * SCORE["velocity_buffer"]),
+    "min_features":   3,
+    "max_compliance": MAX_COMPLIANCE_PER_SPRINT,
+    "target_items":   "10-12",
+    "mix": "1-2 bugs + 3-5 features + 2-3 tasks + 2-3 compliance",
+}
+
+# Verticals for GTM pipeline (deal_intel_crew)
+GTM_VERTICALS = [
+    "Healthcare & Rehab", "Insurance & Workers Comp",
+    "Employers & Occupational", "Senior & Long-Term Care",
+    "Sports Performance", "Construction", "Manufacturing",
+    "Corrections", "Public Services",
+]
+
+
+# ======================================================================
+# crew_context() — Flat dict injected into every crew via kickoff(inputs)
+# ======================================================================
+def crew_context(**overrides) -> dict:
+    """Build the template variables dict for CrewAI YAML interpolation.
+
+    Every {variable} in agents.yaml / tasks.yaml is resolved from this dict.
+    The orchestrator calls this once and passes it to all crews.
+    """
+    # -- List IDs --
+    ctx = {
+        "master_backlog_id":       L["master_backlog"],
+        "alerts_id":               L["alerts"],
+        "sprint_history_id":       L["sprint_history"],
+        "active_deals_id":         L["active_deals"],
+        "at_risk_deals_id":        L["at_risk_deals"],
+        "content_campaigns_id":    L["content_campaigns"],
+        "product_launches_id":     L["product_launches"],
+        "onboarding_id":           L["onboarding_accounts"],
+        "support_escalations_id":  L["support_escalations"],
+    }
+
+    # -- Thresholds --
+    ctx.update(THRESHOLDS)
+
+    # -- CI repos --
+    ctx["ci_check_repos"] = ", ".join(CI_CHECK_REPOS)
+
+    # -- Sprint rules --
+    ctx["sprint_budget_sp"]    = SPRINT_RULES["budget_sp"]
+    ctx["min_features"]        = SPRINT_RULES["min_features"]
+    ctx["max_compliance"]      = SPRINT_RULES["max_compliance"]
+    ctx["sprint_target_items"] = SPRINT_RULES["target_items"]
+    ctx["sprint_mix"]          = SPRINT_RULES["mix"]
+
+    # -- Slack channels --
+    for key, channel in SLACK.items():
+        ctx[f"slack_{key}"] = channel
+
+    # -- GTM verticals --
+    ctx["verticals"] = ", ".join(GTM_VERTICALS)
+
+    # -- Domain assignments (formatted for triage/sprint backstories) --
+    _id_to_name = {t["cu_id"]: name for name, t in TEAM.items()}
+    assignments = []
+    for domain in ["compliance", "frontend", "backend", "mobile",
+                    "ai-cv", "security", "infra"]:
+        cu_id = DOMAIN_LEADS.get(domain, "")
+        name = _id_to_name.get(cu_id, cu_id)
+        assignments.append(f"- {domain.title()} → {name} ({cu_id})")
+    ctx["domain_assignments"] = "\n".join(assignments)
+
+    # -- Team roster (formatted for sprint backstory) --
+    roster = []
+    for name, info in TEAM.items():
+        domains = ", ".join(info["domains"])
+        roster.append(f"- {name}: {domains} ({info['cap_sp']} SP, max {info['max_tasks']} tasks)")
+    ctx["team_roster"] = "\n".join(roster)
+
+    # -- SP estimation rules (formatted for triage backstory) --
+    sp_lines = []
+    for label, sp in SP_ESTIMATE.items():
+        sp_lines.append(f"- {label.replace('_', ' ').title()}: {sp} SP")
+    ctx["sp_estimates"] = "\n".join(sp_lines)
+
+    # -- Bug SLA (formatted) --
+    sla_lines = []
+    for pri, hours in BUG_SLA.items():
+        sla_lines.append(f"- {pri}: {hours}h")
+    ctx["bug_sla"] = "\n".join(sla_lines)
+
+    # -- Overrides (sprint_list_id, sprint_number, etc.) --
+    ctx.update(overrides)
+    return ctx
+
+
+# ======================================================================
 # SPACES TO ARCHIVE (old structure — manual cleanup)
 # ======================================================================
 # These spaces are no longer used. Archive them in ClickUp:

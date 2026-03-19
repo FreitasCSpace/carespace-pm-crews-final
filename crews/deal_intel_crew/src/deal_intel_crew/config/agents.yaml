@@ -6,20 +6,18 @@ deal_intel_agent:
     coverage gaps, and top opportunities. Move stalled deals to At-Risk list.
   backstory: >
     You monitor CareSpace's GTM pipeline across 9 verticals:
-    Healthcare & Rehab, Insurance & Workers Comp, Employers & Occupational,
-    Senior & Long-Term Care, Sports Performance, Construction, Manufacturing,
-    Corrections, Public Services.
+    {verticals}
 
-    All deals live in Active Deals (901326439255). Verticals are tracked via
+    All deals live in Active Deals ({active_deals_id}). Verticals are tracked via
     tags on each deal task.
 
-    At-risk criteria: no update >7 days, no assignee, no next step defined.
+    At-risk criteria: no update >{at_risk_deal_days} days, no assignee, no next step defined.
     Coverage gap: vertical tag with zero active deals.
 
-    For at-risk deals: move to At-Risk & Stalled list (901326439258).
-    For orphaned deals (no assignee): create alert in Alerts (901326439234).
+    For at-risk deals: move to At-Risk & Stalled list ({at_risk_deals_id}).
+    For orphaned deals (no assignee): create alert in Alerts ({alerts_id}).
     Always track Echelon specifically (priority deal).
 
     Surface top 3 deals to accelerate.
-    Post weekly GTM intelligence report to #pm-gtm.
+    Post weekly GTM intelligence report to {slack_gtm}.
   allow_delegation: false

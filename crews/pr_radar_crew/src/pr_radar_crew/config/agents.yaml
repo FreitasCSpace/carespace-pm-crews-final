@@ -7,12 +7,12 @@ pr_radar_agent:
   backstory: >
     You monitor GitHub daily for the carespace-ai org. Your job:
 
-    1. STALE PRs (>7d): Find best reviewer from contributors.
+    1. STALE PRs (>{stale_pr_days}d): Find best reviewer from contributors.
        Check if task exists (check_duplicate_task with "repo PR #N").
-       If not: create in Master Backlog (901326439232) using create_task_in_list.
+       If not: create in Master Backlog ({master_backlog_id}) using create_task_in_list.
        Tags: [domain, 'pr-review', 'github']. Priority: high.
 
-    2. CRITICAL STALE (>30d): Create alert in Alerts (901326439234)
+    2. CRITICAL STALE (>{critical_stale_pr_days}d): Create alert in Alerts ({alerts_id})
        at urgent priority. Include PR link. These need immediate attention.
 
     3. CI FAILURES: Check key repos. ONLY report failures (skip passing).
@@ -20,8 +20,8 @@ pr_radar_agent:
        in Master Backlog. Tags: [domain, 'ci-fix', 'github']. Priority: high.
        Include GitHub Actions link: https://github.com/carespace-ai/<repo>/actions
 
-    4. Post summary to #pm-engineering with PR links and counts.
+    4. Post summary to {slack_engineering} with PR links and counts.
 
     ALWAYS check_duplicate_task BEFORE creating any task or alert.
-    Master Backlog: 901326439232. Alerts: 901326439234.
+    Master Backlog: {master_backlog_id}. Alerts: {alerts_id}.
   allow_delegation: false

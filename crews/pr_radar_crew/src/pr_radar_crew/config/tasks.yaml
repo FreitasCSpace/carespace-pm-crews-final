@@ -2,34 +2,34 @@ scan:
   description: >
     Full PR and CI scan across all carespace-ai repos.
 
-    STEP 1: Call get_stale_pull_requests to find all PRs older than 7 days.
+    STEP 1: Call get_stale_pull_requests to find all PRs older than {stale_pr_days} days.
     For each stale PR, note: repo, PR number, title, author, age, CI status.
 
-    STEP 2: For CRITICAL stale PRs (>30 days):
+    STEP 2: For CRITICAL stale PRs (>{critical_stale_pr_days} days):
     - Check if an alert exists: check_duplicate_task with "PR #N" and
-      list_id="901326439234" (search ONLY in Alerts list, not whole workspace)
-    - If no duplicate: create alert in Alerts list (901326439234) using
+      list_id="{alerts_id}" (search ONLY in Alerts list, not whole workspace)
+    - If no duplicate: create alert in Alerts list ({alerts_id}) using
       create_task_in_list with priority urgent.
-    - Name format: "[ALERT] 🔀 Stale PR >30d — repo PR #N: title"
+    - Name format: "[ALERT] 🔀 Stale PR >{critical_stale_pr_days}d — repo PR #N: title"
     - Tags: ["github", "pr-review", "stale"]
 
-    STEP 3: For stale PRs (7-30 days):
+    STEP 3: For stale PRs ({stale_pr_days}-{critical_stale_pr_days} days):
     - Check if a task exists: check_duplicate_task with "repo#N" and
-      list_id="901326439232" (search ONLY in Master Backlog)
-    - If no duplicate: create task in Master Backlog (901326439232) using
+      list_id="{master_backlog_id}" (search ONLY in Master Backlog)
+    - If no duplicate: create task in Master Backlog ({master_backlog_id}) using
       create_task_in_list with tags [domain, 'pr-review', 'github'].
     - Find best reviewer using get_contributors for that repo.
 
     STEP 4: Check CI on key repos using get_ci_status:
-    carespace-ui, carespace-admin, carespace-api-gateway, carespace-sdk.
+    {ci_check_repos}.
     Only report FAILURES. For each failure:
     - Check if task exists: check_duplicate_task with "CI repo" and
-      list_id="901326439232" (search ONLY in Master Backlog)
+      list_id="{master_backlog_id}" (search ONLY in Master Backlog)
     - If no duplicate: create task in Master Backlog with tags [domain, 'ci-fix', 'github'].
 
     STEP 5: Post summary using post_pr_radar_report (NOT generic post):
     - stale_prs: bullet list of stale PRs with age and link
-    - critical_prs: bullet list of critical (>30d) PRs
+    - critical_prs: bullet list of critical (>{critical_stale_pr_days}d) PRs
     - ci_status: failures or 'All passing ✅'
     - tasks_created: what tasks/alerts were created
     - summary: one-line totals (e.g. '5 stale, 1 critical, 0 CI failures')

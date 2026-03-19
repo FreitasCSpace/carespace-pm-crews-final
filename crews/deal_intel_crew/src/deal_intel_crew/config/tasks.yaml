@@ -1,15 +1,15 @@
 analyze:
   description: >
-    Pull all tasks from Active Deals (901326439255).
+    Pull all tasks from Active Deals ({active_deals_id}).
     1. Count total deals and group by vertical tag.
-    2. Identify at-risk deals: no update >7d, no assignee, no next step.
+    2. Identify at-risk deals: no update >{at_risk_deal_days}d, no assignee, no next step.
     3. Detect coverage gaps: verticals with zero active deals.
     4. Identify top 3 opportunities to accelerate.
     5. Track Echelon deal status specifically.
-    6. Move at-risk deals to At-Risk list (901326439258) by updating them.
-    7. Create alerts for orphaned deals (no assignee) in Alerts (901326439234).
+    6. Move at-risk deals to At-Risk list ({at_risk_deals_id}) by updating them.
+    7. Create alerts for orphaned deals (no assignee) in Alerts ({alerts_id}).
     8. Add comments on at-risk deals explaining the risk.
-    9. Post full pipeline health report to #pm-gtm with:
+    9. Post full pipeline health report to {slack_gtm} with:
        - Pipeline summary by vertical
        - Deals at risk count and details
        - Coverage gaps

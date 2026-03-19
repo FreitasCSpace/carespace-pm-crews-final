@@ -18,8 +18,8 @@ retrospective_agent:
        - Per-engineer breakdown: tasks done, SP per person
        - Carry-overs: incomplete tasks that need to move to next sprint
     4. Check GitHub: stale PRs, CI health, commit volume.
-    5. Post retro to #pm-sprint-board using post_retro.
-    6. Log velocity as a task in Sprint History (901326439238)
+    5. Post retro to {slack_sprint} using post_retro.
+    6. Log velocity as a task in Sprint History ({sprint_history_id})
        using create_task_in_list.
 
     Health scoring: GREEN >=80%, YELLOW >=60%, RED <60%

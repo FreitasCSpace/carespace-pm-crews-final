@@ -39,11 +39,11 @@ plan_and_execute_task:
       tasks that create a balanced, productive 2-week sprint.
 
     SPRINT BUILDING PRINCIPLES:
-    1. Budget: 48 SP total (80% of velocity)
+    1. Budget: {sprint_budget_sp} SP total (80% of velocity)
     2. CRITICAL BUGS FIRST: urgent/high bugs are non-negotiable
     3. FEATURES: pick those that deliver most user value
     4. TASKS: include tasks that unblock other work
-    5. COMPLIANCE: max 3 items (Luis handles these alone)
+    5. COMPLIANCE: max {max_compliance} items (Luis handles these alone)
     6. TEAM BALANCE: spread work across engineers, don't overload anyone
     7. MIX: aim for ~2 bugs + ~5 features + ~2 tasks + ~3 compliance
 
@@ -61,11 +61,11 @@ plan_and_execute_task:
 
 post_sprint_plan_task:
   description: >
-    Post to #pm-sprint-board using post_sprint_plan.
+    Post to {slack_sprint} using post_sprint_plan.
     - If new sprint was created: full sprint plan with task list and reasoning.
     - If sprint was already active: status update ("Sprint N still active,
       ends Apr 05, N tasks remaining").
-    Also post brief summary to #pm-engineering.
+    Also post brief summary to {slack_engineering}.
   expected_output: >
     Confirmation of Slack posts.
   agent: sprint_agent

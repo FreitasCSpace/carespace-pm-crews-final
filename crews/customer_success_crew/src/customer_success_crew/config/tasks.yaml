@@ -2,24 +2,24 @@ monitor:
   description: >
     Daily scan of customer success lists:
 
-    1. Onboarding & Accounts (901326439266):
-       - Find stale onboardings (>7d no update within 30d SLA). Add comments.
-       - Create alerts for unowned onboardings in Alerts (901326439234).
-       - Identify churn risk: no login 14+ days, >3 support tickets,
-         renewal <60 days. Create high-priority alerts.
+    1. Onboarding & Accounts ({onboarding_id}):
+       - Find stale onboardings (>{stale_onboarding_days}d no update within {onboarding_sla_days}d SLA). Add comments.
+       - Create alerts for unowned onboardings in Alerts ({alerts_id}).
+       - Identify churn risk: no login {churn_no_login_days}+ days, >{churn_open_tickets} support tickets,
+         renewal <{churn_renewal_days} days. Create high-priority alerts.
 
-    2. Support Escalations (901326439271):
+    2. Support Escalations ({support_escalations_id}):
        - Find unassigned tickets. Create alerts.
-       - Find unresponded tickets >24h. Post to #pm-customer-success.
-       - Find stale >48h. Create urgent alerts in Alerts list.
+       - Find unresponded tickets >{ticket_unresponded_hours}h. Post to {slack_cs}.
+       - Find stale >{ticket_stale_hours}h. Create urgent alerts in Alerts list.
 
     3. Client feedback items tagged 'client-feedback':
        - For each without a linked backlog task, check_duplicate_task first.
-       - Create task in Master Backlog (901326439232) titled
+       - Create task in Master Backlog ({master_backlog_id}) titled
          '[FEEDBACK] summary' with tags [relevant-domain, 'feature', 'client-feedback'].
        - Cross-link with comments on both tasks.
 
-    Post summary to #pm-customer-success only if actions taken.
+    Post summary to {slack_cs} only if actions taken.
   expected_output: >
     JSON: {onboardings_at_risk: N, churn_risks: N, unassigned_tickets: N,
     stale_tickets: N, feedback_routed: N, alerts_created: N}
