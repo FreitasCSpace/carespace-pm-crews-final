@@ -1,11 +1,10 @@
 from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
+from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, get_tasks_by_list, batch_compliance_check,
     check_duplicate_task, create_clickup_task, post_exec, post,
 )
-from shared.config.context import interpolate_config
 
 
 @CrewBase
@@ -15,10 +14,17 @@ class ExecReportCrew:
     agents_config  = "config/agents.yaml"
     tasks_config   = "config/tasks.yaml"
 
+    @before_kickoff
+    def inject_context(self, inputs):
+        from shared.config.context import crew_context
+        ctx = crew_context()
+        ctx.update(inputs or {})
+        return ctx
+
     @agent
     def exec_reporter_agent(self) -> Agent:
         return Agent(
-            config=interpolate_config(self.agents_config["exec_reporter_agent"]),
+            config=self.agents_config["exec_reporter_agent"],
             tools=[
                 create_sprint_list, get_tasks_by_list, batch_compliance_check,
                 check_duplicate_task, create_clickup_task, post_exec, post,
@@ -28,11 +34,11 @@ class ExecReportCrew:
 
     @task
     def gather(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["gather"]))
+        return Task(config=self.tasks_config["gather"])
 
     @task
     def write_and_post(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["write_and_post"]))
+        return Task(config=self.tasks_config["write_and_post"])
 
     @crew
     def crew(self) -> Crew:

@@ -1,11 +1,10 @@
 from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
+from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, scan_backlog_for_sprint,
     execute_sprint_selection, post_sprint_plan, post,
 )
-from shared.config.context import interpolate_config
 
 
 @CrewBase
@@ -15,10 +14,17 @@ class SprintCrew:
     agents_config  = "config/agents.yaml"
     tasks_config   = "config/tasks.yaml"
 
+    @before_kickoff
+    def inject_context(self, inputs):
+        from shared.config.context import crew_context
+        ctx = crew_context()
+        ctx.update(inputs or {})
+        return ctx
+
     @agent
     def sprint_agent(self) -> Agent:
         return Agent(
-            config=interpolate_config(self.agents_config["sprint_agent"]),
+            config=self.agents_config["sprint_agent"],
             tools=[
                 create_sprint_list, scan_backlog_for_sprint,
                 execute_sprint_selection, post_sprint_plan, post,
@@ -28,19 +34,19 @@ class SprintCrew:
 
     @task
     def create_sprint_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["create_sprint_task"]))
+        return Task(config=self.tasks_config["create_sprint_task"])
 
     @task
     def scan_backlog_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["scan_backlog_task"]))
+        return Task(config=self.tasks_config["scan_backlog_task"])
 
     @task
     def plan_and_execute_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["plan_and_execute_task"]))
+        return Task(config=self.tasks_config["plan_and_execute_task"])
 
     @task
     def post_sprint_plan_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["post_sprint_plan_task"]))
+        return Task(config=self.tasks_config["post_sprint_plan_task"])
 
     @crew
     def crew(self) -> Crew:
