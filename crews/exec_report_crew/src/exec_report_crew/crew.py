@@ -6,6 +6,7 @@ from shared.tools import (
     check_duplicate_task, create_clickup_task, post_exec, post,
 )
 from shared.config.context import interpolate_config
+from shared.guardrails import validate_exec_report
 
 
 @CrewBase
@@ -39,7 +40,10 @@ class ExecReportCrew:
 
     @task
     def write_and_post(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["write_and_post"]))
+        return Task(
+            config=interpolate_config(self.tasks_config["write_and_post"]),
+            guardrail=validate_exec_report,
+        )
 
     @crew
     def crew(self) -> Crew:
@@ -48,4 +52,5 @@ class ExecReportCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
+            memory=True,
         )

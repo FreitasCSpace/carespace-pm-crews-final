@@ -6,6 +6,7 @@ from shared.tools import (
     execute_sprint_selection, post_sprint_plan, post,
 )
 from shared.config.context import interpolate_config
+from shared.guardrails import validate_sprint_plan
 
 
 @CrewBase
@@ -43,7 +44,10 @@ class SprintCrew:
 
     @task
     def plan_and_execute_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["plan_and_execute_task"]))
+        return Task(
+            config=interpolate_config(self.tasks_config["plan_and_execute_task"]),
+            guardrail=validate_sprint_plan,
+        )
 
     @task
     def post_sprint_plan_task(self) -> Task:

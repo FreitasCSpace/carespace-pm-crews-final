@@ -11,6 +11,7 @@ from shared.tools import (
     post_blocker, post_pr_radar, post,
 )
 from shared.config.context import interpolate_config
+from shared.guardrails import validate_pr_radar_output
 
 
 @CrewBase
@@ -40,7 +41,10 @@ class PrRadarCrew:
 
     @task
     def scan(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["scan"]))
+        return Task(
+            config=interpolate_config(self.tasks_config["scan"]),
+            guardrail=validate_pr_radar_output,
+        )
 
     @crew
     def crew(self) -> Crew:

@@ -11,6 +11,7 @@ from shared.tools import (
     post,
 )
 from shared.config.context import interpolate_config
+from shared.guardrails import validate_deal_intel
 
 
 @CrewBase
@@ -40,7 +41,10 @@ class DealIntelCrew:
 
     @task
     def analyze(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["analyze"]))
+        return Task(
+            config=interpolate_config(self.tasks_config["analyze"]),
+            guardrail=validate_deal_intel,
+        )
 
     @crew
     def crew(self) -> Crew:

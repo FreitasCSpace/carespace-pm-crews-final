@@ -6,6 +6,7 @@ from shared.tools import (
     post_standup, post_blocker, post,
 )
 from shared.config.context import interpolate_config
+from shared.guardrails import validate_standup_posted
 
 
 @CrewBase
@@ -43,7 +44,10 @@ class DailyPulseCrew:
 
     @task
     def compile_and_post(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["compile_and_post"]))
+        return Task(
+            config=interpolate_config(self.tasks_config["compile_and_post"]),
+            guardrail=validate_standup_posted,
+        )
 
     @crew
     def crew(self) -> Crew:
@@ -52,4 +56,5 @@ class DailyPulseCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
+            memory=True,
         )

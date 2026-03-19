@@ -7,6 +7,7 @@ from shared.tools import (
     post_triage_summary, post,
 )
 from shared.config.context import interpolate_config
+from shared.guardrails import validate_triage_actions
 
 
 @CrewBase
@@ -49,7 +50,10 @@ class TriageCrew:
 
     @task
     def decide_and_execute_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["decide_and_execute_task"]))
+        return Task(
+            config=interpolate_config(self.tasks_config["decide_and_execute_task"]),
+            guardrail=validate_triage_actions,
+        )
 
     @crew
     def crew(self) -> Crew:
@@ -58,4 +62,5 @@ class TriageCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
+            memory=True,
         )

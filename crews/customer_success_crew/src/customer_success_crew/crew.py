@@ -12,6 +12,7 @@ from shared.tools import (
     post,
 )
 from shared.config.context import interpolate_config
+from shared.guardrails import validate_cs_output
 
 
 @CrewBase
@@ -42,7 +43,10 @@ class CustomerSuccessCrew:
 
     @task
     def monitor(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["monitor"]))
+        return Task(
+            config=interpolate_config(self.tasks_config["monitor"]),
+            guardrail=validate_cs_output,
+        )
 
     @crew
     def crew(self) -> Crew:
