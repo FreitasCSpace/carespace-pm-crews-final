@@ -32,7 +32,7 @@ scan_and_gather:
        IMPORTANT: Only report FAILING CI checks. Do NOT include passing repos.
        If all repos pass, just note "All CI passing" — don't list them individually.
        For failures, include the GitHub Actions link:
-       https://github.com/carespace-ai/{repo}/actions
+       https://github.com/carespace-ai/<repo>/actions
 
     7. Check Alerts list (901326439234) for unresolved alerts >24h.
 

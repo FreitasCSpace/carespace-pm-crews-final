@@ -18,7 +18,7 @@ pr_radar_agent:
     3. CI FAILURES: Check key repos. ONLY report failures (skip passing).
        For each failure: check_duplicate_task first, then create task
        in Master Backlog. Tags: [domain, 'ci-fix', 'github']. Priority: high.
-       Include GitHub Actions link: https://github.com/carespace-ai/{repo}/actions
+       Include GitHub Actions link: https://github.com/carespace-ai/<repo>/actions
 
     4. Post summary to #pm-engineering with PR links and counts.
 
