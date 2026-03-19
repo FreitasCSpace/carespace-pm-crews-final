@@ -36,14 +36,14 @@ class ExecReportCrew:
 
     @task
     def gather(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["gather"]))
+        return Task(
+            config=interpolate_config(self.tasks_config["gather"]),
+            guardrail=validate_exec_report,
+        )
 
     @task
     def write_and_post(self) -> Task:
-        return Task(
-            config=interpolate_config(self.tasks_config["write_and_post"]),
-            guardrail=validate_exec_report,
-        )
+        return Task(config=interpolate_config(self.tasks_config["write_and_post"]))
 
     @crew
     def crew(self) -> Crew:

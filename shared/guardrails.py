@@ -137,43 +137,52 @@ def validate_cs_output(result):
 # ── Exec Report Crew ─────────────────────────────────────────────────────────
 
 def validate_exec_report(result):
-    """Ensure exec report was posted (tool already formats the content)."""
+    """Ensure gather step collected data across all 5 dimensions.
+
+    This guardrail runs on the GATHER task (before posting) so retries
+    don't cause duplicate Slack posts.
+    """
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
 
-    # The report content is passed to post_executive_report tool, not returned
-    # as the final answer. Accept if the tool was called successfully.
-    if "posted" in lower or "ok" in lower or "success" in lower or "executive" in lower:
-        return (True, raw)
-
-    # If the final answer contains the full report (some models do this),
-    # check for dimension coverage
     dimensions = {
-        "engineering": any(w in lower for w in ["sprint", "engineering", "velocity"]),
-        "gtm": any(w in lower for w in ["gtm", "deal", "pipeline"]),
-        "compliance": any(w in lower for w in ["compliance", "vanta", "hipaa"]),
-        "customer_success": any(w in lower for w in ["customer", "onboarding", "churn"]),
-        "bugs": any(w in lower for w in ["bug", "sla", "defect"]),
+        "engineering": any(w in lower for w in ["sprint", "engineering", "velocity", "task"]),
+        "gtm": any(w in lower for w in ["gtm", "deal", "pipeline", "active_deals"]),
+        "compliance": any(w in lower for w in ["compliance", "vanta", "hipaa", "control"]),
+        "customer_success": any(w in lower for w in ["customer", "onboarding", "churn", "support"]),
+        "bugs": any(w in lower for w in ["bug", "sla", "defect", "backlog"]),
     }
 
     missing = [d for d, found in dimensions.items() if not found]
     if len(missing) >= 3:
-        return (False, f"Exec report missing dimensions: {missing}. "
-                "Post the report using post_executive_report tool.")
+        return (False, f"Gathered data missing dimensions: {missing}. "
+                "Collect data for engineering, GTM, compliance, CS, and bug health "
+                "before proceeding to post.")
 
     return (True, raw)
 
 
 # ── Daily Pulse Crew ─────────────────────────────────────────────────────────
 
-def validate_standup_posted(result):
-    """Ensure standup was actually posted to Slack."""
+def validate_standup_data(result):
+    """Ensure scan collected sprint + attention data before posting.
+
+    This guardrail runs on the SCAN task (before posting) so retries
+    don't cause duplicate Slack posts.
+    """
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
 
-    if "post_standup" not in lower and "posted" not in lower and "confirmation" not in lower:
-        return (False, "Standup must be posted to Slack. "
-                "Use the post_standup tool to post the digest.")
+    has_sprint = any(w in lower for w in ["sprint", "task", "status", "progress"])
+    has_attention = any(w in lower for w in ["stale", "ci", "alert", "blocker", "pr"])
+
+    if not has_sprint:
+        return (False, "Scan data must include sprint task status. "
+                "Call get_tasks_by_list for the active sprint.")
+
+    if not has_attention:
+        return (False, "Scan data must include attention items. "
+                "Check stale PRs, CI status, and alerts.")
 
     return (True, raw)
 
