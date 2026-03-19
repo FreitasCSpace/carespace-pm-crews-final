@@ -293,6 +293,7 @@ DOCS = {
     "sprint_engine":    "xnum1-4273",
     "ai_system":        "xnum1-9333",
     "crew_dashboard":   "xnum1-9353",
+    "config_manual":    "xnum1-9593",
 }
 
 # ======================================================================
