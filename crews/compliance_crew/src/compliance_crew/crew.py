@@ -11,6 +11,7 @@ from shared.tools import (
     post_compliance,
     post,
 )
+from shared.config.context import interpolate_config
 
 
 @CrewBase
@@ -29,7 +30,7 @@ class ComplianceCrew:
     @agent
     def compliance_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config["compliance_agent"],
+            config=interpolate_config(self.agents_config["compliance_agent"]),
             tools=[batch_compliance_check, create_clickup_task, post_compliance, post],
             verbose=True,
             allow_delegation=False,
@@ -37,7 +38,7 @@ class ComplianceCrew:
 
     @task
     def health_check(self) -> Task:
-        return Task(config=self.tasks_config["health_check"])
+        return Task(config=interpolate_config(self.tasks_config["health_check"]))
 
     @crew
     def crew(self) -> Crew:

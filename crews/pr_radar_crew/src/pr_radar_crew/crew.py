@@ -10,6 +10,7 @@ from shared.tools import (
     get_tasks_by_list, check_duplicate_task, create_clickup_task,
     post_blocker, post_pr_radar, post,
 )
+from shared.config.context import interpolate_config
 
 
 @CrewBase
@@ -27,7 +28,7 @@ class PrRadarCrew:
     @agent
     def pr_radar_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config["pr_radar_agent"],
+            config=interpolate_config(self.agents_config["pr_radar_agent"]),
             tools=[
                 get_prs, get_ci, get_stale_prs, get_contributors,
                 get_tasks_by_list, check_duplicate_task, create_clickup_task,
@@ -39,7 +40,7 @@ class PrRadarCrew:
 
     @task
     def scan(self) -> Task:
-        return Task(config=self.tasks_config["scan"])
+        return Task(config=interpolate_config(self.tasks_config["scan"]))
 
     @crew
     def crew(self) -> Crew:

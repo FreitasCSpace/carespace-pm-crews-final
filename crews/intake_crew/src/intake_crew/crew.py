@@ -10,6 +10,7 @@ from shared.tools import (
     batch_import_compliance,
     post,
 )
+from shared.config.context import interpolate_config
 
 
 @CrewBase
@@ -27,7 +28,7 @@ class IntakeCrewCrew:
     @agent
     def intake_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config["intake_agent"],
+            config=interpolate_config(self.agents_config["intake_agent"]),
             tools=[
                 batch_import_engineering,
                 batch_import_compliance,
@@ -39,7 +40,7 @@ class IntakeCrewCrew:
 
     @task
     def intake_scan(self) -> Task:
-        return Task(config=self.tasks_config["intake_scan"])
+        return Task(config=interpolate_config(self.tasks_config["intake_scan"]))
 
     @crew
     def crew(self) -> Crew:

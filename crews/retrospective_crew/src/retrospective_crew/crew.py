@@ -9,6 +9,7 @@ from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_activity,
     get_tasks_by_list, create_clickup_task, post_retro, post,
 )
+from shared.config.context import interpolate_config
 
 
 @CrewBase
@@ -27,7 +28,7 @@ class RetrospectiveCrewCrew:
     @agent
     def retrospective_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config["retrospective_agent"],
+            config=interpolate_config(self.agents_config["retrospective_agent"]),
             tools=[
                 create_sprint_list, get_stale_prs, get_ci, get_activity,
                 get_tasks_by_list, create_clickup_task, post_retro, post,
@@ -38,15 +39,15 @@ class RetrospectiveCrewCrew:
 
     @task
     def find_sprint_task(self) -> Task:
-        return Task(config=self.tasks_config["find_sprint_task"])
+        return Task(config=interpolate_config(self.tasks_config["find_sprint_task"]))
 
     @task
     def measure(self) -> Task:
-        return Task(config=self.tasks_config["measure"])
+        return Task(config=interpolate_config(self.tasks_config["measure"]))
 
     @task
     def post_and_log(self) -> Task:
-        return Task(config=self.tasks_config["post_and_log"])
+        return Task(config=interpolate_config(self.tasks_config["post_and_log"]))
 
     @crew
     def crew(self) -> Crew:
