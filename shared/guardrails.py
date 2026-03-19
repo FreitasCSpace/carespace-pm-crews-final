@@ -7,14 +7,11 @@ Each function receives a TaskOutput and returns (bool, Any).
 
 These are imported in crew.py and passed to Task(guardrail=...).
 """
-from __future__ import annotations
-
 import json
 import re
-from typing import Any, Tuple
 
 
-def _parse_json(raw: str) -> dict | None:
+def _parse_json(raw: str):
     """Try to extract JSON from LLM output (handles markdown fences)."""
     # Strip markdown code fences if present
     cleaned = re.sub(r"```(?:json)?\s*", "", raw).strip().rstrip("`")
@@ -33,7 +30,7 @@ def _parse_json(raw: str) -> dict | None:
 
 # ── Sprint Crew ──────────────────────────────────────────────────────────────
 
-def validate_sprint_plan(result) -> Tuple[bool, Any]:
+def validate_sprint_plan(result):
     """Ensure sprint plan meets the mandatory mix rules."""
     from shared.config.context import SPRINT_RULES
 
@@ -65,7 +62,7 @@ def validate_sprint_plan(result) -> Tuple[bool, Any]:
 
 # ── Triage Crew ──────────────────────────────────────────────────────────────
 
-def validate_triage_actions(result) -> Tuple[bool, Any]:
+def validate_triage_actions(result):
     """Ensure triage output includes reasoning and proper alert format."""
     raw = result.raw if hasattr(result, "raw") else str(result)
 
@@ -85,7 +82,7 @@ def validate_triage_actions(result) -> Tuple[bool, Any]:
 
 # ── PR Radar Crew ────────────────────────────────────────────────────────────
 
-def validate_pr_radar_output(result) -> Tuple[bool, Any]:
+def validate_pr_radar_output(result):
     """Ensure PR radar output has required metrics."""
     raw = result.raw if hasattr(result, "raw") else str(result)
     data = _parse_json(raw)
@@ -108,7 +105,7 @@ def validate_pr_radar_output(result) -> Tuple[bool, Any]:
 
 # ── Compliance Crew ──────────────────────────────────────────────────────────
 
-def validate_compliance_output(result) -> Tuple[bool, Any]:
+def validate_compliance_output(result):
     """Ensure compliance check includes both data sources."""
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
@@ -129,7 +126,7 @@ def validate_compliance_output(result) -> Tuple[bool, Any]:
 
 # ── Customer Success Crew ────────────────────────────────────────────────────
 
-def validate_cs_output(result) -> Tuple[bool, Any]:
+def validate_cs_output(result):
     """Ensure CS monitoring checked both lists."""
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
@@ -146,7 +143,7 @@ def validate_cs_output(result) -> Tuple[bool, Any]:
 
 # ── Exec Report Crew ─────────────────────────────────────────────────────────
 
-def validate_exec_report(result) -> Tuple[bool, Any]:
+def validate_exec_report(result):
     """Ensure exec report covers all 5 dimensions."""
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
@@ -169,7 +166,7 @@ def validate_exec_report(result) -> Tuple[bool, Any]:
 
 # ── Daily Pulse Crew ─────────────────────────────────────────────────────────
 
-def validate_standup_posted(result) -> Tuple[bool, Any]:
+def validate_standup_posted(result):
     """Ensure standup was actually posted to Slack."""
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
@@ -183,7 +180,7 @@ def validate_standup_posted(result) -> Tuple[bool, Any]:
 
 # ── Deal Intel Crew ──────────────────────────────────────────────────────────
 
-def validate_deal_intel(result) -> Tuple[bool, Any]:
+def validate_deal_intel(result):
     """Ensure pipeline analysis includes vertical breakdown."""
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
