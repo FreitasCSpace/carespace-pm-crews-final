@@ -10,6 +10,7 @@ from shared.tools import (
     post_gtm,
     post,
 )
+from shared.config.context import interpolate_config
 
 
 @CrewBase
@@ -20,7 +21,7 @@ class DealIntelCrew:
     @agent
     def deal_intel_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config["deal_intel_agent"],
+            config=interpolate_config(self.agents_config["deal_intel_agent"]),
             tools=[
                 get_tasks_by_list,
                 post_gtm,
@@ -32,7 +33,7 @@ class DealIntelCrew:
 
     @task
     def analyze(self) -> Task:
-        return Task(config=self.tasks_config["analyze"])
+        return Task(config=interpolate_config(self.tasks_config["analyze"]))
 
     @crew
     def crew(self) -> Crew:

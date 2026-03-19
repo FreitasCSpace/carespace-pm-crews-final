@@ -11,6 +11,7 @@ from shared.tools import (
     post_cs_alert,
     post,
 )
+from shared.config.context import interpolate_config
 
 
 @CrewBase
@@ -21,7 +22,7 @@ class CustomerSuccessCrew:
     @agent
     def customer_success_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config["customer_success_agent"],
+            config=interpolate_config(self.agents_config["customer_success_agent"]),
             tools=[
                 get_tasks_by_list,
                 check_duplicate_task,
@@ -34,7 +35,7 @@ class CustomerSuccessCrew:
 
     @task
     def monitor(self) -> Task:
-        return Task(config=self.tasks_config["monitor"])
+        return Task(config=interpolate_config(self.tasks_config["monitor"]))
 
     @crew
     def crew(self) -> Crew:

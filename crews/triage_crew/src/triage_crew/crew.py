@@ -6,6 +6,7 @@ from shared.tools import (
     scan_backlog_for_triage, execute_triage_actions,
     post_triage_summary, post,
 )
+from shared.config.context import interpolate_config
 
 
 @CrewBase
@@ -18,7 +19,7 @@ class TriageCrew:
     @agent
     def triage_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config["triage_agent"],
+            config=interpolate_config(self.agents_config["triage_agent"]),
             tools=[
                 dedup_backlog_cleanup, bulk_assign_and_estimate,
                 scan_backlog_for_triage, execute_triage_actions,
@@ -29,19 +30,19 @@ class TriageCrew:
 
     @task
     def dedup_task(self) -> Task:
-        return Task(config=self.tasks_config["dedup_task"])
+        return Task(config=interpolate_config(self.tasks_config["dedup_task"]))
 
     @task
     def bulk_assign_task(self) -> Task:
-        return Task(config=self.tasks_config["bulk_assign_task"])
+        return Task(config=interpolate_config(self.tasks_config["bulk_assign_task"]))
 
     @task
     def scan_task(self) -> Task:
-        return Task(config=self.tasks_config["scan_task"])
+        return Task(config=interpolate_config(self.tasks_config["scan_task"]))
 
     @task
     def decide_and_execute_task(self) -> Task:
-        return Task(config=self.tasks_config["decide_and_execute_task"])
+        return Task(config=interpolate_config(self.tasks_config["decide_and_execute_task"]))
 
     @crew
     def crew(self) -> Crew:

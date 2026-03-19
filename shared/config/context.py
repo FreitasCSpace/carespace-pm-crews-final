@@ -424,6 +424,25 @@ def crew_context(**overrides) -> dict:
     return ctx
 
 
+def interpolate_config(config: dict) -> dict:
+    """Pre-interpolate {variables} in a CrewAI config dict.
+
+    Call this in crew.py agent/task methods so variables are resolved
+    regardless of whether the caller passes inputs (CrewHub doesn't).
+    """
+    ctx = crew_context()
+    out = {}
+    for key, value in config.items():
+        if isinstance(value, str):
+            try:
+                out[key] = value.format_map(ctx)
+            except (KeyError, ValueError):
+                out[key] = value
+        else:
+            out[key] = value
+    return out
+
+
 # ======================================================================
 # SPACES TO ARCHIVE (old structure — manual cleanup)
 # ======================================================================
