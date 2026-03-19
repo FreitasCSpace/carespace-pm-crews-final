@@ -201,6 +201,43 @@ def post_pr_radar(stale_prs: str, critical_prs: str, ci_status: str,
     return json.dumps({"ok": r.get("ok")})
 
 
+@tool("Post Blocker Summary to Engineering Slack")
+def post_blocker_summary(blockers_detail: str, blocker_count: int, meeting_mode: str) -> str:
+    """
+    Posts a SINGLE consolidated blocker summary to #pm-engineering.
+    Use this INSTEAD of posting individual blockers one-by-one.
+
+    blockers_detail: formatted list of blockers, each with:
+      - Name and link
+      - Owner/assignee
+      - Why it's blocking (description/impact)
+      - Recommended action
+      Example:
+        '• 🔴 [ALERT] Vendor Risk: Azure — Missing BAA (#180)
+           Owner: @Flavio Fusuma, @Luis Freitas
+           Impact: HIPAA compliance blocked — cannot process PHI without BAA
+           Action: Escalate to Azure account team
+         • 🔴 [SECURITY] RBAC Guards Bypassed (#80)
+           Owner: @Fabiano Fiorentin
+           Impact: Authorization checks returning true unconditionally
+           Action: Patch RolesGuard and RelationshipValidatorGuard'
+    blocker_count: total number of blockers
+    meeting_mode: 'STANDUP: X blockers...' or 'OPEN SLOT: No blockers...'
+    """
+    today = date.today().strftime("%B %d, %Y")
+    emoji = "🔴" if blocker_count > 0 else "🟢"
+    r = _api(SLACK["engineering"], f"Blockers: {blocker_count} flagged", [
+        _hdr(f"{emoji} Daily Blockers — {today}"),
+        _sec(f"*{blocker_count} blocker(s) flagged for today's standup*"),
+        _div(),
+        _sec(blockers_detail or "_No blockers — all clear_"),
+        _div(),
+        _sec(f"*🎯 {meeting_mode}*"),
+        _ctx("_Blocker summary by CareSpace PM AI_"),
+    ])
+    return json.dumps({"ok": r.get("ok")})
+
+
 @tool("Post SLA Breach Alert to Slack")
 def post_sla_breach(bug_name: str, task_url: str, priority: str, hours_open: int) -> str:
     """

@@ -4,9 +4,9 @@ from .github import (
     batch_import_engineering, batch_import_compliance,
 )
 from .slack import (
-    post, post_standup, post_sprint_plan, post_blocker, post_sla_breach,
-    post_retro, post_gtm, post_exec, post_compliance, post_cs_alert,
-    post_triage_summary, post_pr_radar,
+    post, post_standup, post_sprint_plan, post_blocker, post_blocker_summary,
+    post_sla_breach, post_retro, post_gtm, post_exec, post_compliance,
+    post_cs_alert, post_triage_summary, post_pr_radar,
 )
 # Vanta tools removed — CrewHub injects 45 MCP Vanta tools automatically.
 # Our custom vanta.py tools clashed with MCP tool names and caused
