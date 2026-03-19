@@ -16,7 +16,9 @@ scan_and_gather:
     2. Calculate sprint health:
        - Total tasks, done count, in progress count, blocked count, pending count
        - SP completed vs total SP
-       - Days remaining in sprint (from end_date)
+       - Sprint timing: compare TODAY vs start_date and end_date.
+         If today < start_date: "Starts in X days (start — end)"
+         If today >= start_date: "Day X of Y (Z days remaining)"
        - Completion percentage
 
     3. Find stale tasks: in progress but date_updated >{stale_task_days} days ago.
@@ -53,10 +55,15 @@ compile_and_post:
     ═══════════════════════════════════
     📊 EXECUTIVE SUMMARY
     ═══════════════════════════════════
-    • Sprint N — X of Y days remaining
+    • Sprint N — [starts in X days / Day X of Y, Z remaining]
     • Progress: Z% complete (A/B SP delivered)
     • Status: [🟢 On Track / 🟡 At Risk / 🔴 Blocked]
     • [Key risk or win in one line]
+
+    NOTE on sprint timing:
+    - If sprint start_date is in the future, say "starts in X days"
+    - If sprint is active (today >= start_date), say "Day X of Y"
+    - NEVER say "11 of 11 days remaining" if the sprint hasn't started
 
     ═══════════════════════════════════
     📋 SPRINT STATUS
@@ -102,6 +109,13 @@ compile_and_post:
     - pending: bullet list of not-started items with @assignee (X SP)
     - attention: stale PRs, CI failures, stale tasks (just the content, no headers)
     - meeting_mode: 'STANDUP: X blockers...' or 'OPEN SLOT: No blockers...'
+    - blocker_details: for EACH blocker, include a detailed breakdown:
+        '• 🔴 [Alert/Task name] — link
+           Owner: @assignee
+           Impact: why this blocks the team
+           Action: what needs to happen to unblock'
+      This section appears in the digest so the team knows exactly what
+      to discuss in standup. Pass empty string if no blockers.
 
     IMPORTANT: Do NOT add separator lines (═══) or section headers.
     The tool adds all formatting automatically. Just pass clean content.

@@ -49,7 +49,8 @@ def post(channel: str, message: str) -> str:
 
 @tool("Post Daily Standup to Slack")
 def post_standup(executive_summary: str, done: str, in_progress: str,
-                 blocked: str, pending: str, attention: str, meeting_mode: str) -> str:
+                 blocked: str, pending: str, attention: str,
+                 meeting_mode: str, blocker_details: str = "") -> str:
     """
     Posts the structured daily sprint digest to #pm-standup.
     Template is enforced — just pass the content for each section.
@@ -62,9 +63,13 @@ def post_standup(executive_summary: str, done: str, in_progress: str,
     pending: bullet list of not-started items with assignee and SP
     attention: stale PRs, CI failures, stale tasks
     meeting_mode: either 'STANDUP: X blockers...' or 'OPEN SLOT: No blockers...'
+    blocker_details: detailed blocker breakdown with owner, impact, and action
+        for each blocker. These are the items to discuss in the standup.
+        Example: '• 🔴 Vendor Risk: Azure — Missing BAA
+           Owner: @Flavio | Impact: HIPAA blocked | Action: Escalate to Azure'
     """
     today = date.today().strftime("%B %d, %Y")
-    r = _api(SLACK["standup"], f"Sprint Digest {today}", [
+    blocks = [
         _hdr(f"📊 Sprint Digest — {today}"),
         _sec(f"*Executive Summary*\n{executive_summary}"),
         _div(),
@@ -77,9 +82,15 @@ def post_standup(executive_summary: str, done: str, in_progress: str,
         _div(),
         _sec(f"*⚠️ Needs Attention*\n{attention or '_All clear_'}"),
         _div(),
-        _sec(f"*🎯 Meeting Mode*\n{meeting_mode}"),
-        _ctx("_Posted by CareSpace PM AI_"),
-    ])
+    ]
+    # Add blocker details section if there are blockers to discuss
+    if blocker_details and blocker_details.strip():
+        blocks.append(_sec(f"*🔴 Blocker Details (discuss in standup)*\n{blocker_details}"))
+        blocks.append(_div())
+    blocks.append(_sec(f"*🎯 Meeting Mode*\n{meeting_mode}"))
+    blocks.append(_ctx("_Posted by CareSpace PM AI_"))
+
+    r = _api(SLACK["standup"], f"Sprint Digest {today}", blocks)
     return json.dumps({"ok": r.get("ok")})
 
 
