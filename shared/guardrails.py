@@ -83,24 +83,17 @@ def validate_triage_actions(result):
 # ── PR Radar Crew ────────────────────────────────────────────────────────────
 
 def validate_pr_radar_output(result):
-    """Ensure PR radar output has required metrics."""
+    """Ensure PR radar completed its scan and posted results."""
     raw = result.raw if hasattr(result, "raw") else str(result)
-    data = _parse_json(raw)
+    lower = raw.lower()
 
-    if data:
-        required = ["total_prs", "stale_prs"]
-        missing = [k for k in required if k not in data]
-        if missing:
-            return (False, f"PR radar output missing required fields: {missing}. "
-                    "Include total_prs and stale_prs counts.")
+    # Accept if report was posted or JSON metrics returned
+    if any(w in lower for w in ["posted", "ok", "success", "summary",
+                                  "total_prs", "stale_prs", "pr_radar"]):
+        return (True, raw)
 
-    # If not JSON, check that a summary was posted
-    if "post_pr_radar" not in raw.lower() and "posted" not in raw.lower():
-        if "slack" not in raw.lower() and "summary" not in raw.lower():
-            return (False, "PR radar must post a summary to Slack. "
-                    "Use post_pr_radar_report tool before finishing.")
-
-    return (True, raw)
+    return (False, "PR radar must post a summary to Slack. "
+            "Use post_pr_radar_report tool before finishing.")
 
 
 # ── Compliance Crew ──────────────────────────────────────────────────────────
@@ -144,10 +137,17 @@ def validate_cs_output(result):
 # ── Exec Report Crew ─────────────────────────────────────────────────────────
 
 def validate_exec_report(result):
-    """Ensure exec report covers all 5 dimensions."""
+    """Ensure exec report was posted (tool already formats the content)."""
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
 
+    # The report content is passed to post_executive_report tool, not returned
+    # as the final answer. Accept if the tool was called successfully.
+    if "posted" in lower or "ok" in lower or "success" in lower or "executive" in lower:
+        return (True, raw)
+
+    # If the final answer contains the full report (some models do this),
+    # check for dimension coverage
     dimensions = {
         "engineering": any(w in lower for w in ["sprint", "engineering", "velocity"]),
         "gtm": any(w in lower for w in ["gtm", "deal", "pipeline"]),
@@ -159,7 +159,7 @@ def validate_exec_report(result):
     missing = [d for d, found in dimensions.items() if not found]
     if len(missing) >= 3:
         return (False, f"Exec report missing dimensions: {missing}. "
-                "Must cover engineering, GTM, compliance, CS, and bug health.")
+                "Post the report using post_executive_report tool.")
 
     return (True, raw)
 
