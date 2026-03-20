@@ -1,30 +1,47 @@
 find_sprint_task:
   description: >
     Call create_or_get_sprint_list to find the active sprint.
-    Returns sprint list_id, name, and end date.
+    Returns sprint list_id, name, start date, and end date.
   expected_output: >
-    JSON with list_id, sprint_name, end_date, status.
+    JSON with list_id, sprint_name, start_date, end_date, status.
   agent: daily_pulse_agent
 
 scan_and_gather:
   description: >
-    Gather ALL data needed for the daily digest:
+    Gather ALL data needed for the daily sprint digest:
 
     1. Pull sprint tasks using get_tasks_by_list (include_closed=True).
-       For each task note: name, status, assignee, SP, last updated, tags.
+       For each task note: name, STATUS (exact ClickUp status), assignee,
+       SP, last updated, tags.
 
-    2. Calculate sprint health:
-       - Total tasks, done count, in progress count, blocked count, pending count
+    2. Calculate sprint health and timing:
+       - Parse sprint start_date and end_date from sprint data.
+       - Calculate: total_sprint_days, elapsed_days, remaining_days.
+       - Sprint timing states:
+         * today < start_date → "Starts in X days (start — end)"
+         * today >= start_date → "Day X of Y (Z days remaining)"
+       - Task counts by STATUS:
+         * done: tasks with status 'complete' or 'done'
+         * in_progress: tasks with status 'in progress'
+         * blocked: tasks with status 'blocked' (ClickUp status!)
+         * pending: tasks with status 'to do' or 'open'
        - SP completed vs total SP
-       - Sprint timing: compare TODAY vs start_date and end_date.
-         If today < start_date: "Starts in X days (start — end)"
-         If today >= start_date: "Day X of Y (Z days remaining)"
-       - Completion percentage
+       - Completion percentage = done_sp / total_sp
+       - AT-RISK CALCULATION (only when sprint is active):
+         time_pct = elapsed_days / total_sprint_days
+         done_pct = done_sp / total_sp
+         If done_pct < (time_pct - 0.15): 🔴 Behind schedule
+         If done_pct < (time_pct - 0.05): 🟡 At risk
+         Otherwise: 🟢 On track
 
     3. Find stale tasks: in progress but date_updated >{stale_task_days} days ago.
 
-    4. Scan descriptions for blocker keywords: 'waiting on', 'blocked by',
-       'depends on', 'need from'.
+    4. Identify sprint blockers — things impeding sprint progress:
+       - Tasks in 'blocked' ClickUp status (these go in the Blocked section)
+       - Critical unresolved alerts from Alerts list ({alerts_id}) that
+         relate to sprint work
+       - Scan task descriptions for blocker keywords: 'waiting on',
+         'blocked by', 'depends on', 'need from'
 
     5. Check GitHub: stale PRs (>{stale_pr_days}d) using get_stale_pull_requests.
 
@@ -36,8 +53,6 @@ scan_and_gather:
        For failures, include the GitHub Actions link:
        https://github.com/carespace-ai/<repo>/actions
 
-    7. Check Alerts list ({alerts_id}) for unresolved alerts >{ticket_unresponded_hours}h.
-
     If no active sprint: scan Master Backlog ({master_backlog_id}) instead
     and report on backlog health.
   expected_output: >
@@ -48,7 +63,8 @@ scan_and_gather:
 
 compile_and_post:
   description: >
-    Compile the data into a STRUCTURED DIGEST and post it.
+    Compile the data into a STRUCTURED SPRINT DIGEST and post to
+    #pm-standup. This is the ONLY channel daily pulse posts to.
 
     FORMAT THE STANDUP AS FOLLOWS (use this exact structure):
 
@@ -57,8 +73,14 @@ compile_and_post:
     ═══════════════════════════════════
     • Sprint N — [starts in X days / Day X of Y, Z remaining]
     • Progress: Z% complete (A/B SP delivered)
-    • Status: [🟢 On Track / 🟡 At Risk / 🔴 Blocked]
+    • Status: [🟢 On Track / 🟡 At Risk / 🔴 Behind]
     • [Key risk or win in one line]
+
+    SPRINT STATUS RULES:
+    🟢 On Track — done% is within 5% of time elapsed%
+    🟡 At Risk — done% is 5-15% behind time elapsed%
+    🔴 Behind — done% is >15% behind time elapsed%
+    If sprint hasn't started yet: just report task counts, no risk calc.
 
     NOTE on sprint timing:
     - If sprint start_date is in the future, say "starts in X days"
@@ -69,17 +91,19 @@ compile_and_post:
     📋 SPRINT STATUS
     ═══════════════════════════════════
 
-    ✅ Done (since yesterday):
+    ✅ Done:
     • [Task name] — @assignee (X SP)
 
     🔄 In Progress:
     • [Task name] — @assignee (X SP)
 
+    🚫 Blocked (tasks with ClickUp status 'blocked'):
+    • [Task name] — @assignee — Reason: [why it's blocked]
+    NOTE: Only list tasks whose ClickUp STATUS is literally 'blocked'.
+    Compliance or security items are NOT 'blocked' tasks.
+
     ⏳ Pending (not started):
     • [Task name] — @assignee (X SP)
-
-    🚫 Blocked:
-    • [Task name] — @assignee — Reason: [blocker description]
 
     ═══════════════════════════════════
     ⚠️ NEEDS ATTENTION
@@ -95,6 +119,21 @@ compile_and_post:
     If all CI is passing, just write: "All CI checks passing ✅"
 
     ═══════════════════════════════════
+    🔴 BLOCKER DETAILS (discuss in standup)
+    ═══════════════════════════════════
+    These are things IMPEDING SPRINT PROGRESS — different from the
+    'Blocked' status section above. Include:
+    - Critical alerts that affect sprint work
+    - External dependencies blocking tasks
+    - SLA breaches on sprint items
+    For EACH blocker:
+    • 🔴 [Name] — link
+      Owner: @assignee
+      Impact: why this blocks the team
+      Action: what needs to happen to unblock
+    If no blockers, skip this section entirely.
+
+    ═══════════════════════════════════
     🎯 MEETING MODE
     ═══════════════════════════════════
     [🔴 STANDUP MODE: X blockers. 15-min focused session.]
@@ -102,39 +141,24 @@ compile_and_post:
     [🟢 OPEN SLOT: No blockers. Available for strategic discussion.]
 
     POST using post_standup tool with these parameters:
-    - executive_summary: 3-4 bullet points (sprint health, SP progress, risks)
+    - executive_summary: 3-4 bullet points (sprint health, SP progress, risk status)
     - done: bullet list of completed items
     - in_progress: bullet list of active items with @assignee (X SP)
-    - blocked: bullet list with blocker reason
+    - blocked: ONLY tasks with ClickUp status 'blocked' (not conceptual blockers)
     - pending: bullet list of not-started items with @assignee (X SP)
     - attention: stale PRs, CI failures, stale tasks (just the content, no headers)
     - meeting_mode: 'STANDUP: X blockers...' or 'OPEN SLOT: No blockers...'
-    - blocker_details: for EACH blocker, include a detailed breakdown:
-        '• 🔴 [Alert/Task name] — link
-           Owner: @assignee
-           Impact: why this blocks the team
-           Action: what needs to happen to unblock'
-      This section appears in the digest so the team knows exactly what
-      to discuss in standup. Pass empty string if no blockers.
+    - blocker_details: detailed breakdown of things impeding sprint progress
+      (critical alerts, external deps, SLA breaches). Empty string if none.
 
     IMPORTANT: Do NOT add separator lines (═══) or section headers.
     The tool adds all formatting automatically. Just pass clean content.
 
-    ONLY IF there are actual blockers (blocked tasks, SLA breaches, or
-    critical alerts), escalate to {slack_alerts} using post_blocker.
-    If there are ZERO blockers, skip escalation entirely — no post needed.
-
-    CRITICAL BLOCKERS (only if they exist) → post ONE consolidated summary
-    to {slack_engineering} using post_blocker_summary (NOT individual posts).
-    If there are no critical blockers, do NOT post to {slack_engineering}.
-    Include for each:
-    - Name and ClickUp link
-    - Owner/assignee
-    - WHY it's blocking (impact description)
-    - Recommended action
-    This gives the team context without clicking through each link.
+    IMPORTANT: Post ONLY to #pm-standup using post_standup.
+    Do NOT post to any other channel. No post_blocker, no post_blocker_summary.
+    Everything goes in the single Sprint Digest.
   expected_output: >
-    Confirmation of standup posted to {slack_standup} and any escalations.
+    Confirmation of standup posted to {slack_standup}.
   agent: daily_pulse_agent
   context:
     - scan_and_gather
