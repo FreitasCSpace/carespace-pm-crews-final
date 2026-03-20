@@ -11,18 +11,37 @@ from crewai.tools import tool
 from shared.config.context import SLACK
 
 def _api(channel: str, text: str, blocks=None) -> dict:
+    import logging, time as _time
     body = {"channel": channel, "text": text}
     if blocks:
         body["blocks"] = blocks
-    r = requests.post(
-        "https://slack.com/api/chat.postMessage",
-        headers={
-            "Authorization": f"Bearer {os.environ.get('SLACK_BOT_TOKEN', '')}",
-            "Content-Type": "application/json",
-        },
-        json=body,
-    )
-    return r.json()
+    headers = {
+        "Authorization": f"Bearer {os.environ.get('SLACK_BOT_TOKEN', '')}",
+        "Content-Type": "application/json",
+    }
+    log = logging.getLogger(__name__)
+    last_err = None
+    for attempt in range(3):
+        try:
+            r = requests.post(
+                "https://slack.com/api/chat.postMessage",
+                headers=headers,
+                json=body,
+            )
+            data = r.json()
+            if data.get("ok"):
+                return data
+            # Slack returned ok:false — log and retry (may be transient)
+            last_err = data.get("error", "unknown")
+            log.warning("Slack API error (attempt %d/3): %s", attempt + 1, last_err)
+        except Exception as exc:
+            last_err = str(exc)
+            log.warning("Slack request failed (attempt %d/3): %s", attempt + 1, last_err)
+        if attempt < 2:
+            _time.sleep(2 ** attempt)  # 1s, 2s backoff
+    # All retries exhausted — return last response or error dict
+    log.error("Slack post failed after 3 attempts: %s (channel=%s)", last_err, channel)
+    return {"ok": False, "error": last_err}
 
 PE = {"urgent": "P0", "high": "P1", "normal": "P2", "low": "P3", "none": "--"}
 HS = lambda pct: "GREEN" if pct >= 80 else ("YELLOW" if pct >= 60 else "RED")
