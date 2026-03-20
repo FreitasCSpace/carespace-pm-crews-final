@@ -148,12 +148,12 @@ compile_and_post:
 
     If risks or blocked tasks exist:
     🔴 STANDUP MODE: X risk(s) to discuss. 15-min focused session.
-    Discuss:
-    1. [Item] — Owner: @name — Action needed
-    2. [Item] — Owner: @name — Action needed
 
     If no risks and no blocked tasks:
     🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion.
+
+    Do NOT list the risks again here — the Sprint Risks section above
+    already has the full details. Meeting Mode is just the headline.
 
     POST using post_standup tool with these parameters:
     - executive_summary: 3-4 bullets (sprint timing, progress, status)
@@ -162,10 +162,8 @@ compile_and_post:
     - blocked: ONLY tasks with ClickUp status 'blocked' (or 'None')
     - pending: not-started tasks with @assignee (X SP)
     - attention: stale tasks, stale PRs, CI failures
-    - meeting_mode: include risk details, e.g.:
-        '🔴 STANDUP MODE: 2 risks to discuss.
-         1. RBAC Guards (8 SP) — @Fabiano — urgent, not started
-         2. Azure BAA — @Flavio — external dependency'
+    - meeting_mode: just the headline, e.g.:
+        '🔴 STANDUP MODE: 3 risks to discuss. 15-min focused session.'
         OR '🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion.'
     - blocker_details: sprint risks breakdown (items at risk of not
       completing, external deps, unassigned urgent tasks).
