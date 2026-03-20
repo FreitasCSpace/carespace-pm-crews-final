@@ -83,17 +83,28 @@ def validate_triage_actions(result):
 # ── PR Radar Crew ────────────────────────────────────────────────────────────
 
 def validate_pr_radar_output(result):
-    """Ensure PR radar completed its scan and posted results."""
+    """Ensure PR radar scan collected PR and CI data.
+
+    This guardrail runs on the SCAN task (before posting) so retries
+    don't cause duplicate Slack posts.
+    """
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
 
-    # Accept if report was posted or JSON metrics returned
-    if any(w in lower for w in ["posted", "ok", "success", "summary",
-                                  "total_prs", "stale_prs", "pr_radar"]):
-        return (True, raw)
+    has_pr_data = any(w in lower for w in ["stale", "pr", "pull request",
+                                            "total_prs", "stale_prs"])
+    has_ci_data = any(w in lower for w in ["ci", "passing", "failing",
+                                            "ci_failures", "actions"])
 
-    return (False, "PR radar must post a summary to Slack. "
-            "Use post_pr_radar_report tool before finishing.")
+    if not has_pr_data:
+        return (False, "Scan must include PR data. "
+                "Call get_stale_pull_requests to find stale PRs.")
+
+    if not has_ci_data:
+        return (False, "Scan must include CI status. "
+                "Call get_ci_status on key repos.")
+
+    return (True, raw)
 
 
 # ── Compliance Crew ──────────────────────────────────────────────────────────
@@ -190,12 +201,43 @@ def validate_standup_data(result):
 # ── Deal Intel Crew ──────────────────────────────────────────────────────────
 
 def validate_deal_intel(result):
-    """Ensure pipeline analysis includes vertical breakdown."""
+    """Ensure pipeline analysis includes vertical breakdown.
+
+    This guardrail runs on the ANALYZE task (before posting) so retries
+    don't cause duplicate Slack posts.
+    """
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
 
     if "vertical" not in lower and "healthcare" not in lower and "pipeline" not in lower:
         return (False, "Deal intel must include pipeline analysis by vertical. "
                 "Group deals by vertical tags and identify coverage gaps.")
+
+    return (True, raw)
+
+
+# ── Retrospective Crew ──────────────────────────────────────────────────────
+
+def validate_retro_metrics(result):
+    """Ensure retro measurement collected key metrics before posting.
+
+    This guardrail runs on the MEASURE task (before posting) so retries
+    don't cause duplicate Slack posts.
+    """
+    raw = result.raw if hasattr(result, "raw") else str(result)
+    lower = raw.lower()
+
+    has_velocity = any(w in lower for w in ["velocity", "sp", "story point",
+                                             "completed", "done"])
+    has_completion = any(w in lower for w in ["completion", "rate", "percent",
+                                               "progress"])
+
+    if not has_velocity:
+        return (False, "Retro must include velocity data (SP completed). "
+                "Pull sprint tasks with include_closed=True and sum points.")
+
+    if not has_completion:
+        return (False, "Retro must include completion rate. "
+                "Calculate done tasks / total tasks as a percentage.")
 
     return (True, raw)

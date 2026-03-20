@@ -1,7 +1,3 @@
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
-
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
@@ -10,10 +6,11 @@ from shared.tools import (
     get_tasks_by_list, create_clickup_task, post_retro, post,
 )
 from shared.config.context import interpolate_config
+from shared.guardrails import validate_retro_metrics
 
 
 @CrewBase
-class RetrospectiveCrewCrew:
+class RetrospectiveCrew:
     """Sprint retrospective — runs bi-weekly Friday 16:00."""
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
@@ -43,7 +40,10 @@ class RetrospectiveCrewCrew:
 
     @task
     def measure(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["measure"]))
+        return Task(
+            config=interpolate_config(self.tasks_config["measure"]),
+            guardrail=validate_retro_metrics,
+        )
 
     @task
     def post_and_log(self) -> Task:
