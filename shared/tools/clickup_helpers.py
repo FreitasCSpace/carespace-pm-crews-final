@@ -805,16 +805,45 @@ def create_sprint_list() -> str:
 
         # Decision: active sprint exists?
         if latest_sprint and latest_sprint["end_date"] and latest_sprint["end_date"] >= today:
-            # Sprint is still active — return it, don't create new
-            start_iso = latest_sprint["start_date"].isoformat() if latest_sprint.get("start_date") else None
+            # Sprint is still active — return it with pre-calculated timing
+            s = latest_sprint.get("start_date")
+            e = latest_sprint["end_date"]
+            start_iso = s.isoformat() if s else None
+            end_iso = e.isoformat()
+
+            # Pre-calculate timing so the agent doesn't need to do date math
+            timing = {}
+            if s:
+                total_days = (e - s).days + 1
+                if today < s:
+                    days_until_start = (s - today).days
+                    timing = {
+                        "sprint_started": False,
+                        "days_until_start": days_until_start,
+                        "total_days": total_days,
+                        "timing_display": f"Starts in {days_until_start} day{'s' if days_until_start != 1 else ''} ({s.strftime('%b %d')} — {e.strftime('%b %d')})",
+                    }
+                else:
+                    elapsed = (today - s).days + 1
+                    remaining = (e - today).days
+                    timing = {
+                        "sprint_started": True,
+                        "elapsed_days": elapsed,
+                        "remaining_days": remaining,
+                        "total_days": total_days,
+                        "timing_display": f"Day {elapsed} of {total_days} ({remaining} days remaining)",
+                    }
+
             return json.dumps({
                 "list_id": latest_sprint["list_id"],
                 "sprint_name": latest_sprint["name"],
                 "sprint_number": latest_sprint["number"],
                 "start_date": start_iso,
-                "end_date": latest_sprint["end_date"].isoformat(),
+                "end_date": end_iso,
+                "today": today.isoformat(),
+                "timing": timing,
                 "status": "active",
-                "message": f"Sprint {latest_sprint['number']} is still active (ends {latest_sprint['end_date']}). No new sprint created.",
+                "message": f"Sprint {latest_sprint['number']} is still active (ends {e}). No new sprint created.",
             })
 
         # No active sprint — create new one
@@ -832,12 +861,21 @@ def create_sprint_list() -> str:
             payload={"name": sprint_name},
         )
 
+        days_until = (start - today).days
+        total_days = (end - start).days + 1
         return json.dumps({
             "list_id": result.get("id"),
             "sprint_name": sprint_name,
             "sprint_number": sprint_number,
             "start_date": start.isoformat(),
             "end_date": end.isoformat(),
+            "today": today.isoformat(),
+            "timing": {
+                "sprint_started": False,
+                "days_until_start": days_until,
+                "total_days": total_days,
+                "timing_display": f"Starts in {days_until} day{'s' if days_until != 1 else ''} ({start.strftime('%b %d')} — {end.strftime('%b %d')})",
+            },
             "status": "created",
             "message": f"Created {sprint_name}.",
         })

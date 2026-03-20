@@ -15,11 +15,12 @@ scan_and_gather:
        SP, last updated, tags.
 
     2. Calculate sprint health and timing:
-       - Parse sprint start_date and end_date from sprint data.
-       - Calculate: total_sprint_days, elapsed_days, remaining_days.
-       - Sprint timing states:
-         * today < start_date → "Starts in X days (start — end)"
-         * today >= start_date → "Day X of Y (Z days remaining)"
+       - The sprint tool returns a pre-calculated "timing" object.
+         Use timing.timing_display EXACTLY as returned — do NOT
+         recalculate dates yourself. Examples:
+         * "Starts in 3 days (Mar 23 — Apr 05)" — sprint not started
+         * "Day 5 of 14 (9 days remaining)" — sprint in progress
+       - Use timing.sprint_started to know if the sprint is active.
        - Task counts by STATUS:
          * done: tasks with status 'complete' or 'done'
          * in_progress: tasks with status 'in progress'
@@ -77,21 +78,20 @@ compile_and_post:
     ═══════════════════════════════════
     📊 EXECUTIVE SUMMARY
     ═══════════════════════════════════
-    • Sprint N — [starts in X days / Day X of Y, Z remaining]
+    • Sprint N — {timing.timing_display} (copy EXACTLY from tool output)
     • Progress: Z% complete (A/B SP delivered)
-    • Status: [🟢 On Track / 🟡 At Risk / 🔴 Behind]
+    • Status: [🟢 On Track / 🟡 At Risk / 🔴 Behind / 🟢 Not yet started]
     • [Key risk or win in one line]
 
     SPRINT STATUS RULES:
-    🟢 On Track — done% is within 5% of time elapsed%
-    🟡 At Risk — done% is 5-15% behind time elapsed%
-    🔴 Behind — done% is >15% behind time elapsed%
-    If sprint hasn't started yet: just report task counts, no risk calc.
+    If timing.sprint_started is false: status = "🟢 Not yet started"
+    If timing.sprint_started is true:
+      🟢 On Track — done% is within 5% of time elapsed%
+      🟡 At Risk — done% is 5-15% behind time elapsed%
+      🔴 Behind — done% is >15% behind time elapsed%
 
-    NOTE on sprint timing:
-    - If sprint start_date is in the future, say "starts in X days"
-    - If sprint is active (today >= start_date), say "Day X of Y"
-    - NEVER say "11 of 11 days remaining" if the sprint hasn't started
+    CRITICAL: Use timing.timing_display for the sprint timing line.
+    Do NOT calculate dates yourself — the tool already did the math.
 
     ═══════════════════════════════════
     📋 SPRINT STATUS
@@ -144,9 +144,15 @@ compile_and_post:
     ═══════════════════════════════════
     Blocker count = tasks in 'blocked' ClickUp status + tasks with
     explicit dependency blockers. Pending tasks are NOT blockers.
-    [🔴 STANDUP MODE: X blockers. 15-min focused session.]
-    OR
-    [🟢 OPEN SLOT: No blockers. Available for strategic discussion.]
+
+    If blockers exist:
+    🔴 STANDUP MODE: X blocker(s). 15-min focused session.
+    Discuss:
+    1. [Blocker name] — Owner: @name — Action: what to do
+    2. [Blocker name] — Owner: @name — Action: what to do
+
+    If no blockers:
+    🟢 OPEN SLOT: No blockers. Available for strategic discussion.
 
     POST using post_standup tool with these parameters:
     - executive_summary: 3-4 bullet points (sprint health, SP progress, risk status)
@@ -155,7 +161,10 @@ compile_and_post:
     - blocked: ONLY tasks with ClickUp status 'blocked' (not conceptual blockers)
     - pending: bullet list of not-started items with @assignee (X SP)
     - attention: stale PRs, CI failures, stale tasks (just the content, no headers)
-    - meeting_mode: 'STANDUP: X blockers...' or 'OPEN SLOT: No blockers...'
+    - meeting_mode: include blocker names and actions, e.g.:
+        '🔴 STANDUP MODE: 1 blocker. 15-min focused session.
+         Discuss: 1. Azure BAA missing — Owner: @Flavio — Action: Escalate'
+        OR '🟢 OPEN SLOT: No blockers. Available for strategic discussion.'
     - blocker_details: detailed breakdown of things impeding sprint progress
       (critical alerts, external deps, SLA breaches). Empty string if none.
 
