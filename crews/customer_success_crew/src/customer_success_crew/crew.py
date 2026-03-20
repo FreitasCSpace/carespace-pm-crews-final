@@ -8,8 +8,9 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 from shared.tools import (
     get_tasks_by_list,
     check_duplicate_task,
+    create_clickup_task,
+    update_clickup_task,
     post_cs_alert,
-    post,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_cs_output
@@ -17,6 +18,7 @@ from shared.guardrails import validate_cs_output
 
 @CrewBase
 class CustomerSuccessCrew:
+    """Customer success monitor — runs daily 08:00."""
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
@@ -34,19 +36,24 @@ class CustomerSuccessCrew:
             tools=[
                 get_tasks_by_list,
                 check_duplicate_task,
+                create_clickup_task,
+                update_clickup_task,
                 post_cs_alert,
-                post,
             ],
             verbose=True,
             allow_delegation=False,
         )
 
     @task
-    def monitor(self) -> Task:
+    def scan_accounts(self) -> Task:
         return Task(
-            config=interpolate_config(self.tasks_config["monitor"]),
+            config=interpolate_config(self.tasks_config["scan_accounts"]),
             guardrail=validate_cs_output,
         )
+
+    @task
+    def post_cs_summary(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["post_cs_summary"]))
 
     @crew
     def crew(self) -> Crew:

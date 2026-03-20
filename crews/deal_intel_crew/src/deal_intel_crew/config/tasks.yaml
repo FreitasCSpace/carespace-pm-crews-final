@@ -1,21 +1,43 @@
-analyze:
+analyze_pipeline:
   description: >
-    Pull all tasks from Active Deals ({active_deals_id}).
-    1. Count total deals and group by vertical tag.
-    2. Identify at-risk deals: no update >{at_risk_deal_days}d, no assignee, no next step.
-    3. Detect coverage gaps: verticals with zero active deals.
-    4. Identify top 3 opportunities to accelerate.
-    5. Track Echelon deal status specifically.
-    6. Move at-risk deals to At-Risk list ({at_risk_deals_id}) by updating them.
-    7. Create alerts for orphaned deals (no assignee) in Alerts ({alerts_id}).
-    8. Add comments on at-risk deals explaining the risk.
-    9. Post full pipeline health report to {slack_gtm} with:
-       - Pipeline summary by vertical
-       - Deals at risk count and details
-       - Coverage gaps
-       - Top 3 to accelerate
-       - Echelon status
+    Pull and analyze the GTM pipeline:
+
+    1. Pull all tasks from Active Deals ({active_deals_id}) via get_tasks_by_list.
+    2. Count total deals and group by vertical tag.
+       Verticals: {verticals}
+    3. Identify at-risk deals: no update >{at_risk_deal_days}d, no assignee, no next step.
+    4. Detect coverage gaps: verticals with zero active deals.
+    5. Identify top 3 opportunities to accelerate.
+    6. Track Echelon deal status specifically.
+
+    7. For at-risk deals:
+       - Check duplicate in At-Risk list ({at_risk_deals_id}): check_duplicate_task.
+       - If not already tracked: create task in At-Risk list using create_task_in_list
+         with tags ['at-risk', vertical-tag, 'gtm'].
+
+    8. For orphaned deals (no assignee):
+       - Check duplicate in Alerts ({alerts_id}): check_duplicate_task.
+       - If no duplicate: create alert using create_task_in_list with priority urgent.
+       - Name format: "[ALERT] 🎯 Orphaned Deal: [deal name] — no owner"
+       - Tags: ['gtm', vertical-tag, 'orphaned']
   expected_output: >
     JSON: {total_deals: N, by_vertical: {}, at_risk: N, coverage_gaps: [],
     top_3: [], echelon_status: str, alerts_created: N}
   agent: deal_intel_agent
+
+post_pipeline_report:
+  description: >
+    Post full pipeline health report to {slack_gtm} using post_gtm
+    (NOT the generic post tool). Pass these parameters:
+    - headline: "Pipeline Health: X deals, Y at risk"
+    - deals_at_risk: bullet list of at-risk deals with reason
+    - pipeline_value: total deal count by vertical
+    - gaps: verticals with zero coverage
+    - actions: what was done (alerts created, tasks moved)
+
+    Include Echelon status prominently.
+  expected_output: >
+    Confirmation of report posted to Slack.
+  agent: deal_intel_agent
+  context:
+    - analyze_pipeline

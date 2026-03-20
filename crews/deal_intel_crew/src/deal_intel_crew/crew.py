@@ -7,8 +7,10 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     get_tasks_by_list,
+    check_duplicate_task,
+    create_clickup_task,
+    update_clickup_task,
     post_gtm,
-    post,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_deal_intel
@@ -16,6 +18,7 @@ from shared.guardrails import validate_deal_intel
 
 @CrewBase
 class DealIntelCrew:
+    """GTM pipeline intelligence — runs weekly Monday 09:00."""
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
@@ -32,19 +35,25 @@ class DealIntelCrew:
             config=interpolate_config(self.agents_config["deal_intel_agent"]),
             tools=[
                 get_tasks_by_list,
+                check_duplicate_task,
+                create_clickup_task,
+                update_clickup_task,
                 post_gtm,
-                post,
             ],
             verbose=True,
             allow_delegation=False,
         )
 
     @task
-    def analyze(self) -> Task:
+    def analyze_pipeline(self) -> Task:
         return Task(
-            config=interpolate_config(self.tasks_config["analyze"]),
+            config=interpolate_config(self.tasks_config["analyze_pipeline"]),
             guardrail=validate_deal_intel,
         )
+
+    @task
+    def post_pipeline_report(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["post_pipeline_report"]))
 
     @crew
     def crew(self) -> Crew:
