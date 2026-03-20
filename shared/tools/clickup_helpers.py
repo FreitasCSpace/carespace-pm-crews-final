@@ -12,8 +12,11 @@ from shared.config.context import L, WORKSPACE_ID, SP_ESTIMATE, SPRINT_FOLDER_ID
 
 
 def _clickup_api(endpoint: str, method: str = "GET", payload: dict | None = None) -> dict:
-    """Direct ClickUp API v2 call for operations MCP doesn't expose."""
-    import urllib.request
+    """Direct ClickUp API v2 call for operations MCP doesn't expose.
+    Retries up to 3 times on 429 (rate limit) with exponential backoff,
+    respecting the Retry-After header when present."""
+    import urllib.request, logging
+    log = logging.getLogger(__name__)
     token = os.environ.get("CLICKUP_PERSONAL_TOKEN",
             os.environ.get("CLICKUP_API_TOKEN", ""))
     url = f"https://api.clickup.com/api/v2/{endpoint}"
@@ -22,14 +25,24 @@ def _clickup_api(endpoint: str, method: str = "GET", payload: dict | None = None
         "Content-Type": "application/json",
     }
     data = json.dumps(payload).encode() if payload else None
-    req = urllib.request.Request(url, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            body = resp.read().decode()
-            return json.loads(body) if body else {}
-    except urllib.request.HTTPError as e:
-        error_body = e.read().decode() if e.fp else ""
-        raise Exception(f"HTTP {e.code}: {error_body[:200]}")
+
+    for attempt in range(3):
+        req = urllib.request.Request(url, data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                body = resp.read().decode()
+                return json.loads(body) if body else {}
+        except urllib.request.HTTPError as e:
+            if e.code == 429 and attempt < 2:
+                retry_after = e.headers.get("Retry-After") if e.headers else None
+                wait = float(retry_after) if retry_after else 2 ** (attempt + 1)
+                log.warning("ClickUp 429 rate limit (attempt %d/3), waiting %.1fs", attempt + 1, wait)
+                time.sleep(wait)
+                continue
+            error_body = e.read().decode() if e.fp else ""
+            raise Exception(f"HTTP {e.code}: {error_body[:200]}")
+    # Should not reach here, but safety net
+    raise Exception(f"ClickUp API failed after 3 retries: {endpoint}")
 
 
 @tool("Get Tasks By List")
