@@ -1016,8 +1016,8 @@ def close_sprint() -> str:
                 if sp:
                     _set_sp(new_id, sp)
 
-                # 3. Close sprint original
-                _clickup_api(f"task/{task_id}", method="PUT", payload={"status": "complete"})
+                # 3. Delete sprint original (it's now in backlog, not "complete")
+                _clickup_api(f"task/{task_id}", method="DELETE")
 
                 moved.append({
                     "name": task_name[:80],
