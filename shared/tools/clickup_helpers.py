@@ -960,55 +960,70 @@ def close_sprint() -> str:
                 carryovers.append(task)
 
         # Move carryover tasks back to Master Backlog
+        # ClickUp API does NOT support moving tasks between lists.
+        # Must use copy + close approach (same as _move_task_to_sprint).
         moved = []
         errors = []
+        pri_map = {"urgent": 1, "high": 2, "normal": 3, "low": 4}
+
         for task in carryovers:
             task_id = task["id"]
             task_name = task.get("name", "")
             existing_tags = [t["name"] for t in task.get("tags", [])]
 
             try:
-                # Move task to Master Backlog
-                _clickup_api(
-                    f"list/{INTAKE_TARGET}/task/{task_id}",
-                    method="PUT",
-                    payload={"list": INTAKE_TARGET},
-                )
+                # Get full task details (sprint task may have limited fields)
+                src = _clickup_api(f"task/{task_id}")
+                pri = src.get("priority", {}).get("priority", "normal") if src.get("priority") else "normal"
+                assignee_ids = [a["id"] for a in src.get("assignees", [])]
+                tag_names = [t["name"] for t in src.get("tags", [])]
 
-                # Add "carryover" tag if not already present
-                if "carryover" not in existing_tags:
-                    _clickup_api(
-                        f"task/{task_id}/tag/carryover",
-                        method="POST",
-                        payload={},
-                    )
+                # Add "carryover" tag
+                if "carryover" not in tag_names:
+                    tag_names.append("carryover")
 
                 # Bump priority (4→3, 3→2, 2→1, 1 stays 1)
-                current_priority = task.get("priority", {})
-                if current_priority and current_priority.get("id"):
-                    p = int(current_priority["id"])
-                    new_p = max(1, p - 1)  # bump up (lower number = higher priority)
-                    if new_p != p:
-                        _clickup_api(
-                            f"task/{task_id}",
-                            method="PUT",
-                            payload={"priority": new_p},
-                        )
+                pri_int = pri_map.get(pri, 3)
+                bumped_pri = max(1, pri_int - 1)
 
-                # Add carryover note to description
-                current_desc = task.get("description", "") or ""
+                # Build description with carryover note
+                desc = src.get("description", "") or ""
                 carryover_note = f"\n\n---\n⚡ Carried over from {latest_sprint['name']}"
-                if "Carried over from" not in current_desc:
-                    _clickup_api(
-                        f"task/{task_id}",
-                        method="PUT",
-                        payload={"description": current_desc + carryover_note},
-                    )
+                if "Carried over from" not in desc:
+                    desc += carryover_note
+
+                # 1. Create copy in Master Backlog
+                new_task = _clickup_api(
+                    f"list/{INTAKE_TARGET}/task",
+                    method="POST",
+                    payload={
+                        "name": task_name,
+                        "description": desc,
+                        "priority": bumped_pri,
+                        "assignees": assignee_ids,
+                        "tags": tag_names,
+                    },
+                )
+                new_id = new_task.get("id")
+                if not new_id:
+                    errors.append({"task": task_name[:50], "error": "Failed to create copy"})
+                    continue
+
+                # 2. Copy SP custom field
+                src_sp = next((cf.get("value") for cf in src.get("custom_fields", [])
+                               if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), None)
+                sp = int(src_sp) if src_sp is not None else 0
+                if sp:
+                    _set_sp(new_id, sp)
+
+                # 3. Close sprint original
+                _clickup_api(f"task/{task_id}", method="PUT", payload={"status": "complete"})
 
                 moved.append({
                     "name": task_name[:80],
+                    "new_task_id": new_id,
                     "status": task.get("status", {}).get("status", ""),
-                    "sp": task.get("points") or 0,
+                    "sp": sp,
                 })
             except Exception as e:
                 errors.append({"task": task_name[:50], "error": str(e)})
