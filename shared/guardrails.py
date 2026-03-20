@@ -60,6 +60,37 @@ def validate_sprint_plan(result):
     return (True, raw)
 
 
+def validate_sprint_sp_coverage(result):
+    """Ensure at least 70% of selected sprint tasks have explicit SP
+    (not heuristic estimates). Tasks with sp_estimated=true were auto-estimated
+    by _estimate_sp and may be inaccurate. The sprint planner should refine
+    estimates or confirm them before committing."""
+    raw = result.raw if hasattr(result, "raw") else str(result)
+    data = _parse_json(raw)
+
+    if not data:
+        return (True, raw)  # Can't validate non-JSON output
+
+    # Check moved_tasks for sp_estimated flags if present
+    moved = data.get("moved_tasks", [])
+    if not moved:
+        return (True, raw)  # No task list to validate
+
+    total = len(moved)
+    estimated = sum(1 for t in moved if t.get("sp_estimated", False))
+    explicit = total - estimated
+
+    if total > 0 and explicit / total < 0.70:
+        pct = round(explicit / total * 100)
+        return (False,
+                f"Only {pct}% of sprint tasks ({explicit}/{total}) have explicit "
+                f"story points. At least 70% should have real SP estimates, not "
+                f"heuristic guesses. Review tasks marked sp_estimated=true and "
+                f"set accurate SP before committing the sprint.")
+
+    return (True, raw)
+
+
 # ── Triage Crew ──────────────────────────────────────────────────────────────
 
 def validate_triage_actions(result):

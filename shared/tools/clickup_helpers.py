@@ -660,12 +660,14 @@ def scan_backlog_for_sprint() -> str:
 
             cf_sp = next((cf.get("value") for cf in t.get("custom_fields", [])
                          if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), None)
+            sp_estimated = cf_sp is None
             sp = int(cf_sp) if cf_sp is not None else _estimate_sp(t["name"], pri)
 
             item = {
                 "id": t["id"],
                 "name": t["name"][:100],
                 "sp": sp,
+                "sp_estimated": sp_estimated,
                 "priority": pri,
                 "assignees": assignees,
                 "age_days": age_days,
