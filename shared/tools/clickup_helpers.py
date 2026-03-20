@@ -267,6 +267,11 @@ def _move_task_to_sprint(task_id: str, target_list_id: str) -> str | None:
 
     ClickUp v2 API does NOT support moving tasks between lists.
     This is the only reliable approach: copy + close.
+
+    Orphan protection trade-off: if the copy succeeds but closing the
+    original fails, we keep the copy (resulting in a duplicate) rather
+    than deleting it. A duplicate is recoverable via dedup; a lost task
+    is not.
     """
     try:
         # 1. Get full source task details
@@ -300,7 +305,17 @@ def _move_task_to_sprint(task_id: str, target_list_id: str) -> str | None:
             _set_sp(new_id, int(src_sp))
 
         # 4. Close backlog original (status: complete)
-        _clickup_api(f"task/{task_id}", method="PUT", payload={"status": "complete"})
+        # If this fails, we intentionally keep the copy — better to have a
+        # duplicate than lose the task entirely. Dedup cleanup handles dupes.
+        try:
+            _clickup_api(f"task/{task_id}", method="PUT", payload={"status": "complete"})
+        except Exception as close_err:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Failed to close original task %s after copying to %s: %s "
+                "(keeping copy to prevent task loss)",
+                task_id, new_id, close_err,
+            )
 
         return new_id
     except Exception:
@@ -994,7 +1009,7 @@ def close_sprint() -> str:
 
                 # 1. Create copy in Master Backlog
                 new_task = _clickup_api(
-                    f"list/{INTAKE_TARGET}/task",
+                    f"list/{L['master_backlog']}/task",
                     method="POST",
                     payload={
                         "name": task_name,
@@ -1017,7 +1032,18 @@ def close_sprint() -> str:
                     _set_sp(new_id, sp)
 
                 # 3. Delete sprint original (it's now in backlog, not "complete")
-                _clickup_api(f"task/{task_id}", method="DELETE")
+                # Orphan protection: if delete fails, keep the backlog copy.
+                # Better to have a duplicate than lose the task entirely.
+                try:
+                    _clickup_api(f"task/{task_id}", method="DELETE")
+                except Exception as del_err:
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        "Failed to delete sprint task %s after copying to backlog %s: %s "
+                        "(keeping backlog copy to prevent task loss)",
+                        task_id, new_id, del_err,
+                    )
+                    errors.append({"task": task_name[:50], "error": f"delete failed: {str(del_err)[:100]}"})
 
                 moved.append({
                     "name": task_name[:80],
