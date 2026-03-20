@@ -76,15 +76,16 @@ def _clickup_api(endpoint: str, method: str = "GET", payload: dict | None = None
 
 
 def _check_duplicate(title_fragment: str) -> bool:
-    """Returns True if a matching task already exists in the Master Backlog."""
+    """Returns True if a matching task already exists in the Master Backlog.
+    DEPRECATED: Use _check_duplicate_cached() instead — this makes an API
+    call per check and silently allows creation on failure."""
     try:
-        # Search ONLY within the Master Backlog list, not the whole workspace
         data = _clickup_api(f"list/{INTAKE_TARGET}/task?archived=false")
         tasks = data.get("tasks", [])
         fragment_lower = title_fragment.lower()
         return any(fragment_lower in t["name"].lower() for t in tasks)
     except Exception:
-        return False  # if search fails, allow creation
+        return True  # if search fails, BLOCK creation to prevent duplicates
 
 
 # Cache backlog tasks to avoid hitting the API for every single issue
@@ -290,9 +291,9 @@ def batch_import_compliance() -> str:
                 if "tag" in mapped and mapped["tag"] not in tags:
                     tags.append(mapped["tag"])
 
-            # Dedup check
+            # Dedup check — use cached version (loads backlog once, checks in memory)
             dedup_key = f"#{issue.number}"
-            if _check_duplicate(dedup_key):
+            if _check_duplicate_cached(dedup_key):
                 stats["duplicates_skipped"] += 1
                 continue
 
