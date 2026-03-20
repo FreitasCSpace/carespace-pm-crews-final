@@ -40,6 +40,9 @@ plan_and_execute_task:
 
     SPRINT BUILDING PRINCIPLES:
     1. Budget: {sprint_budget_sp} SP total (80% of velocity)
+       IMPORTANT: subtract carryover SP from budget FIRST. Carryovers are
+       non-negotiable (always included), so new tasks fill remaining capacity.
+       Example: budget 50 SP, 15 SP carryover = only 35 SP for new tasks.
     2. CARRYOVER FIRST: tasks tagged "carryover" get PRIORITY — they were
        started in a previous sprint and not finished. Always include them
        unless explicitly deprioritized. They already have bumped priority.
