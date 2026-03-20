@@ -63,10 +63,10 @@ def post_standup(executive_summary: str, done: str, in_progress: str,
     pending: bullet list of not-started items with assignee and SP
     attention: stale PRs, CI failures, stale tasks
     meeting_mode: either 'STANDUP: X blockers...' or 'OPEN SLOT: No blockers...'
-    blocker_details: detailed blocker breakdown with owner, impact, and action
-        for each blocker. These are the items to discuss in the standup.
-        Example: '• 🔴 Vendor Risk: Azure — Missing BAA
-           Owner: @Flavio | Impact: HIPAA blocked | Action: Escalate to Azure'
+    blocker_details: sprint risks — items at risk of not completing on time.
+        Include high-SP pending tasks, external dependencies, unassigned urgent items.
+        Example: '• ⚡ RBAC Guards (8 SP) — @Fabiano — urgent, not started
+        • ⚡ Azure BAA — @Flavio — external dependency, waiting on vendor'
     """
     today = date.today().strftime("%B %d, %Y")
     blocks = [
@@ -83,9 +83,9 @@ def post_standup(executive_summary: str, done: str, in_progress: str,
         _sec(f"*⚠️ Needs Attention*\n{attention or '_All clear_'}"),
         _div(),
     ]
-    # Add blocker details section if there are blockers to discuss
+    # Add sprint risks section if there are items at risk
     if blocker_details and blocker_details.strip():
-        blocks.append(_sec(f"*🔴 Blocker Details (discuss in standup)*\n{blocker_details}"))
+        blocks.append(_sec(f"*⚡ Sprint Risks*\n{blocker_details}"))
         blocks.append(_div())
     blocks.append(_sec(f"*🎯 Meeting Mode*\n{meeting_mode}"))
     blocks.append(_ctx("_Posted by CareSpace PM AI_"))

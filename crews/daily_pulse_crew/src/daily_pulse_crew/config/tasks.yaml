@@ -1,9 +1,9 @@
 find_sprint_task:
   description: >
     Call create_or_get_sprint_list to find the active sprint.
-    Returns sprint list_id, name, start date, and end date.
+    Returns sprint list_id, name, start date, end date, and pre-calculated timing.
   expected_output: >
-    JSON with list_id, sprint_name, start_date, end_date, status.
+    JSON with list_id, sprint_name, start_date, end_date, timing, status.
   agent: daily_pulse_agent
 
 scan_and_gather:
@@ -14,45 +14,46 @@ scan_and_gather:
        For each task note: name, STATUS (exact ClickUp status), assignee,
        SP, last updated, tags.
 
-    2. Calculate sprint health and timing:
-       - The sprint tool returns a pre-calculated "timing" object.
-         Use timing.timing_display EXACTLY as returned — do NOT
-         recalculate dates yourself. Examples:
-         * "Starts in 3 days (Mar 23 — Apr 05)" — sprint not started
-         * "Day 5 of 14 (9 days remaining)" — sprint in progress
-       - Use timing.sprint_started to know if the sprint is active.
-       - Task counts by STATUS:
-         * done: tasks with status 'complete' or 'done'
-         * in_progress: tasks with status 'in progress'
-         * blocked: tasks with status 'blocked' (ClickUp status!)
-         * pending: tasks with status 'to do' or 'open'
-       - SP completed vs total SP
-       - Completion percentage = done_sp / total_sp
-       - AT-RISK CALCULATION (only when sprint is active):
-         time_pct = elapsed_days / total_sprint_days
-         done_pct = done_sp / total_sp
-         If done_pct < (time_pct - 0.15): 🔴 Behind schedule
-         If done_pct < (time_pct - 0.05): 🟡 At risk
-         Otherwise: 🟢 On track
+    2. Sprint timing:
+       The sprint tool returns a pre-calculated "timing" object.
+       Use timing.timing_display EXACTLY as returned — do NOT
+       recalculate dates yourself. Examples:
+       * "Starts in 3 days (Mar 23 — Apr 05)" — sprint not started
+       * "Day 5 of 14 (9 days remaining)" — sprint in progress
+       Use timing.sprint_started to know if the sprint is active.
 
-    3. Find stale tasks: in progress but date_updated >{stale_task_days} days ago.
+    3. Task counts by LITERAL ClickUp status (not your interpretation):
+       * done: tasks with status 'complete' or 'done'
+       * in_progress: tasks with status 'in progress'
+       * blocked: tasks with status 'blocked' ONLY
+       * pending: tasks with status 'to do' or 'open'
+       CRITICAL: A task is "blocked" ONLY if its ClickUp status says
+       "blocked". Do NOT infer blocked status from the task name or
+       content. A compliance task in "to do" status is PENDING, not blocked.
 
-    4. Identify sprint blockers — things ACTIVELY impeding sprint progress:
-       - Tasks in 'blocked' ClickUp status (these go in the Blocked section)
-       - Tasks with blocker keywords in descriptions: 'waiting on',
-         'blocked by', 'depends on', 'need from'
+    4. SP progress: completed_sp / total_sp
 
-       IMPORTANT: A "blocker" is something that PREVENTS work from moving
-       forward. Pending compliance or security tasks are NOT blockers —
-       they are just work waiting to be started. Only flag something as a
-       blocker if it is actively preventing another task from progressing.
+    5. Sprint risk assessment (only when timing.sprint_started is true):
+       time_pct = elapsed_days / total_days
+       done_pct = done_sp / total_sp
+       If done_pct < (time_pct - 0.15): 🔴 Behind schedule
+       If done_pct < (time_pct - 0.05): 🟡 At risk
+       Otherwise: 🟢 On track
+       If sprint hasn't started: status = "Not yet started"
 
-       Blocker count for Meeting Mode = tasks in 'blocked' status +
-       tasks with explicit dependency blockers. NOT total pending tasks.
+    6. Identify sprint risks — items that may not complete on time:
+       - High-SP tasks (8+ SP) still in pending with sprint >50% elapsed
+       - Tasks with no assignee
+       - Tasks with external dependencies (keywords: 'waiting on',
+         'blocked by', 'depends on', 'need from' in descriptions)
+       - Urgent/critical priority tasks still pending late in sprint
+       These are RISKS, not blockers. They go in the Sprint Risks section.
 
-    5. Check GitHub: stale PRs (>{stale_pr_days}d) using get_stale_pull_requests.
+    7. Find stale tasks: in progress but date_updated >{stale_task_days} days ago.
 
-    6. Check CI using get_ci_status on repos:
+    8. Check GitHub: stale PRs (>{stale_pr_days}d) using get_stale_pull_requests.
+
+    9. Check CI using get_ci_status on repos:
        {ci_check_repos}.
        NOTE: Try 'main' first, if 404 try 'master'.
        IMPORTANT: Only report FAILING CI checks. Do NOT include passing repos.
@@ -94,7 +95,7 @@ compile_and_post:
     Do NOT calculate dates yourself — the tool already did the math.
 
     ═══════════════════════════════════
-    📋 SPRINT STATUS
+    📋 SPRINT STATUS (literal ClickUp status)
     ═══════════════════════════════════
 
     ✅ Done:
@@ -103,12 +104,12 @@ compile_and_post:
     🔄 In Progress:
     • [Task name] — @assignee (X SP)
 
-    🚫 Blocked (tasks with ClickUp status 'blocked'):
+    🚫 Blocked:
     • [Task name] — @assignee — Reason: [why it's blocked]
-    NOTE: Only list tasks whose ClickUp STATUS is literally 'blocked'.
-    Compliance or security items are NOT 'blocked' tasks.
+    ONLY tasks whose ClickUp STATUS field is literally 'blocked'.
+    If no tasks have blocked status, show "None".
 
-    ⏳ Pending (not started):
+    ⏳ Pending:
     • [Task name] — @assignee (X SP)
 
     ═══════════════════════════════════
@@ -121,59 +122,60 @@ compile_and_post:
     • repo PR #N — Xd old — https://github.com/carespace-ai/repo/pull/N
 
     CI Failures (ONLY if failing — skip if all passing):
-    • [repo] (branch) — FAILING — https://github.com/carespace-ai/repo/actions
+    • [repo] — FAILING — https://github.com/carespace-ai/repo/actions
     If all CI is passing, just write: "All CI checks passing ✅"
 
     ═══════════════════════════════════
-    🔴 BLOCKER DETAILS (discuss in standup)
+    ⚡ SPRINT RISKS
     ═══════════════════════════════════
-    These are things IMPEDING SPRINT PROGRESS — different from the
-    'Blocked' status section above. Include:
-    - Critical alerts that affect sprint work
-    - External dependencies blocking tasks
-    - SLA breaches on sprint items
-    For EACH blocker:
-    • 🔴 [Name] — link
-      Owner: @assignee
-      Impact: why this blocks the team
-      Action: what needs to happen to unblock
-    If no blockers, skip this section entirely.
+    Items that may not complete before sprint ends. Include:
+    - High-SP tasks still pending with sprint >50% elapsed
+    - Tasks with external dependencies
+    - Urgent tasks not yet started late in sprint
+    - Unassigned tasks
+
+    For EACH risk:
+    • ⚡ [Task name] — @assignee (X SP)
+      Risk: why this might not finish on time
+      Action: what should happen
+
+    If sprint hasn't started or no risks identified, skip this section.
 
     ═══════════════════════════════════
     🎯 MEETING MODE
     ═══════════════════════════════════
-    Blocker count = tasks in 'blocked' ClickUp status + tasks with
-    explicit dependency blockers. Pending tasks are NOT blockers.
+    Based on sprint risks and blocked tasks:
 
-    If blockers exist:
-    🔴 STANDUP MODE: X blocker(s). 15-min focused session.
+    If risks or blocked tasks exist:
+    🔴 STANDUP MODE: X risk(s) to discuss. 15-min focused session.
     Discuss:
-    1. [Blocker name] — Owner: @name — Action: what to do
-    2. [Blocker name] — Owner: @name — Action: what to do
+    1. [Item] — Owner: @name — Action needed
+    2. [Item] — Owner: @name — Action needed
 
-    If no blockers:
-    🟢 OPEN SLOT: No blockers. Available for strategic discussion.
+    If no risks and no blocked tasks:
+    🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion.
 
     POST using post_standup tool with these parameters:
-    - executive_summary: 3-4 bullet points (sprint health, SP progress, risk status)
-    - done: bullet list of completed items
-    - in_progress: bullet list of active items with @assignee (X SP)
-    - blocked: ONLY tasks with ClickUp status 'blocked' (not conceptual blockers)
-    - pending: bullet list of not-started items with @assignee (X SP)
-    - attention: stale PRs, CI failures, stale tasks (just the content, no headers)
-    - meeting_mode: include blocker names and actions, e.g.:
-        '🔴 STANDUP MODE: 1 blocker. 15-min focused session.
-         Discuss: 1. Azure BAA missing — Owner: @Flavio — Action: Escalate'
-        OR '🟢 OPEN SLOT: No blockers. Available for strategic discussion.'
-    - blocker_details: detailed breakdown of things impeding sprint progress
-      (critical alerts, external deps, SLA breaches). Empty string if none.
+    - executive_summary: 3-4 bullets (sprint timing, progress, status)
+    - done: completed tasks (or 'None')
+    - in_progress: active tasks with @assignee (X SP) (or 'None')
+    - blocked: ONLY tasks with ClickUp status 'blocked' (or 'None')
+    - pending: not-started tasks with @assignee (X SP)
+    - attention: stale tasks, stale PRs, CI failures
+    - meeting_mode: include risk details, e.g.:
+        '🔴 STANDUP MODE: 2 risks to discuss.
+         1. RBAC Guards (8 SP) — @Fabiano — urgent, not started
+         2. Azure BAA — @Flavio — external dependency'
+        OR '🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion.'
+    - blocker_details: sprint risks breakdown (items at risk of not
+      completing, external deps, unassigned urgent tasks).
+      Empty string if no risks.
 
     IMPORTANT: Do NOT add separator lines (═══) or section headers.
     The tool adds all formatting automatically. Just pass clean content.
 
     IMPORTANT: Post ONLY to #pm-standup using post_standup.
-    Do NOT post to any other channel. No post_blocker, no post_blocker_summary.
-    Everything goes in the single Sprint Digest.
+    Do NOT post to any other channel.
   expected_output: >
     Confirmation of standup posted to {slack_standup}.
   agent: daily_pulse_agent
