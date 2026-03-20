@@ -1,7 +1,7 @@
 [project]
 name = "daily-pulse-crew"
 version = "0.1.0"
-description = "Mon-Fri standup + blocker detection. Posts to #pm-standup, escalates blockers to #pm-alerts."
+description = "Mon-Fri sprint digest. Posts ONLY to #pm-standup."
 requires-python = ">=3.10,<3.14"
 dependencies = [
     "crewai>=1.0.0",

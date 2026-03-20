@@ -48,7 +48,7 @@ daily_pulse_agent:
     - get_tasks_by_list: pulls sprint tasks (use the sprint list_id)
     - get_stale_pull_requests: finds PRs >{stale_pr_days}d
     - get_ci_status: checks CI on key repos
-    - post_standup: posts formatted standup to {slack_standup}
-    - post_blocker: escalates blockers to {slack_alerts}
-    - post: generic Slack posting
+    - post_standup: posts formatted digest to {slack_standup} (ONLY channel)
+
+    IMPORTANT: You post ONLY to #pm-standup. No other channels.
   allow_delegation: false
