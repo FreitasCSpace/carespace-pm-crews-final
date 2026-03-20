@@ -4,6 +4,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_activity,
     get_tasks_by_list, create_clickup_task, post_retro, post,
+    close_sprint,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_retro_metrics
@@ -29,6 +30,7 @@ class RetrospectiveCrew:
             tools=[
                 create_sprint_list, get_stale_prs, get_ci, get_activity,
                 get_tasks_by_list, create_clickup_task, post_retro, post,
+                close_sprint,
             ],
             verbose=True,
             allow_delegation=False,
@@ -44,6 +46,10 @@ class RetrospectiveCrew:
             config=interpolate_config(self.tasks_config["measure"]),
             guardrail=validate_retro_metrics,
         )
+
+    @task
+    def close_and_carryover(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["close_and_carryover"]))
 
     @task
     def post_and_log(self) -> Task:

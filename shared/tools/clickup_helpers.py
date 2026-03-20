@@ -601,6 +601,7 @@ def scan_backlog_for_sprint() -> str:
     """
     summary = {
         "total_tasks": 0,
+        "carryovers": [],  # from previous sprint — pick these FIRST
         "bugs": [], "features": [], "tasks": [], "compliance": [], "other": [],
         "by_priority": {}, "by_assignee": {}, "total_sp_available": 0,
     }
@@ -648,9 +649,13 @@ def scan_backlog_for_sprint() -> str:
             for a in assignees:
                 summary["by_assignee"][a] = summary["by_assignee"].get(a, 0) + 1
 
-            # Categorize
+            # Categorize — carryovers go in their own priority group
+            is_carryover = "carryover" in tags
             is_compliance = "compliance" in tags or "vanta" in tags
-            if is_compliance:
+
+            if is_carryover:
+                summary["carryovers"].append(item)
+            elif is_compliance:
                 summary["compliance"].append(item)
             elif "bug" in tags:
                 summary["bugs"].append(item)
@@ -661,10 +666,12 @@ def scan_backlog_for_sprint() -> str:
 
         # Sort each group by priority (urgent first) then age (oldest first)
         pri_order = {"urgent": 0, "high": 1, "normal": 2, "low": 3, "none": 4}
-        for group in ["bugs", "features", "tasks", "compliance"]:
+        for group in ["carryovers", "bugs", "features", "tasks", "compliance"]:
             summary[group].sort(key=lambda x: (pri_order.get(x["priority"], 4), -x["age_days"]))
 
         # Truncate for LLM context — show top items per category
+        # Carryovers are NEVER truncated — always show all (usually <10)
+        summary["carryovers_total"] = len(summary["carryovers"])
         summary["bugs_total"] = len(summary["bugs"])
         summary["features_total"] = len(summary["features"])
         summary["tasks_total"] = len(summary["tasks"])
@@ -879,6 +886,154 @@ def create_sprint_list() -> str:
             "status": "created",
             "message": f"Created {sprint_name}.",
         })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@tool("Close Sprint and Handle Carryovers")
+def close_sprint() -> str:
+    """
+    Closes the current sprint and handles incomplete tasks:
+
+    1. Finds the active sprint
+    2. Identifies incomplete tasks (not 'complete' or 'done')
+    3. Moves them back to Master Backlog with:
+       - "carryover" tag added (preserves existing tags)
+       - Priority bumped by 1 level (normal→high, high→urgent)
+       - Description note: "Carried over from Sprint N"
+    4. Marks completed tasks count for velocity tracking
+    5. Returns summary of what was carried over
+
+    Call this when a sprint ends (retrospective crew or manually).
+    The sprint list itself stays for historical reference.
+    """
+    import re
+    try:
+        data = _clickup_api(f"folder/{SPRINT_FOLDER_ID}/list")
+        existing = data.get("lists", [])
+        today = date.today()
+
+        # Find the latest sprint
+        latest_sprint = None
+        latest_number = 0
+        for lst in existing:
+            name = lst.get("name", "")
+            num = 0
+            for sep in ["—", "--"]:
+                if sep in name:
+                    prefix = name.split(sep)[0].strip()
+                    for p in prefix.split():
+                        if p.isdigit():
+                            num = max(num, int(p))
+            if num > latest_number:
+                latest_number = num
+                latest_sprint = {"list_id": lst["id"], "name": name, "number": num}
+
+        if not latest_sprint:
+            return json.dumps({"error": "No sprint found to close"})
+
+        # Get all tasks from sprint (including closed)
+        all_tasks = []
+        page = 0
+        while True:
+            tasks_data = _clickup_api(
+                f"list/{latest_sprint['list_id']}/task?archived=false"
+                f"&include_closed=true&page={page}"
+            )
+            tasks = tasks_data.get("tasks", [])
+            if not tasks:
+                break
+            all_tasks.extend(tasks)
+            if len(tasks) < 100:
+                break
+            page += 1
+
+        completed = []
+        carryovers = []
+        DONE_STATUSES = {"complete", "done", "closed"}
+
+        for task in all_tasks:
+            status = task.get("status", {}).get("status", "").lower()
+            if status in DONE_STATUSES:
+                completed.append(task)
+            else:
+                carryovers.append(task)
+
+        # Move carryover tasks back to Master Backlog
+        moved = []
+        errors = []
+        for task in carryovers:
+            task_id = task["id"]
+            task_name = task.get("name", "")
+            existing_tags = [t["name"] for t in task.get("tags", [])]
+
+            try:
+                # Move task to Master Backlog
+                _clickup_api(
+                    f"list/{INTAKE_TARGET}/task/{task_id}",
+                    method="PUT",
+                    payload={"list": INTAKE_TARGET},
+                )
+
+                # Add "carryover" tag if not already present
+                if "carryover" not in existing_tags:
+                    _clickup_api(
+                        f"task/{task_id}/tag/carryover",
+                        method="POST",
+                        payload={},
+                    )
+
+                # Bump priority (4→3, 3→2, 2→1, 1 stays 1)
+                current_priority = task.get("priority", {})
+                if current_priority and current_priority.get("id"):
+                    p = int(current_priority["id"])
+                    new_p = max(1, p - 1)  # bump up (lower number = higher priority)
+                    if new_p != p:
+                        _clickup_api(
+                            f"task/{task_id}",
+                            method="PUT",
+                            payload={"priority": new_p},
+                        )
+
+                # Add carryover note to description
+                current_desc = task.get("description", "") or ""
+                carryover_note = f"\n\n---\n⚡ Carried over from {latest_sprint['name']}"
+                if "Carried over from" not in current_desc:
+                    _clickup_api(
+                        f"task/{task_id}",
+                        method="PUT",
+                        payload={"description": current_desc + carryover_note},
+                    )
+
+                moved.append({
+                    "name": task_name[:80],
+                    "status": task.get("status", {}).get("status", ""),
+                    "sp": task.get("points") or 0,
+                })
+            except Exception as e:
+                errors.append({"task": task_name[:50], "error": str(e)})
+
+        # Calculate velocity
+        completed_sp = sum(t.get("points") or 0 for t in completed)
+        carryover_sp = sum(m.get("sp", 0) for m in moved)
+
+        return json.dumps({
+            "sprint_closed": latest_sprint["name"],
+            "sprint_number": latest_sprint["number"],
+            "completed_tasks": len(completed),
+            "completed_sp": completed_sp,
+            "carryover_tasks": len(moved),
+            "carryover_sp": carryover_sp,
+            "velocity": completed_sp,
+            "carryovers": moved,
+            "errors": errors,
+            "message": (
+                f"Sprint {latest_sprint['number']} closed. "
+                f"{len(completed)} tasks done ({completed_sp} SP), "
+                f"{len(moved)} carried over to backlog ({carryover_sp} SP) "
+                f"with 'carryover' tag and bumped priority."
+            ),
+        }, indent=2)
     except Exception as e:
         return json.dumps({"error": str(e)})
 

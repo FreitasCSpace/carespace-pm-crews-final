@@ -40,12 +40,15 @@ plan_and_execute_task:
 
     SPRINT BUILDING PRINCIPLES:
     1. Budget: {sprint_budget_sp} SP total (80% of velocity)
-    2. CRITICAL BUGS FIRST: urgent/high bugs are non-negotiable
-    3. FEATURES: pick those that deliver most user value
-    4. TASKS: include tasks that unblock other work
-    5. COMPLIANCE: max {max_compliance} items (Luis handles these alone)
-    6. TEAM BALANCE: spread work across engineers, don't overload anyone
-    7. MIX: aim for ~2 bugs + ~5 features + ~2 tasks + ~3 compliance
+    2. CARRYOVER FIRST: tasks tagged "carryover" get PRIORITY — they were
+       started in a previous sprint and not finished. Always include them
+       unless explicitly deprioritized. They already have bumped priority.
+    3. CRITICAL BUGS: urgent/high bugs are non-negotiable
+    4. FEATURES: pick those that deliver most user value
+    5. TASKS: include tasks that unblock other work
+    6. COMPLIANCE: max {max_compliance} items (Luis handles these alone)
+    7. TEAM BALANCE: spread work across engineers, don't overload anyone
+    8. MIX: aim for ~2 bugs + ~5 features + ~2 tasks + ~3 compliance
 
     To execute: call execute_sprint_selection with the sprint_list_id
     and your chosen task IDs as a JSON array:

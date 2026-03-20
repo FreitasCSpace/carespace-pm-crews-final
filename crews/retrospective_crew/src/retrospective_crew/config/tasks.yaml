@@ -18,6 +18,7 @@ measure:
     - Per-engineer breakdown: how many tasks/SP each person completed
     - Carry-overs: tasks still in progress or pending (incomplete)
     - Recommended next sprint SP = completed_sp × 0.80
+    - List each carryover task by name, assignee, and SP
 
     Also check GitHub:
     - Stale PRs (>{stale_pr_days}d) using get_stale_pull_requests
@@ -25,10 +26,28 @@ measure:
     - Commit activity using get_repo_activity on carespace-ui
   expected_output: >
     JSON with completion_rate, velocity_sp, planned_sp, per_engineer,
-    carry_overs, github_health, recommended_next_sp.
+    carry_overs (with details), github_health, recommended_next_sp.
   agent: retrospective_agent
   context:
     - find_sprint_task
+
+close_and_carryover:
+  description: >
+    Call close_sprint to handle incomplete tasks from the ending sprint.
+    This tool:
+    - Moves all incomplete tasks back to Master Backlog
+    - Tags them with "carryover" so sprint crew picks them first
+    - Bumps their priority by 1 level (normal→high, high→urgent)
+    - Adds a note "Carried over from Sprint N" to each task
+
+    Record the results: how many tasks carried over, total SP, which tasks.
+    The sprint crew will automatically prioritize these carryover tasks
+    when building the next sprint.
+  expected_output: >
+    JSON with carryover count, tasks moved, SP carried over.
+  agent: retrospective_agent
+  context:
+    - measure
 
 post_and_log:
   description: >
@@ -39,14 +58,18 @@ post_and_log:
     - carry_over: number of incomplete tasks
     - doc_url: "N/A" (no ClickUp Doc — report is in Slack)
 
+    Include carryover details in the summary:
+    "X tasks carried over to backlog (tagged 'carryover', priority bumped).
+     Sprint crew will pick them first for Sprint N+1."
+
     Also post a brief summary to {slack_engineering} using post.
 
     Log velocity data by creating a task in Sprint History ({sprint_history_id})
     using create_task_in_list:
     - name: "Sprint N Velocity: X SP (Y% completion)"
-    - description: full metrics summary
+    - description: full metrics summary including carryover list
   expected_output: >
     Confirmation of Slack posts and velocity log.
   agent: retrospective_agent
   context:
-    - measure
+    - close_and_carryover
