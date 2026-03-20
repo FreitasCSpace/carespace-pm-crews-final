@@ -154,7 +154,7 @@ def post_blocker(description: str, task_url: str, owner: str, impact: str = "") 
 def post_triage_summary(priorities_set: str, assignments: str,
                         story_points: str, alerts: str, reasoning: str) -> str:
     """
-    Posts a structured triage summary to #pm-alerts. Template enforced.
+    Posts a structured triage summary to #pm-engineering. Template enforced.
     USE THIS for triage results — not the generic 'post' tool.
     Do NOT add separators or headers — the tool handles formatting.
 
@@ -165,7 +165,7 @@ def post_triage_summary(priorities_set: str, assignments: str,
     reasoning: why these decisions were made
     """
     today = date.today().strftime("%B %d, %Y")
-    r = _api(SLACK["alerts"], f"Triage Report {today}", [
+    r = _api(SLACK["engineering"], f"Triage Report {today}", [
         _hdr(f"🔍 Triage Report — {today}"),
         _sec(
             f"*Priorities Changed*\n{priorities_set or '_None_'}\n\n"
