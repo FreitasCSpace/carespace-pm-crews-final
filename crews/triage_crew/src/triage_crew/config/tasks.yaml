@@ -32,7 +32,9 @@ decide_and_execute_task:
   description: >
     Based on the scan results, make INTELLIGENT decisions about:
     1. Priority adjustments — which tasks need escalation based on context
-    2. SLA alerts — group related breaches, don't spam one per task
+    2. SLA alerts — ONLY for tasks in the active sprint (marked in_sprint=True).
+       Backlog items are inventory, not committed work — do NOT create SLA alerts
+       for backlog items. Group related sprint breaches, don't spam one per task.
     3. Patterns — identify systemic issues (e.g., "20 HIPAA evidence gaps
        all overdue" is one alert, not 20)
 

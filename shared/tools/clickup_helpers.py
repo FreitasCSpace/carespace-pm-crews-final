@@ -320,20 +320,20 @@ def _assign_task(task_id: str, user_id: str) -> bool:
 @tool("Scan Backlog For Triage")
 def scan_backlog_for_triage() -> str:
     """
-    Scans ALL Master Backlog tasks and returns a structured summary
-    for the AI agent to analyze and make decisions on.
+    Scans Master Backlog tasks for hygiene issues AND checks the active
+    sprint for SLA breaches.
 
-    Returns:
-    - total_tasks: count
-    - unassigned: list of {id, name, tags, priority, age_hours} for tasks with no assignee
-    - wrong_priority: list of tasks that may need priority adjustment
-    - no_story_points: list of tasks missing SP estimates
-    - sla_at_risk: list of tasks approaching or breaching SLA
-    - by_tag: count of tasks per tag
-    - by_priority: count of tasks per priority level
+    Backlog scan (hygiene — always relevant):
+    - unassigned: tasks with no assignee
+    - wrong_priority: tasks that may need priority adjustment
+    - no_story_points: tasks missing SP estimates
+    - by_tag / by_priority: distribution counts
 
-    The AI agent should analyze this data and decide what actions to take,
-    then pass those decisions to execute_triage_actions.
+    Sprint scan (SLA — only for committed work):
+    - sla_at_risk: tasks IN THE ACTIVE SPRINT approaching or breaching SLA
+
+    SLA only applies to sprint items because backlog tasks are inventory,
+    not committed work. Flagging backlog items as SLA breaches creates noise.
     """
     from shared.config.context import BUG_SLA
     from datetime import datetime
@@ -351,6 +351,24 @@ def scan_backlog_for_triage() -> str:
     }
 
     try:
+        # ── Step 1: Load active sprint task IDs for SLA filtering ────────
+        sprint_task_ids = set()
+        try:
+            # Find active sprint list in the Sprints folder
+            folder_data = _clickup_api(f"folder/{SPRINT_FOLDER_ID}/list")
+            for lst in folder_data.get("lists", []):
+                if "sprint" in lst["name"].lower():
+                    sprint_data = _clickup_api(
+                        f"list/{lst['id']}/task?archived=false&include_closed=false"
+                    )
+                    for st in sprint_data.get("tasks", []):
+                        sprint_task_ids.add(st["id"])
+        except Exception:
+            pass  # If sprint lookup fails, SLA checks run on nothing (safe)
+
+        summary["sprint_tasks_found"] = len(sprint_task_ids)
+
+        # ── Step 2: Scan Master Backlog for hygiene ──────────────────────
         all_tasks = []
         page = 0
         while True:
@@ -362,6 +380,16 @@ def scan_backlog_for_triage() -> str:
             if len(tasks) < 100:
                 break
             page += 1
+
+        # Also include sprint tasks for SLA check
+        all_task_ids = {t["id"] for t in all_tasks}
+        for sid in sprint_task_ids:
+            if sid not in all_task_ids:
+                try:
+                    t = _clickup_api(f"task/{sid}")
+                    all_tasks.append(t)
+                except Exception:
+                    pass
 
         summary["total_tasks"] = len(all_tasks)
 
@@ -389,20 +417,22 @@ def scan_backlog_for_triage() -> str:
                 "assignee_count": len(assignees),
             }
 
-            # Unassigned tasks
+            # Unassigned tasks (backlog hygiene — always relevant)
             if not assignees:
                 summary["unassigned"].append(task_info)
 
-            # No story points
+            # No story points (backlog hygiene — always relevant)
             if points is None:
                 summary["no_story_points"].append({"id": t["id"], "name": name[:80], "priority": pri})
 
-            # SLA at risk
-            sla_hours = BUG_SLA.get(pri, 168)
-            if age_hours > sla_hours * 0.8:  # 80% of SLA = at risk
-                task_info["sla_hours"] = sla_hours
-                task_info["breached"] = age_hours > sla_hours
-                summary["sla_at_risk"].append(task_info)
+            # SLA at risk — ONLY for tasks in the active sprint
+            if t["id"] in sprint_task_ids:
+                sla_hours = BUG_SLA.get(pri, 168)
+                if age_hours > sla_hours * 0.8:  # 80% of SLA = at risk
+                    task_info["sla_hours"] = sla_hours
+                    task_info["breached"] = age_hours > sla_hours
+                    task_info["in_sprint"] = True
+                    summary["sla_at_risk"].append(task_info)
 
             # Potential wrong priority (AI should verify)
             name_lower = name.lower()
