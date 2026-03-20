@@ -17,14 +17,16 @@ scan_accounts:
        - Find stale tickets (date_updated >{ticket_stale_hours}h ago).
 
     3. Alerts list ({alerts_id}):
-       - For each risk identified above, check_duplicate_task first.
+       - For each risk identified above, check_duplicate_task with
+         list_id="{alerts_id}" first (search ONLY in Alerts list).
        - If no duplicate: create alert in Alerts list ({alerts_id}) using
          create_task_in_list with appropriate priority and tags.
        - Name format: "[ALERT] 🏥 [type]: [description]"
        - Tags: relevant domain tags + 'customer-success'
 
     4. Client feedback items tagged 'client-feedback' in Master Backlog ({master_backlog_id}):
-       - For each without a linked backlog task, check_duplicate_task.
+       - For each without a linked backlog task, check_duplicate_task with
+         list_id="{master_backlog_id}" (search ONLY in Master Backlog).
        - If no duplicate: create task in Master Backlog using create_task_in_list
          titled '[FEEDBACK] summary' with tags [relevant-domain, 'feature', 'client-feedback'].
   expected_output: >

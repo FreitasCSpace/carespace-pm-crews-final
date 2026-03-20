@@ -65,9 +65,10 @@ post_sprint_plan_task:
     - If new sprint was created: full sprint plan with task list and reasoning.
     - If sprint was already active: status update ("Sprint N still active,
       ends Apr 05, N tasks remaining").
-    Also post brief summary to {slack_engineering}.
+    Post ONLY to {slack_sprint}. Do NOT post to other channels.
+    Other crews (daily pulse, exec report) handle their own channels.
   expected_output: >
-    Confirmation of Slack posts.
+    Confirmation of Slack post to {slack_sprint}.
   agent: sprint_agent
   context:
     - plan_and_execute_task
