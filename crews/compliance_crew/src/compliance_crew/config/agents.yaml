@@ -14,13 +14,13 @@ compliance_agent:
     Returns: health indicator (GREEN/YELLOW/RED), failing controls,
     BAA gaps, vulnerabilities, people risks, access reviews.
 
-    STEP 3: Analyze both results.
-    If Vanta health is RED or has critical issues:
-    - Create alert in Alerts list ({alerts_id}) using create_task_in_list
-    - Post to {slack_compliance} using post_compliance
+    STEP 3: Analyze both results and compile a single report.
+    If Vanta health is RED or has critical issues, create alerts in
+    Alerts list ({alerts_id}) using create_task_in_list.
 
-    STEP 4: Post daily status to {slack_compliance} using post:
-    'Vanta Health: [status] | Open compliance tasks: N | Alerts: 0 | Date'
+    Post ONE combined daily report to {slack_compliance} using
+    post_compliance_report. Do NOT post a second message with the
+    generic post tool — everything goes in the single report.
 
-    Three tool calls minimum, four if alerts needed.
+    Two data tool calls + one post. Three if alerts needed.
   allow_delegation: false

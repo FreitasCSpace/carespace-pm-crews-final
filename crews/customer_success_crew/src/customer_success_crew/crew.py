@@ -1,7 +1,3 @@
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
-
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
@@ -11,6 +7,7 @@ from shared.tools import (
     create_clickup_task,
     update_clickup_task,
     post_cs_alert,
+    post_cs_summary,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_cs_output
@@ -39,6 +36,7 @@ class CustomerSuccessCrew:
                 create_clickup_task,
                 update_clickup_task,
                 post_cs_alert,
+                post_cs_summary,
             ],
             verbose=True,
             allow_delegation=False,
@@ -52,7 +50,7 @@ class CustomerSuccessCrew:
         )
 
     @task
-    def post_cs_summary(self) -> Task:
+    def post_cs_summary_task(self) -> Task:
         return Task(config=interpolate_config(self.tasks_config["post_cs_summary"]))
 
     @crew

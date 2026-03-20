@@ -4,7 +4,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 from shared.tools import (
     dedup_backlog_cleanup, bulk_assign_and_estimate,
     scan_backlog_for_triage, execute_triage_actions,
-    post_triage_summary, post,
+    post_triage_summary,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_triage_actions
@@ -31,7 +31,7 @@ class TriageCrew:
             tools=[
                 dedup_backlog_cleanup, bulk_assign_and_estimate,
                 scan_backlog_for_triage, execute_triage_actions,
-                post_triage_summary, post,
+                post_triage_summary,
             ],
             verbose=True,
         )

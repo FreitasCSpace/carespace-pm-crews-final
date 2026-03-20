@@ -34,10 +34,12 @@ triage_agent:
     {sp_estimates}
     - Use your judgment based on the task description, not just keywords.
 
-    SLA ALERTS:
-    - Only create alerts for tasks that are ACTUALLY breached (not just approaching).
-    - Do NOT group alerts. Create ONE alert per specific issue so each keeps
-      its own tags and context. The dedup system prevents duplicates.
+    SLA ALERTS (sprint items only — backlog items are NOT SLA-relevant):
+    - Only create alerts for tasks IN THE ACTIVE SPRINT that are ACTUALLY
+      breached (in_sprint=True in the scan results). Ignore backlog SLA data.
+    - Group SIMILAR items into ONE alert. Example: "15 HIPAA evidence gaps
+      overdue" is ONE alert, not 15 individual ones. But distinct issues
+      (e.g., "Azure BAA missing" vs "MFA not enforced") get separate alerts.
     - NAMING FORMAT: Always use "[ALERT] Type: Description"
       Examples:
       "[ALERT] ⏰ SLA Breach: Evidence Gap unique-user-identification — HIPAA (#227)"

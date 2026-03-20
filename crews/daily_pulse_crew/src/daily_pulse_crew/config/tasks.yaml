@@ -120,10 +120,14 @@ compile_and_post:
     IMPORTANT: Do NOT add separator lines (═══) or section headers.
     The tool adds all formatting automatically. Just pass clean content.
 
-    Then escalate any 🔴 Blockers to {slack_alerts} using post_blocker.
+    ONLY IF there are actual blockers (blocked tasks, SLA breaches, or
+    critical alerts), escalate to {slack_alerts} using post_blocker.
+    If there are ZERO blockers, skip escalation entirely — no post needed.
 
-    CRITICAL BLOCKERS → post ONE consolidated summary to {slack_engineering}
-    using post_blocker_summary (NOT individual posts). Include for each:
+    CRITICAL BLOCKERS (only if they exist) → post ONE consolidated summary
+    to {slack_engineering} using post_blocker_summary (NOT individual posts).
+    If there are no critical blockers, do NOT post to {slack_engineering}.
+    Include for each:
     - Name and ClickUp link
     - Owner/assignee
     - WHY it's blocking (impact description)

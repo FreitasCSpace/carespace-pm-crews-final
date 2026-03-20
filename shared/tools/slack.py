@@ -390,3 +390,30 @@ def post_cs_alert(account_name: str, risk_type: str, detail: str) -> str:
         _ctx("_CS alert by CareSpace PM AI_"),
     ])
     return json.dumps({"ok": r.get("ok")})
+
+
+@tool("post_cs_summary")
+def post_cs_summary(onboarding_health: str, support_health: str,
+                    churn_risks: str, actions_taken: str) -> str:
+    """
+    Posts a daily customer success summary to #pm-customer-success.
+    Only call this if there are actual issues to report — skip if healthy.
+
+    onboarding_health: e.g. '5 active, 1 stale (>7d), 0 unowned'
+    support_health: e.g. '3 open tickets, 1 unresponsive (>24h), 0 stale'
+    churn_risks: details of flagged accounts, or 'None detected'
+    actions_taken: alerts created, feedback routed, etc.
+    """
+    today = date.today().strftime("%B %d, %Y")
+    r = _api(SLACK["cs"], f"CS Summary {today}", [
+        _hdr(f"🧑‍💼 Customer Success Summary — {today}"),
+        _sec(
+            f"*Onboarding Health*\n{onboarding_health}\n\n"
+            f"*Support Health*\n{support_health}\n\n"
+            f"*Churn Risks*\n{churn_risks}"
+        ),
+        _div(),
+        _sec(f"*Actions Taken*\n{actions_taken}"),
+        _ctx("_CS summary by CareSpace PM AI_"),
+    ])
+    return json.dumps({"ok": r.get("ok")})

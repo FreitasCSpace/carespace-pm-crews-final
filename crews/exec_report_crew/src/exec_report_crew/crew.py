@@ -3,7 +3,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, get_tasks_by_list, batch_compliance_check,
-    check_duplicate_task, create_clickup_task, post_exec, post,
+    check_duplicate_task, create_clickup_task, post_exec,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_exec_report
@@ -29,7 +29,7 @@ class ExecReportCrew:
             config=interpolate_config(self.agents_config["exec_reporter_agent"]),
             tools=[
                 create_sprint_list, get_tasks_by_list, batch_compliance_check,
-                check_duplicate_task, create_clickup_task, post_exec, post,
+                check_duplicate_task, create_clickup_task, post_exec,
             ],
             verbose=True,
         )
