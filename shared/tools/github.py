@@ -104,7 +104,7 @@ def _load_all_backlog_tasks() -> list[str]:
         while True:
             try:
                 data = _clickup_api(
-                    f"list/{INTAKE_TARGET}/task?archived=false&include_closed={include_closed}&page={page}"
+                    f"list/{INTAKE_TARGET}/task?archived=false&include_closed={include_closed}&page={page}&page_size=100"
                 )
                 tasks = data.get("tasks", [])
                 if not tasks:

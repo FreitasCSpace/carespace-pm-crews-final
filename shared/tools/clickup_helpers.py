@@ -400,7 +400,7 @@ def scan_backlog_for_triage() -> str:
         all_tasks = []
         page = 0
         while True:
-            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}")
+            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}&page_size=100")
             tasks = data.get("tasks", [])
             if not tasks:
                 break
@@ -638,7 +638,7 @@ def scan_backlog_for_sprint() -> str:
         all_tasks = []
         page = 0
         while True:
-            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}")
+            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}&page_size=100")
             tasks = data.get("tasks", [])
             if not tasks:
                 break
@@ -966,7 +966,7 @@ def close_sprint() -> str:
         while True:
             tasks_data = _clickup_api(
                 f"list/{latest_sprint['list_id']}/task?archived=false"
-                f"&include_closed=true&page={page}"
+                f"&include_closed=true&page={page}&page_size=100"
             )
             tasks = tasks_data.get("tasks", [])
             if not tasks:
@@ -1120,7 +1120,7 @@ def bulk_assign_and_estimate() -> str:
         all_tasks = []
         page = 0
         while True:
-            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}")
+            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}&page_size=100")
             tasks = data.get("tasks", [])
             if not tasks:
                 break
@@ -1197,7 +1197,7 @@ def batch_compliance_check() -> str:
         all_tasks = []
         page = 0
         while True:
-            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}")
+            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}&page_size=100")
             tasks = data.get("tasks", [])
             if not tasks:
                 break
@@ -1253,7 +1253,7 @@ def dedup_backlog_cleanup(dry_run: bool = True) -> str:
         page = 0
         while True:
             data = _clickup_api(
-                f"list/{L['master_backlog']}/task?archived=false&page={page}"
+                f"list/{L['master_backlog']}/task?archived=false&page={page}&page_size=100"
             )
             tasks = data.get("tasks", [])
             if not tasks:
