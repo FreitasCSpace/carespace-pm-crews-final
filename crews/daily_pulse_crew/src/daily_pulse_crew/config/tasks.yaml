@@ -36,12 +36,18 @@ scan_and_gather:
 
     3. Find stale tasks: in progress but date_updated >{stale_task_days} days ago.
 
-    4. Identify sprint blockers — things impeding sprint progress:
+    4. Identify sprint blockers — things ACTIVELY impeding sprint progress:
        - Tasks in 'blocked' ClickUp status (these go in the Blocked section)
-       - Critical unresolved alerts from Alerts list ({alerts_id}) that
-         relate to sprint work
-       - Scan task descriptions for blocker keywords: 'waiting on',
+       - Tasks with blocker keywords in descriptions: 'waiting on',
          'blocked by', 'depends on', 'need from'
+
+       IMPORTANT: A "blocker" is something that PREVENTS work from moving
+       forward. Pending compliance or security tasks are NOT blockers —
+       they are just work waiting to be started. Only flag something as a
+       blocker if it is actively preventing another task from progressing.
+
+       Blocker count for Meeting Mode = tasks in 'blocked' status +
+       tasks with explicit dependency blockers. NOT total pending tasks.
 
     5. Check GitHub: stale PRs (>{stale_pr_days}d) using get_stale_pull_requests.
 
@@ -136,6 +142,8 @@ compile_and_post:
     ═══════════════════════════════════
     🎯 MEETING MODE
     ═══════════════════════════════════
+    Blocker count = tasks in 'blocked' ClickUp status + tasks with
+    explicit dependency blockers. Pending tasks are NOT blockers.
     [🔴 STANDUP MODE: X blockers. 15-min focused session.]
     OR
     [🟢 OPEN SLOT: No blockers. Available for strategic discussion.]

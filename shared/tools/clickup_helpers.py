@@ -775,16 +775,21 @@ def create_sprint_list() -> str:
                         if p.isdigit():
                             num = max(num, int(p))
 
-            # Extract end date from name (e.g., "Sprint 1 — Mar 23 to Apr 05")
+            # Extract start and end dates from name (e.g., "Sprint 1 — Mar 23 to Apr 05")
+            months = ["Jan","Feb","Mar","Apr","May","Jun",
+                      "Jul","Aug","Sep","Oct","Nov","Dec"]
+            start_date = None
             end_date = None
-            date_match = re.search(r'to\s+(\w+\s+\d+)', name)
+            date_match = re.search(r'(\w+\s+\d+)\s+to\s+(\w+\s+\d+)', name)
             if date_match:
                 try:
-                    end_str = date_match.group(1)
-                    end_date = date(today.year,
-                                   list(["Jan","Feb","Mar","Apr","May","Jun",
-                                         "Jul","Aug","Sep","Oct","Nov","Dec"]).index(end_str.split()[0][:3]) + 1,
-                                   int(end_str.split()[1]))
+                    s = date_match.group(1).split()
+                    start_date = date(today.year, months.index(s[0][:3]) + 1, int(s[1]))
+                except (ValueError, IndexError):
+                    start_date = None
+                try:
+                    e = date_match.group(2).split()
+                    end_date = date(today.year, months.index(e[0][:3]) + 1, int(e[1]))
                 except (ValueError, IndexError):
                     end_date = None
 
@@ -794,16 +799,19 @@ def create_sprint_list() -> str:
                     "list_id": lst["id"],
                     "name": name,
                     "number": num,
+                    "start_date": start_date,
                     "end_date": end_date,
                 }
 
         # Decision: active sprint exists?
         if latest_sprint and latest_sprint["end_date"] and latest_sprint["end_date"] >= today:
             # Sprint is still active — return it, don't create new
+            start_iso = latest_sprint["start_date"].isoformat() if latest_sprint.get("start_date") else None
             return json.dumps({
                 "list_id": latest_sprint["list_id"],
                 "sprint_name": latest_sprint["name"],
                 "sprint_number": latest_sprint["number"],
+                "start_date": start_iso,
                 "end_date": latest_sprint["end_date"].isoformat(),
                 "status": "active",
                 "message": f"Sprint {latest_sprint['number']} is still active (ends {latest_sprint['end_date']}). No new sprint created.",
