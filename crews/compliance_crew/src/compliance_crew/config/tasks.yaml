@@ -1,21 +1,37 @@
-health_check:
+gather_health:
   description: >
-    Daily compliance health check. Three steps:
+    Collect compliance health data from two sources:
 
-    1. Call compliance_health_check to get open compliance task count.
+    1. Call compliance_health_check to get open compliance task count
+       and a sample of critical compliance tasks.
 
     2. Call get_vanta_compliance_health_summary (MCP tool) for live
-       Vanta health data.
+       Vanta health data including failing controls, test failures,
+       evidence gaps, and overall health indicator.
 
-    3. Post ONE combined report to {slack_compliance} using post_compliance_report
-       (NOT the generic post tool). Pass these 4 parameters:
-       - vanta_health: "GREEN — 0 critical issues" or "RED — 3 critical"
-       - open_tasks: "268 open compliance tasks (sample: BAA gaps, control failures...)"
-       - critical_findings: bullet list of any critical findings, or "None"
-       - status_summary: "Vanta: GREEN | Tasks: 268 | Alerts: 0 | Date: 2026-03-18"
+    Compile results into a structured summary with:
+    - vanta_health: GREEN/YELLOW/RED with critical issue count
+    - open_tasks: total count with sample of highest priority items
+    - critical_findings: any critical items requiring immediate attention
+    - status_summary: one-line status
+  expected_output: >
+    JSON: {vanta_health: str, open_compliance_tasks: N, critical_findings: [],
+    status_summary: str}
+  agent: compliance_agent
+
+post_report:
+  description: >
+    Post ONE combined report to {slack_compliance} using post_compliance_report
+    (NOT the generic post tool). Pass these 4 parameters:
+    - vanta_health: "GREEN — 0 critical issues" or "RED — 3 critical"
+    - open_tasks: "268 open compliance tasks (sample: BAA gaps, control failures...)"
+    - critical_findings: bullet list of any critical findings, or "None"
+    - status_summary: "Vanta: GREEN | Tasks: 268 | Alerts: 0 | Date: 2026-03-18"
 
     IMPORTANT: Post everything in ONE message using post_compliance_report.
     Do NOT post separate messages for alert and status.
   expected_output: >
-    JSON: {vanta_health: str, open_compliance_tasks: N, status_posted: bool}
+    Confirmation of report posted to Slack.
   agent: compliance_agent
+  context:
+    - gather_health

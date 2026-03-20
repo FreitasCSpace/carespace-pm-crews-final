@@ -1,7 +1,3 @@
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
-
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
@@ -9,7 +5,6 @@ from shared.tools import (
     batch_compliance_check,
     create_clickup_task,
     post_compliance,
-    post,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_compliance_output
@@ -32,17 +27,21 @@ class ComplianceCrew:
     def compliance_agent(self) -> Agent:
         return Agent(
             config=interpolate_config(self.agents_config["compliance_agent"]),
-            tools=[batch_compliance_check, create_clickup_task, post_compliance, post],
+            tools=[batch_compliance_check, create_clickup_task, post_compliance],
             verbose=True,
             allow_delegation=False,
         )
 
     @task
-    def health_check(self) -> Task:
+    def gather_health(self) -> Task:
         return Task(
-            config=interpolate_config(self.tasks_config["health_check"]),
+            config=interpolate_config(self.tasks_config["gather_health"]),
             guardrail=validate_compliance_output,
         )
+
+    @task
+    def post_report(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["post_report"]))
 
     @crew
     def crew(self) -> Crew:

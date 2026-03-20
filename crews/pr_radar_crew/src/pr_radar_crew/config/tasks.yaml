@@ -1,4 +1,4 @@
-scan:
+scan_and_triage:
   description: >
     Full PR and CI scan across all carespace-ai repos.
 
@@ -27,16 +27,24 @@ scan:
       list_id="{master_backlog_id}" (search ONLY in Master Backlog)
     - If no duplicate: create task in Master Backlog with tags [domain, 'ci-fix', 'github'].
 
-    STEP 5: Post summary using post_pr_radar_report (NOT generic post):
+    NOTE: This crew typically handles 5-15 PRs — small enough for
+    individual tool calls. No batch tool needed.
+  expected_output: >
+    JSON: {total_prs: N, stale_prs: [{repo, number, title, author, age, url}],
+    critical_stale: N, ci_failures: [{repo, status}],
+    tasks_created: N, alerts_created: N}
+  agent: pr_radar_agent
+
+post_report:
+  description: >
+    Post summary using post_pr_radar_report (NOT generic post):
     - stale_prs: bullet list of stale PRs with age and link
     - critical_prs: bullet list of critical (>{critical_stale_pr_days}d) PRs
     - ci_status: failures or 'All passing ✅'
     - tasks_created: what tasks/alerts were created
     - summary: one-line totals (e.g. '5 stale, 1 critical, 0 CI failures')
-
-    NOTE: This crew typically handles 5-15 PRs — small enough for
-    individual tool calls. No batch tool needed.
   expected_output: >
-    JSON: {total_prs: N, stale_prs: N, critical_stale: N, ci_failures: N,
-    tasks_created: N, alerts_created: N}
+    Confirmation of report posted to Slack.
   agent: pr_radar_agent
+  context:
+    - scan_and_triage

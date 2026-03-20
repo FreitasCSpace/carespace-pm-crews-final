@@ -1,14 +1,10 @@
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
-
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     get_prs, get_ci, get_stale_prs, get_contributors,
     get_tasks_by_list, check_duplicate_task, create_clickup_task,
-    post_blocker, post_pr_radar, post,
+    post_blocker, post_pr_radar,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_pr_radar_output
@@ -33,18 +29,22 @@ class PrRadarCrew:
             tools=[
                 get_prs, get_ci, get_stale_prs, get_contributors,
                 get_tasks_by_list, check_duplicate_task, create_clickup_task,
-                post_blocker, post_pr_radar, post,
+                post_blocker, post_pr_radar,
             ],
             verbose=True,
             allow_delegation=False,
         )
 
     @task
-    def scan(self) -> Task:
+    def scan_and_triage(self) -> Task:
         return Task(
-            config=interpolate_config(self.tasks_config["scan"]),
+            config=interpolate_config(self.tasks_config["scan_and_triage"]),
             guardrail=validate_pr_radar_output,
         )
+
+    @task
+    def post_report(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["post_report"]))
 
     @crew
     def crew(self) -> Crew:
