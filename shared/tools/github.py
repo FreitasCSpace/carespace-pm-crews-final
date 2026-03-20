@@ -422,7 +422,7 @@ def get_prs(repo: str = "") -> str:
     return _get_prs_impl(repo)
 
 
-@tool("Get CI Status")
+@tool("get_ci_status")
 def get_ci(repo: str, branch: str = "main") -> str:
     """
     Returns latest CI check run results for a given branch.
@@ -454,7 +454,7 @@ def get_ci(repo: str, branch: str = "main") -> str:
     })
 
 
-@tool("Get Stale Pull Requests")
+@tool("get_stale_pull_requests")
 def get_stale_prs(days: int = 7) -> str:
     """
     Returns all PRs open longer than N days across all repos.
@@ -483,7 +483,7 @@ def get_contributors(repo: str) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool("Get Repo Activity")
+@tool("get_repo_activity")
 def get_activity(repo: str, days: int = 14) -> str:
     """
     Returns commit count, open PR count, and last push for a repo over N days.

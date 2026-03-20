@@ -223,7 +223,7 @@ def add_tag_to_task(task_id: str, tag_name: str) -> str:
         return json.dumps({"error": str(e)})
 
 
-@tool("Create Task In List")
+@tool("create_task_in_list")
 def create_clickup_task(list_id: str, name: str, description: str = "",
                         priority: int = 3, assignees: list[int] = None,
                         tags: list[str] = None, points: int = None) -> str:
@@ -712,7 +712,7 @@ def move_task_to_list(task_id: str, target_list_id: str) -> str:
         return json.dumps({"error": "Failed to move task"})
 
 
-@tool("Create Or Get Sprint List")
+@tool("create_or_get_sprint_list")
 def create_sprint_list() -> str:
     """
     Smart sprint management. Checks if a current sprint exists and is active.
@@ -889,7 +889,7 @@ def bulk_assign_and_estimate() -> str:
     return json.dumps(stats, indent=2)
 
 
-@tool("Compliance Health Check")
+@tool("compliance_health_check")
 def batch_compliance_check() -> str:
     """
     Complete daily compliance health check in one call. Pulls Vanta health

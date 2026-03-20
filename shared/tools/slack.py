@@ -181,7 +181,7 @@ def post_triage_summary(priorities_set: str, assignments: str,
     return json.dumps({"ok": r.get("ok")})
 
 
-@tool("Post PR Radar Report to Slack")
+@tool("post_pr_radar_report")
 def post_pr_radar(stale_prs: str, critical_prs: str, ci_status: str,
                   tasks_created: str, summary: str) -> str:
     """
@@ -313,7 +313,7 @@ def post_gtm(headline: str, deals_at_risk: int, pipeline_value: str,
 
 # ── Executive Report ──────────────────────────────────────────────────────────
 
-@tool("Post Executive Report to Slack")
+@tool("post_executive_report")
 def post_exec(health_dashboard: str, sprint_status: str, compliance: str,
               risks: str, wins: str) -> str:
     """
@@ -345,7 +345,7 @@ def post_exec(health_dashboard: str, sprint_status: str, compliance: str,
 
 # ── Compliance ────────────────────────────────────────────────────────────────
 
-@tool("Post Compliance Report to Slack")
+@tool("post_compliance_report")
 def post_compliance(vanta_health: str, open_tasks: str,
                     critical_findings: str, status_summary: str) -> str:
     """

@@ -1,6 +1,6 @@
 create_sprint_task:
   description: >
-    Call create_sprint_list. It checks if an active sprint exists:
+    Call create_or_get_sprint_list. It checks if an active sprint exists:
     - If status = 'active': a sprint is already running. Return it.
     - If status = 'created': a new sprint was created. Proceed to plan it.
   expected_output: >

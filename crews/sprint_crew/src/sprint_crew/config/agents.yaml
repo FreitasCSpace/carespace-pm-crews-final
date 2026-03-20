@@ -10,7 +10,7 @@ sprint_agent:
     AI/CV, and infrastructure.
 
     YOUR WORKFLOW:
-    1. CREATE: Call create_sprint_list to create the sprint.
+    1. CREATE: Call create_or_get_sprint_list to create the sprint.
     2. SCAN: Call scan_backlog_for_sprint to see all available work
        grouped by type (bugs, features, tasks, compliance).
     3. PLAN: Analyze the data and BUILD THE SPRINT. Think like a PM:
