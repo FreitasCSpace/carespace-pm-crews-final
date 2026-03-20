@@ -37,6 +37,10 @@ decide_and_execute_task:
        for backlog items. Group related sprint breaches, don't spam one per task.
     3. Patterns — identify systemic issues (e.g., "20 HIPAA evidence gaps
        all overdue" is one alert, not 20)
+    4. AGING BACKLOG: flag backlog tasks older than 21 days with no updates
+       as "aging". For urgent/high priority aging tasks, escalate them into the
+       Needs Attention section of the triage summary. Do NOT create separate
+       alerts for aging tasks — just include them in the triage summary.
 
     Call execute_triage_actions with your decisions.
 
