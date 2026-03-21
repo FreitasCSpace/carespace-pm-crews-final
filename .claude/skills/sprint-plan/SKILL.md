@@ -15,7 +15,7 @@ Read these files for configuration:
 
 ## Key IDs
 - Master Backlog: `901326439232`
-- Sprint Candidates: `901326510544`
+- Sprint Candidates: `901326510572`
 - Sprint Folder: `901317811717`
 - ClickUp API Key: Use the one in environment or from context
 

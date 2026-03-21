@@ -22,10 +22,11 @@ SPACES = {
 # ======================================================================
 FOLDERS = {
     # CareSpace Engine
-    "backlog":    "901317811713",
-    "sprints":    "901317811717",
-    "operations": "901317811718",
-    "playbooks":  "901317811721",
+    "backlog":          "901317811713",
+    "sprint_planning":  "901317852083",
+    "sprints":          "901317811717",
+    "operations":       "901317811718",
+    "playbooks":        "901317811721",
     # GTM & Revenue
     "pipeline":          "901317811738",
     "marketing":         "901317811726",
@@ -41,7 +42,7 @@ L = {
     "master_backlog":       "901326439232",
 
     # Sprints
-    "sprint_candidates":    "901326510544",   # Staging area — tasks proposed for next sprint
+    "sprint_candidates":    "901326510572",   # Staging area — tasks proposed for next sprint
     # sprint_crew creates: "Sprint N — {start} to {end}" in folder 901317811717
 
     # Operations
