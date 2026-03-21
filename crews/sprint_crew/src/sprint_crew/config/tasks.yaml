@@ -47,12 +47,10 @@ post_sprint_plan_task:
   description: >
     Post ONE message to {slack_sprint} using post_sprint_plan.
 
-    The finalize_task output contains these fields you MUST use:
-    - sprint_name: from create_sprint_task (e.g. "Sprint 1 — Mar 23 to Apr 05")
-    - tasks_json: PASS THIS DIRECTLY from finalize_task output. Do NOT rebuild it.
-    - total_sp: from finalize_task output
+    Call: post_sprint_plan(sprint_name=<sprint name from create_sprint_task>,
+                           sprint_list_id=<list_id from create_sprint_task or finalize_task>)
 
-    Call: post_sprint_plan(sprint_name=..., tasks_json=<tasks_json from finalize>, total_sp=<total_sp>)
+    The tool fetches tasks directly from ClickUp — you do NOT need to pass task data.
 
     If candidates were empty or finalize errored, post a warning instead.
 

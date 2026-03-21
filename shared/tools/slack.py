@@ -116,18 +116,31 @@ def post_standup(executive_summary: str, done: str, in_progress: str,
 # ── Sprint Plan ───────────────────────────────────────────────────────────────
 
 @tool("Post Sprint Plan to Slack")
-def post_sprint_plan(sprint_name: str, tasks_json: str, total_sp: int) -> str:
+def post_sprint_plan(sprint_name: str, sprint_list_id: str) -> str:
     """
     Posts the sprint planning results to #pm-sprint-board.
+    Fetches tasks directly from the sprint list — no JSON passing needed.
     sprint_name: e.g. 'Sprint 1 — Mar 23 to Apr 05'
-    tasks_json: JSON array of {name, priority, assignee, story_points}
-    total_sp: total story points committed
+    sprint_list_id: ClickUp list ID of the sprint to post about
     """
-    tasks = json.loads(tasks_json)
-    lines = [
-        f"• *{t['name']}*  →  _{t.get('assignee', 'unassigned')}_  `{t.get('story_points', '?')} SP`"
-        for t in tasks
-    ]
+    from shared.tools.clickup_helpers import _clickup_api
+    from shared.config.context import SP_CUSTOM_FIELD_ID
+
+    # Fetch tasks directly from the sprint list
+    data = _clickup_api(f"list/{sprint_list_id}/task?archived=false")
+    tasks = data.get("tasks", [])
+
+    total_sp = 0
+    lines = []
+    for t in tasks:
+        assignees = [a.get("username", "?") for a in t.get("assignees", [])]
+        assignee_str = ", ".join(assignees) if assignees else "unassigned"
+        sp = next((cf.get("value") for cf in t.get("custom_fields", [])
+                    if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), "?")
+        if sp != "?":
+            total_sp += int(sp)
+        lines.append(f"• *{t['name']}*  →  _{assignee_str}_  `{sp} SP`")
+
     r = _api(SLACK["sprint"], f"Sprint plan: {sprint_name}", [
         _hdr(f"📅 {sprint_name}"),
         _sec(f"*{len(tasks)} tasks committed  •  {total_sp} story points*"),
