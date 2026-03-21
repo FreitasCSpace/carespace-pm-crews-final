@@ -354,28 +354,66 @@ _GITHUB_REF_RE = re.compile(r"\(([a-zA-Z0-9_.-]+#\d+)\)\s*$")
 _COMPLIANCE_REF_RE = re.compile(r"\(#(\d+)\)\s*$")
 
 
-@tool("Sync Closed GitHub Issues to ClickUp")
+def _extract_github_ref(task: dict) -> dict | None:
+    """Extract GitHub repo + issue number from a ClickUp task title."""
+    name = task.get("name", "")
+    tags = [tag["name"] for tag in task.get("tags", [])]
+
+    # Engineering: title ends with (repo#123)
+    m = _GITHUB_REF_RE.search(name)
+    if m:
+        ref = m.group(1)
+        repo_name, issue_num = ref.rsplit("#", 1)
+        return {
+            "task_id": task["id"],
+            "task_name": name,
+            "task_status": task.get("status", {}).get("status", "").lower(),
+            "repo": f"{ORG}/{repo_name}",
+            "issue_number": int(issue_num),
+        }
+
+    # Compliance: title ends with (#543)
+    if "compliance" in tags or name.startswith("[COMPLIANCE]"):
+        m2 = _COMPLIANCE_REF_RE.search(name)
+        if m2:
+            return {
+                "task_id": task["id"],
+                "task_name": name,
+                "task_status": task.get("status", {}).get("status", "").lower(),
+                "repo": COMPLIANCE_REPO,
+                "issue_number": int(m2.group(1)),
+            }
+
+    return None
+
+
+@tool("Sync GitHub Issues to ClickUp")
 def sync_closed_issues() -> str:
     """
-    Scans the ClickUp Master Backlog for open tasks that were imported from
-    GitHub. For each one, checks if the GitHub issue is now closed. If so,
-    closes the ClickUp task (status: complete).
+    Two-way sync between GitHub issues and ClickUp tasks.
+    GitHub is the source of truth:
+
+    1. GitHub closed + ClickUp open → close ClickUp task (status: complete)
+    2. GitHub open + ClickUp complete → reopen ClickUp task (status: to do)
 
     Call this ONCE per intake run — it handles all repos automatically.
     """
     stats = {
         "backlog_scanned": 0, "github_tasks_found": 0,
-        "closed_on_github": 0, "clickup_closed": 0, "errors": 0,
+        "closed_on_github": 0, "clickup_closed": 0,
+        "reopened_from_github": 0, "clickup_reopened": 0,
+        "errors": 0,
     }
     closed_tasks = []
+    reopened_tasks = []
 
-    # Load all open backlog tasks tagged "github" or "compliance"
+    # Load ALL backlog tasks (open + closed) with GitHub refs
     try:
         all_tasks = []
         page = 0
         while True:
             data = _clickup_api(
-                f"list/{INTAKE_TARGET}/task?archived=false&include_closed=false&page={page}&page_size=100"
+                f"list/{INTAKE_TARGET}/task?archived=false&include_closed=true&page={page}&page_size=100"
             )
             tasks = data.get("tasks", [])
             if not tasks:
@@ -390,49 +428,26 @@ def sync_closed_issues() -> str:
         stats["error_detail"] = f"Failed to load backlog: {e}"
         return json.dumps(stats, indent=2)
 
-    # Filter to tasks with GitHub refs in title
+    # Extract GitHub refs from all tasks
     github_tasks = []
     for t in all_tasks:
-        name = t.get("name", "")
-        tags = [tag["name"] for tag in t.get("tags", [])]
-
-        # Engineering: title ends with (repo#123)
-        m = _GITHUB_REF_RE.search(name)
-        if m:
-            ref = m.group(1)  # e.g. "carespace-ui#152"
-            repo_name, issue_num = ref.rsplit("#", 1)
-            github_tasks.append({
-                "task_id": t["id"],
-                "task_name": name,
-                "repo": f"{ORG}/{repo_name}",
-                "issue_number": int(issue_num),
-            })
-            continue
-
-        # Compliance: title ends with (#543)
-        if "compliance" in tags or name.startswith("[COMPLIANCE]"):
-            m2 = _COMPLIANCE_REF_RE.search(name)
-            if m2:
-                issue_num = int(m2.group(1))
-                github_tasks.append({
-                    "task_id": t["id"],
-                    "task_name": name,
-                    "repo": COMPLIANCE_REPO,
-                    "issue_number": issue_num,
-                })
+        ref = _extract_github_ref(t)
+        if ref:
+            github_tasks.append(ref)
 
     stats["github_tasks_found"] = len(github_tasks)
 
-    # Check each GitHub issue and close ClickUp task if issue is closed
+    # Sync each task against GitHub source of truth
+    checked = 0
     for gt in github_tasks:
         try:
             repo = _g().get_repo(gt["repo"])
             issue = repo.get_issue(gt["issue_number"])
+            clickup_is_closed = gt["task_status"] in ("complete", "done", "closed")
 
-            if issue.state == "closed":
+            if issue.state == "closed" and not clickup_is_closed:
+                # GitHub closed, ClickUp open → close ClickUp
                 stats["closed_on_github"] += 1
-
-                # Close the ClickUp task
                 try:
                     _clickup_api(
                         f"task/{gt['task_id']}", method="PUT",
@@ -446,14 +461,31 @@ def sync_closed_issues() -> str:
                 except Exception:
                     stats["errors"] += 1
 
+            elif issue.state == "open" and clickup_is_closed:
+                # GitHub open, ClickUp closed → reopen ClickUp
+                stats["reopened_from_github"] += 1
+                try:
+                    _clickup_api(
+                        f"task/{gt['task_id']}", method="PUT",
+                        payload={"status": "to do"}
+                    )
+                    stats["clickup_reopened"] += 1
+                    reopened_tasks.append({
+                        "task": gt["task_name"][:80],
+                        "issue": f"{gt['repo']}#{gt['issue_number']}",
+                    })
+                except Exception:
+                    stats["errors"] += 1
+
         except Exception:
             stats["errors"] += 1
 
-        # Rate limit protection
-        if (stats["closed_on_github"] + stats["errors"]) % BATCH_SIZE == 0:
+        checked += 1
+        if checked % BATCH_SIZE == 0:
             time.sleep(1)
 
     stats["sample_closed"] = closed_tasks[:10]
+    stats["sample_reopened"] = reopened_tasks[:10]
     return json.dumps(stats, indent=2)
 
 
