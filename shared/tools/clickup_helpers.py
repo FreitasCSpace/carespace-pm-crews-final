@@ -1467,15 +1467,14 @@ def batch_compliance_check() -> str:
     No other tools needed — this does the full check.
     """
     result = {
-        "vanta_health": {"health_indicator": "CHECK_MCP", "note": "Use get_vanta_compliance_health_summary MCP tool for live Vanta data"},
+        "vanta_health": {"health_indicator": "PENDING", "note": "Call vanta_health_summary tool for live Vanta data"},
         "open_compliance_tasks": 0,
         "task_sample": [],
         "errors": [],
     }
 
     # 1. Count open compliance tasks in backlog (paginated)
-    # Vanta health comes from MCP tool (injected by CrewHub) — the AI agent
-    # should call get_vanta_compliance_health_summary separately if needed.
+    # Vanta health comes from the vanta_health_summary Python tool.
     try:
         all_tasks = []
         page = 0
