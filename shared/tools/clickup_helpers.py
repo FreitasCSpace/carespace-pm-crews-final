@@ -1376,27 +1376,18 @@ def close_sprint() -> str:
 
 
 @tool("Bulk Assign And Estimate All Tasks")
-def bulk_assign_and_estimate() -> str:
+def bulk_estimate_sp() -> str:
     """
-    Assigns ALL unassigned tasks and estimates SP for ALL tasks without points.
-    Processes the ENTIRE backlog (paginated), not just first 30.
-
-    Assignment rules based on tags:
-    - compliance/vanta/hipaa/soc2 → Luis Freitas (118004891)
-    - frontend → andreCarespace (49000180)
-    - backend → fabiano-carespace (49000181)
-    - mobile → YeddulaBharath (93908270)
-    - ai-cv/security → bhavyasaurabh (93908266)
-    - infra → sandeep (111928715)
+    Estimates story points for ALL backlog tasks that don't have SP yet.
+    Processes the ENTIRE backlog (paginated). Does NOT assign tasks —
+    backlog items stay unassigned until sprint planning.
 
     SP estimation uses task name heuristics.
-    Call this ONCE — it processes ALL 311+ tasks.
+    Call this ONCE — it processes all tasks.
     """
-    from shared.config.context import DOMAIN_LEADS
-
     stats = {
-        "total_tasks": 0, "assigned": 0, "sp_set": 0,
-        "already_assigned": 0, "already_has_sp": 0, "errors": 0,
+        "total_tasks": 0, "sp_set": 0,
+        "already_has_sp": 0, "errors": 0,
     }
 
     try:
@@ -1416,24 +1407,8 @@ def bulk_assign_and_estimate() -> str:
 
         for t in all_tasks:
             task_id = t["id"]
-            tags = [tag["name"] for tag in t.get("tags", [])]
-            assignees = t.get("assignees", [])
             points = t.get("points")
             pri = t.get("priority", {}).get("priority", "normal") if t.get("priority") else "normal"
-
-            # Assign if unassigned
-            if not assignees:
-                for tag in tags:
-                    if tag in DOMAIN_LEADS:
-                        try:
-                            _clickup_api(f"task/{task_id}", method="PUT",
-                                        payload={"assignees": {"add": [int(DOMAIN_LEADS[tag])]}})
-                            stats["assigned"] += 1
-                        except Exception:
-                            stats["errors"] += 1
-                        break
-            else:
-                stats["already_assigned"] += 1
 
             # Set SP if missing (check native points + custom field)
             cf_sp = next((cf.get("value") for cf in t.get("custom_fields", [])
@@ -1448,13 +1423,17 @@ def bulk_assign_and_estimate() -> str:
             else:
                 stats["already_has_sp"] += 1
 
-            if (stats["assigned"] + stats["sp_set"]) % 25 == 0 and (stats["assigned"] + stats["sp_set"]) > 0:
+            if stats["sp_set"] % 25 == 0 and stats["sp_set"] > 0:
                 time.sleep(0.5)
 
     except Exception as e:
         stats["error_detail"] = str(e)
 
     return json.dumps(stats, indent=2)
+
+
+# Keep old name as alias for backwards compatibility
+bulk_assign_and_estimate = bulk_estimate_sp
 
 
 @tool("compliance_health_check")

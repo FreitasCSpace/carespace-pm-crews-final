@@ -6,6 +6,17 @@ dedup_task:
     JSON with duplicates_found and tasks_deleted counts.
   agent: triage_agent
 
+estimate_sp_task:
+  description: >
+    Call bulk_assign_and_estimate to set story points on ALL backlog
+    tasks that don't have SP yet. This does NOT assign tasks — backlog
+    items stay unassigned until sprint planning.
+  expected_output: >
+    JSON with sp_set, already_has_sp counts.
+  agent: triage_agent
+  context:
+    - dedup_task
+
 scan_task:
   description: >
     Call scan_backlog_for_triage to get a health report of remaining
@@ -14,7 +25,7 @@ scan_task:
     The scan results JSON for analysis.
   agent: triage_agent
   context:
-    - dedup_task
+    - estimate_sp_task
 
 decide_and_execute_task:
   description: >
