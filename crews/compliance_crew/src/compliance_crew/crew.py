@@ -28,7 +28,7 @@ class ComplianceCrew:
     def gather_agent(self) -> Agent:
         """Data-only agent for gather step — no Slack tools to prevent early posting."""
         return Agent(
-            config=interpolate_config(self.agents_config["compliance_agent"]),
+            config=interpolate_config(self.agents_config["gather_agent"]),
             tools=[batch_compliance_check, vanta_health_summary],
             verbose=True,
             allow_delegation=False,
@@ -38,7 +38,7 @@ class ComplianceCrew:
     def post_agent(self) -> Agent:
         """Post agent — has Slack + alert tools, runs only after gather completes."""
         return Agent(
-            config=interpolate_config(self.agents_config["compliance_agent"]),
+            config=interpolate_config(self.agents_config["post_agent"]),
             tools=[post_compliance, create_clickup_task],
             verbose=True,
             allow_delegation=False,
