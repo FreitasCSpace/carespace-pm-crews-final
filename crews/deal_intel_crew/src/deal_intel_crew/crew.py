@@ -18,7 +18,7 @@ from shared.guardrails import validate_deal_intel
 
 @CrewBase
 class DealIntelCrew:
-    """GTM pipeline intelligence — runs weekly Monday 09:00."""
+    """GTM pipeline intelligence — runs Monday 07:00 PDT."""
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 

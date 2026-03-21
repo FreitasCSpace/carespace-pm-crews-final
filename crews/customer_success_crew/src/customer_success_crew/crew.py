@@ -15,7 +15,7 @@ from shared.guardrails import validate_cs_output
 
 @CrewBase
 class CustomerSuccessCrew:
-    """Customer success monitor — runs daily 08:00."""
+    """Customer success monitor — runs Daily 08:30 PDT."""
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 

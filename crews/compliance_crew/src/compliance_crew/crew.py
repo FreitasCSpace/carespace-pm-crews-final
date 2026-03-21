@@ -12,7 +12,7 @@ from shared.guardrails import validate_compliance_output
 
 @CrewBase
 class ComplianceCrew:
-    """Compliance health monitor — runs daily 07:00."""
+    """Compliance health monitor — runs Daily 06:30 PDT."""
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 

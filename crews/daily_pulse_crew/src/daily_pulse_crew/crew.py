@@ -11,7 +11,7 @@ from shared.guardrails import validate_standup_data
 
 @CrewBase
 class DailyPulseCrew:
-    """Daily sprint intelligence digest — runs Mon-Fri 08:00."""
+    """Daily sprint intelligence digest — runs Mon-Fri 07:45 PDT."""
 
     agents_config  = "config/agents.yaml"
     tasks_config   = "config/tasks.yaml"
