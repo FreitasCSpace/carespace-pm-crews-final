@@ -1229,7 +1229,7 @@ def create_sprint_list() -> str:
         result = _clickup_api(
             f"folder/{SPRINT_FOLDER_ID}/list",
             method="POST",
-            payload={"name": sprint_name, "status": "active"},
+            payload={"name": sprint_name},
         )
 
         new_list_id = result.get("id")
