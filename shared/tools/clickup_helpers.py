@@ -959,12 +959,20 @@ def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
             full_task = _clickup_api(f"task/{task_id}")
 
             # Copy to sprint
+            pri = full_task.get("priority")
+            pri_val = pri.get("priority") if isinstance(pri, dict) else None
+            # ClickUp API expects priority as int (1-4), not string
+            pri_map = {"urgent": 1, "high": 2, "normal": 3, "low": 4}
+            pri_int = pri_map.get(str(pri_val).lower(), None) if pri_val else None
+
             payload = {
                 "name": full_task.get("name", ""),
                 "description": full_task.get("description", ""),
-                "priority": full_task.get("priority", {}).get("priority", None) if full_task.get("priority") else None,
                 "assignees": [a["id"] for a in full_task.get("assignees", [])],
+                "status": "to do",
             }
+            if pri_int:
+                payload["priority"] = pri_int
             if full_task.get("tags"):
                 payload["tags"] = [t["name"] for t in full_task["tags"]]
 
@@ -1027,6 +1035,9 @@ def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
             stats["moved"].append(task["name"][:60])
         except Exception as e:
             stats["errors"] += 1
+            if "error_details" not in stats:
+                stats["error_details"] = []
+            stats["error_details"].append(f"{task.get('name', task_id)[:50]}: {str(e)[:100]}")
 
         if stats["tasks_moved"] % 5 == 0 and stats["tasks_moved"] > 0:
             time.sleep(0.5)
