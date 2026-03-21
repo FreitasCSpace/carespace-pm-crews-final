@@ -1025,7 +1025,14 @@ def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
 
             stats["tasks_moved"] += 1
             stats["total_sp"] += task.get("sp", 0)
-            stats["moved"].append(task["name"][:60])
+            assignee_names = [a.get("username", a.get("id", "?")) if isinstance(a, dict) else str(a)
+                              for a in full_task.get("assignees", [])]
+            stats["moved"].append({
+                "name": task["name"],
+                "assignee": ", ".join(assignee_names) if assignee_names else "unassigned",
+                "story_points": task.get("sp", "?"),
+                "priority": task.get("priority", "normal"),
+            })
         except Exception as e:
             stats["errors"] += 1
             if "error_details" not in stats:

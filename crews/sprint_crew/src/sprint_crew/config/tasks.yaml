@@ -46,7 +46,9 @@ finalize_task:
 post_sprint_plan_task:
   description: >
     Post ONE message to {slack_sprint} using post_sprint_plan:
-    - If sprint was finalized: full plan with tasks, assignees, SP, warnings
+    - If sprint was finalized: pass the "moved" array from finalize_task
+      as tasks_json. Each item has name, assignee, story_points, priority.
+      Pass total_sp from finalize_task output.
     - If sprint was already active: status update
     - If candidates were empty: warning that team needs to plan
 
