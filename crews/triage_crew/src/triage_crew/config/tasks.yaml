@@ -6,18 +6,6 @@ dedup_task:
     JSON with duplicates_found and tasks_deleted counts.
   agent: triage_agent
 
-bulk_assign_task:
-  description: >
-    Call bulk_assign_and_estimate to assign ALL unassigned tasks and
-    set story points on ALL tasks without SP. This processes the
-    ENTIRE backlog (311+ tasks), not just the first 30.
-    Returns counts of tasks assigned and SP set.
-  expected_output: >
-    JSON with assigned, sp_set, already_assigned, already_has_sp counts.
-  agent: triage_agent
-  context:
-    - dedup_task
-
 scan_task:
   description: >
     Call scan_backlog_for_triage to get a health report of remaining
@@ -26,7 +14,7 @@ scan_task:
     The scan results JSON for analysis.
   agent: triage_agent
   context:
-    - bulk_assign_task
+    - dedup_task
 
 decide_and_execute_task:
   description: >
@@ -42,11 +30,14 @@ decide_and_execute_task:
        Needs Attention section of the triage summary. Do NOT create separate
        alerts for aging tasks — just include them in the triage summary.
 
+    IMPORTANT: Do NOT assign tasks. Backlog items must stay unassigned.
+    Assignees are selected during sprint planning, not triage.
+
     Call execute_triage_actions with your decisions.
 
     Then post summary using post_triage_summary (NOT the generic post tool):
     - priorities_set: bullet list of priority changes
-    - assignments: bullet list of assignments made
+    - assignments: "None — backlog items stay unassigned"
     - story_points: summary of SP set
     - alerts: bullet list of alerts created
     - reasoning: why you made these decisions

@@ -2,7 +2,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
-    dedup_backlog_cleanup, bulk_assign_and_estimate,
+    dedup_backlog_cleanup,
     scan_backlog_for_triage, execute_triage_actions,
     post_triage_summary,
 )
@@ -29,7 +29,7 @@ class TriageCrew:
         return Agent(
             config=interpolate_config(self.agents_config["triage_agent"]),
             tools=[
-                dedup_backlog_cleanup, bulk_assign_and_estimate,
+                dedup_backlog_cleanup,
                 scan_backlog_for_triage, execute_triage_actions,
                 post_triage_summary,
             ],
@@ -39,10 +39,6 @@ class TriageCrew:
     @task
     def dedup_task(self) -> Task:
         return Task(config=interpolate_config(self.tasks_config["dedup_task"]))
-
-    @task
-    def bulk_assign_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["bulk_assign_task"]))
 
     @task
     def scan_task(self) -> Task:

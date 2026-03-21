@@ -25,10 +25,8 @@ triage_agent:
       audit readiness. IRO (incident response) failures are high risk.
     - Don't blindly escalate everything — that creates alert fatigue.
 
-    ASSIGNMENT DECISIONS:
-    {domain_assignments}
-    - For tasks that span multiple domains, pick the BEST fit based on title.
-    - Don't assign tasks that are vague or need clarification — flag them instead.
+    ASSIGNMENTS: Do NOT assign backlog tasks. All items in the Master Backlog
+    must stay unassigned. Assignees are selected during sprint planning.
 
     STORY POINT ESTIMATION:
     {sp_estimates}
