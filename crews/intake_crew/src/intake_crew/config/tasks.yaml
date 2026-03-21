@@ -19,3 +19,21 @@ intake_scan:
     compliance: {tasks_created, duplicates_skipped, alerts_created},
     total_new: N, slack_posted: bool}
   agent: intake_agent
+
+close_sync:
+  description: >
+    Sync closed GitHub issues to ClickUp. Call sync_closed_issues ONCE.
+
+    This scans all open backlog tasks that came from GitHub, checks if the
+    GitHub issue is now closed, and marks the ClickUp task as complete.
+
+    If clickup_closed > 0, post to {slack_engineering}:
+    'Backlog sync: X tasks closed (GitHub issues resolved).'
+
+    If clickup_closed == 0, do NOT post — no news is good news.
+  expected_output: >
+    JSON: {backlog_scanned: N, github_tasks_found: N, closed_on_github: N,
+    clickup_closed: N, slack_posted: bool}
+  agent: intake_agent
+  context:
+    - intake_scan

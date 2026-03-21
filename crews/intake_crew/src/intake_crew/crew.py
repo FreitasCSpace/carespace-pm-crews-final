@@ -8,6 +8,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 from shared.tools import (
     batch_import_engineering,
     batch_import_compliance,
+    sync_closed_issues,
     post,
 )
 from shared.config.context import interpolate_config
@@ -32,6 +33,7 @@ class IntakeCrewCrew:
             tools=[
                 batch_import_engineering,
                 batch_import_compliance,
+                sync_closed_issues,
                 post,
             ],
             verbose=True,
@@ -41,6 +43,10 @@ class IntakeCrewCrew:
     @task
     def intake_scan(self) -> Task:
         return Task(config=interpolate_config(self.tasks_config["intake_scan"]))
+
+    @task
+    def close_sync(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["close_sync"]))
 
     @crew
     def crew(self) -> Crew:

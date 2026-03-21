@@ -345,6 +345,117 @@ def batch_import_compliance() -> str:
     return json.dumps(stats, indent=2)
 
 
+# ── Sync: close ClickUp tasks when GitHub issues close ────────────────────────
+
+import re
+
+_GITHUB_REF_RE = re.compile(r"\(([a-zA-Z0-9_.-]+#\d+)\)\s*$")
+_COMPLIANCE_REF_RE = re.compile(r"\(#(\d+)\)\s*$")
+
+
+@tool("Sync Closed GitHub Issues to ClickUp")
+def sync_closed_issues() -> str:
+    """
+    Scans the ClickUp Master Backlog for open tasks that were imported from
+    GitHub. For each one, checks if the GitHub issue is now closed. If so,
+    closes the ClickUp task (status: complete).
+
+    Call this ONCE per intake run — it handles all repos automatically.
+    """
+    stats = {
+        "backlog_scanned": 0, "github_tasks_found": 0,
+        "closed_on_github": 0, "clickup_closed": 0, "errors": 0,
+    }
+    closed_tasks = []
+
+    # Load all open backlog tasks tagged "github" or "compliance"
+    try:
+        all_tasks = []
+        page = 0
+        while True:
+            data = _clickup_api(
+                f"list/{INTAKE_TARGET}/task?archived=false&include_closed=false&page={page}&page_size=100"
+            )
+            tasks = data.get("tasks", [])
+            if not tasks:
+                break
+            all_tasks.extend(tasks)
+            if len(tasks) < 100:
+                break
+            page += 1
+        stats["backlog_scanned"] = len(all_tasks)
+    except Exception as e:
+        stats["errors"] += 1
+        stats["error_detail"] = f"Failed to load backlog: {e}"
+        return json.dumps(stats, indent=2)
+
+    # Filter to tasks with GitHub refs in title
+    github_tasks = []
+    for t in all_tasks:
+        name = t.get("name", "")
+        tags = [tag["name"] for tag in t.get("tags", [])]
+
+        # Engineering: title ends with (repo#123)
+        m = _GITHUB_REF_RE.search(name)
+        if m:
+            ref = m.group(1)  # e.g. "carespace-ui#152"
+            repo_name, issue_num = ref.rsplit("#", 1)
+            github_tasks.append({
+                "task_id": t["id"],
+                "task_name": name,
+                "repo": f"{ORG}/{repo_name}",
+                "issue_number": int(issue_num),
+            })
+            continue
+
+        # Compliance: title ends with (#543)
+        if "compliance" in tags or name.startswith("[COMPLIANCE]"):
+            m2 = _COMPLIANCE_REF_RE.search(name)
+            if m2:
+                issue_num = int(m2.group(1))
+                github_tasks.append({
+                    "task_id": t["id"],
+                    "task_name": name,
+                    "repo": COMPLIANCE_REPO,
+                    "issue_number": issue_num,
+                })
+
+    stats["github_tasks_found"] = len(github_tasks)
+
+    # Check each GitHub issue and close ClickUp task if issue is closed
+    for gt in github_tasks:
+        try:
+            repo = _g().get_repo(gt["repo"])
+            issue = repo.get_issue(gt["issue_number"])
+
+            if issue.state == "closed":
+                stats["closed_on_github"] += 1
+
+                # Close the ClickUp task
+                try:
+                    _clickup_api(
+                        f"task/{gt['task_id']}", method="PUT",
+                        payload={"status": "complete"}
+                    )
+                    stats["clickup_closed"] += 1
+                    closed_tasks.append({
+                        "task": gt["task_name"][:80],
+                        "issue": f"{gt['repo']}#{gt['issue_number']}",
+                    })
+                except Exception:
+                    stats["errors"] += 1
+
+        except Exception:
+            stats["errors"] += 1
+
+        # Rate limit protection
+        if (stats["closed_on_github"] + stats["errors"]) % BATCH_SIZE == 0:
+            time.sleep(1)
+
+    stats["sample_closed"] = closed_tasks[:10]
+    return json.dumps(stats, indent=2)
+
+
 # ── Lightweight read-only tools (for other crews) ────────────────────────────
 
 @tool("Get Open GitHub Issues")
