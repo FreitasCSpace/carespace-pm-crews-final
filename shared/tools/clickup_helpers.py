@@ -8,7 +8,7 @@ import os, json, time
 from datetime import date, timedelta
 from collections import defaultdict
 from crewai.tools import tool
-from shared.config.context import L, WORKSPACE_ID, SP_ESTIMATE, SPRINT_FOLDER_ID, SP_CUSTOM_FIELD_ID
+from shared.config.context import L, WORKSPACE_ID, SP_ESTIMATE, SPRINT_FOLDER_ID, SP_CUSTOM_FIELD_ID, SPRINT_RULES
 
 
 def _clickup_api(endpoint: str, method: str = "GET", payload: dict | None = None) -> dict:
