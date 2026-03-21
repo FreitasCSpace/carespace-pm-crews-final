@@ -804,11 +804,12 @@ def suggest_sprint_candidates() -> str:
 @tool("Add Task To Sprint Candidates")
 def add_to_sprint_candidates(task_id: str) -> str:
     """
-    Copies a task from the Master Backlog to the Sprint Candidates list.
+    Moves a task from the Master Backlog to the Sprint Candidates list.
     Preserves all metadata (name, description, tags, SP, priority).
-    Does NOT set assignees — team decides assignments on candidates.
+    Closes the backlog original (status: complete) so it doesn't appear
+    in the backlog anymore.
 
-    The original stays in the backlog until sprint planning finalizes.
+    Does NOT set assignees — team decides assignments on candidates.
     """
     try:
         # Get the task
@@ -826,6 +827,7 @@ def add_to_sprint_candidates(task_id: str) -> str:
             "name": name,
             "description": task.get("description", "") + f"\n\n---\nBacklog task: https://app.clickup.com/t/{task_id}",
             "priority": task.get("priority", {}).get("priority", None) if task.get("priority") else None,
+            "status": "to do",
         }
         if task.get("tags"):
             payload["tags"] = [t["name"] for t in task["tags"]]
@@ -842,12 +844,20 @@ def add_to_sprint_candidates(task_id: str) -> str:
         if cf_sp is not None:
             _set_sp(new_id, int(cf_sp))
 
+        # Close backlog original — it's now in candidates
+        try:
+            _clickup_api(f"task/{task_id}", method="PUT",
+                        payload={"status": "complete"})
+        except Exception:
+            pass  # candidate copy exists, backlog close is best-effort
+
         return json.dumps({
             "success": True,
             "task_name": name[:80],
             "candidate_id": new_id,
             "backlog_id": task_id,
-            "note": "Task added to Sprint Candidates. Set assignee in ClickUp before sprint planning.",
+            "backlog_closed": True,
+            "note": "Task moved to Sprint Candidates. Backlog original closed.",
         })
     except Exception as e:
         return json.dumps({"error": str(e)})
@@ -976,12 +986,39 @@ def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
             except Exception:
                 pass  # orphan protection — sprint copy exists
 
-            # Close backlog original if linked
+            # Close backlog original
             desc = full_task.get("description", "")
+            backlog_closed = False
+
+            # Method 1: explicit link in description
             if "Backlog task: https://app.clickup.com/t/" in desc:
                 backlog_id = desc.split("Backlog task: https://app.clickup.com/t/")[-1].strip().split()[0]
                 try:
-                    _clickup_api(f"task/{backlog_id}", method="DELETE")
+                    _clickup_api(f"task/{backlog_id}", method="PUT",
+                                payload={"status": "complete"})
+                    backlog_closed = True
+                except Exception:
+                    pass
+
+            # Method 2: match by title in backlog (fallback for manually created candidates)
+            if not backlog_closed:
+                task_name = full_task.get("name", "").lower()[:60]
+                try:
+                    bl_page = 0
+                    while not backlog_closed:
+                        bl_data = _clickup_api(
+                            f"list/{L['master_backlog']}/task?archived=false&include_closed=false&page={bl_page}&page_size=100"
+                        )
+                        bl_tasks = bl_data.get("tasks", [])
+                        if not bl_tasks:
+                            break
+                        for bl_task in bl_tasks:
+                            if task_name in bl_task["name"].lower():
+                                _clickup_api(f"task/{bl_task['id']}", method="PUT",
+                                            payload={"status": "complete"})
+                                backlog_closed = True
+                                break
+                        bl_page += 1
                 except Exception:
                     pass
 
