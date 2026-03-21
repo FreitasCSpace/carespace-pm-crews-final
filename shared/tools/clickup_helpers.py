@@ -958,23 +958,37 @@ def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
             # Get full task data
             full_task = _clickup_api(f"task/{task_id}")
 
-            # Copy to sprint
-            pri = full_task.get("priority")
-            pri_val = pri.get("priority") if isinstance(pri, dict) else None
-            # ClickUp API expects priority as int (1-4), not string
-            pri_map = {"urgent": 1, "high": 2, "normal": 3, "low": 4}
-            pri_int = pri_map.get(str(pri_val).lower(), None) if pri_val else None
+            # Copy to sprint — minimal payload to avoid API rejections
+            payload = {"name": full_task.get("name", "")}
 
-            payload = {
-                "name": full_task.get("name", ""),
-                "description": full_task.get("description", ""),
-                "assignees": [a["id"] for a in full_task.get("assignees", [])],
-                "status": "to do",
-            }
-            if pri_int:
-                payload["priority"] = pri_int
-            if full_task.get("tags"):
-                payload["tags"] = [t["name"] for t in full_task["tags"]]
+            # Description
+            desc = full_task.get("description")
+            if desc:
+                payload["description"] = desc
+
+            # Priority (ClickUp API wants int 1-4)
+            try:
+                pri = full_task.get("priority")
+                if isinstance(pri, dict) and pri.get("id"):
+                    payload["priority"] = int(pri["id"])
+            except (ValueError, TypeError, KeyError):
+                pass
+
+            # Assignees
+            try:
+                assignees = [int(a["id"]) for a in full_task.get("assignees", []) if a.get("id")]
+                if assignees:
+                    payload["assignees"] = assignees
+            except (ValueError, TypeError):
+                pass
+
+            # Tags
+            try:
+                tags = [t["name"] for t in full_task.get("tags", []) if t.get("name")]
+                if tags:
+                    payload["tags"] = tags
+            except (TypeError, KeyError):
+                pass
 
             result = _clickup_api(
                 f"list/{sprint_list_id}/task",
