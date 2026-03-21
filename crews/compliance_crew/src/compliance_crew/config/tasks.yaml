@@ -5,9 +5,9 @@ gather_health:
     1. Call compliance_health_check to get open compliance task count
        and a sample of critical compliance tasks.
 
-    2. Call get_vanta_compliance_health_summary (MCP tool) for live
-       Vanta health data including failing controls, test failures,
-       evidence gaps, and overall health indicator.
+    2. Call get_vanta_compliance_health_summary for live Vanta health
+       data including failing controls, test failures, evidence gaps,
+       and overall health indicator (GREEN/YELLOW/RED).
 
     Compile results into a structured summary with:
     - vanta_health: GREEN/YELLOW/RED with critical issue count

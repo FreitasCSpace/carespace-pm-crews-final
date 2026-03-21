@@ -8,9 +8,9 @@ from .slack import (
     post_sla_breach, post_retro, post_gtm, post_exec, post_compliance,
     post_cs_alert, post_cs_summary, post_triage_summary, post_pr_radar,
 )
-# Vanta tools removed — CrewHub injects 45 MCP Vanta tools automatically.
-# Our custom vanta.py tools clashed with MCP tool names and caused
-# "'Tool' object is not callable" errors. The MCP versions are better.
+# Most Vanta tools removed — CrewHub injects 45 MCP Vanta tools automatically.
+# Only get_health_summary is re-exported because the MCP equivalent doesn't exist.
+from .vanta import get_health_summary as vanta_health_summary
 from .clickup_helpers import (
     get_tasks_by_list, check_duplicate_task, auto_estimate_sp,
     update_clickup_task, add_tag_to_task, create_clickup_task,

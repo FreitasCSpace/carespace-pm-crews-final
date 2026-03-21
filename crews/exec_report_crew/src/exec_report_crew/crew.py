@@ -4,6 +4,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 from shared.tools import (
     create_sprint_list, get_tasks_by_list, batch_compliance_check,
     check_duplicate_task, create_clickup_task, post_exec,
+    vanta_health_summary,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_exec_report
@@ -30,6 +31,7 @@ class ExecReportCrew:
             tools=[
                 create_sprint_list, get_tasks_by_list, batch_compliance_check,
                 check_duplicate_task, create_clickup_task, post_exec,
+                vanta_health_summary,
             ],
             verbose=True,
         )

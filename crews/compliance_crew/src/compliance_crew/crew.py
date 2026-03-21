@@ -5,6 +5,7 @@ from shared.tools import (
     batch_compliance_check,
     create_clickup_task,
     post_compliance,
+    vanta_health_summary,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_compliance_output
@@ -27,7 +28,7 @@ class ComplianceCrew:
     def compliance_agent(self) -> Agent:
         return Agent(
             config=interpolate_config(self.agents_config["compliance_agent"]),
-            tools=[batch_compliance_check, create_clickup_task, post_compliance],
+            tools=[batch_compliance_check, create_clickup_task, post_compliance, vanta_health_summary],
             verbose=True,
             allow_delegation=False,
         )
