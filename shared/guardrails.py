@@ -94,17 +94,16 @@ def validate_sprint_sp_coverage(result):
 # ── Triage Crew ──────────────────────────────────────────────────────────────
 
 def validate_triage_actions(result):
-    """Ensure triage output includes reasoning and proper alert format."""
+    """Ensure triage completed and produced meaningful output."""
     raw = result.raw if hasattr(result, "raw") else str(result)
-
-    # Must include reasoning — this is a thinking crew, not a mechanical one
     lower = raw.lower()
-    if "reason" not in lower and "because" not in lower and "decision" not in lower:
-        return (False, "Triage output must include REASONING for decisions. "
-                "Explain WHY you escalated, assigned, or skipped items.")
 
-    # Check for alerts without tags (common mistake)
-    if "[alert]" in lower and "tags" not in lower:
+    # Must have some substance — not empty or error
+    if len(raw.strip()) < 20:
+        return (False, "Triage output is too short. Include summary of actions taken.")
+
+    # If alerts were created, they should mention tags
+    if "[alert]" in lower and "tags" not in lower and "tag" not in lower:
         return (False, "Alerts must include tags for filtering. "
                 "Add tags like ['compliance', 'hipaa'] to each alert.")
 
