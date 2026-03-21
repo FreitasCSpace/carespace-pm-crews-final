@@ -13,15 +13,15 @@ carespace-pm-crews/
 ├── orchestrator.py               # Parallel runner (--daily, --weekly, --sprint)
 ├── shared/
 │   ├── config/context.py         # Single source of truth: IDs, team, scoring, thresholds
-│   ├── tools/                    # ClickUp, GitHub, Slack tools (batch pattern)
+│   ├── tools/                    # ClickUp, GitHub, Slack, Vanta tools (batch pattern)
 │   └── guardrails.py             # Task validation functions for all crews
 ├── crews/                        # 10 AI-driven crews
-│   ├── intake_crew/              # GitHub + VantaCrews → Master Backlog
-│   ├── triage_crew/              # Dedup → assign → scan → decide → execute
+│   ├── intake_crew/              # GitHub + VantaCrews → Master Backlog + close sync
+│   ├── triage_crew/              # Dedup → estimate SP → scan → decide → execute
 │   ├── sprint_crew/              # Sprint Candidates → Sprint (team-curated)
 │   ├── daily_pulse_crew/         # Sprint Digest → #pm-standup
 │   ├── pr_radar_crew/            # Stale PRs + CI failures
-│   ├── compliance_crew/          # Vanta health + compliance monitoring
+│   ├── compliance_crew/          # Vanta API health + compliance monitoring
 │   ├── retrospective_crew/       # Sprint close, carryovers, velocity
 │   ├── deal_intel_crew/          # GTM pipeline health
 │   ├── customer_success_crew/    # Onboarding SLA + churn detection
@@ -34,7 +34,9 @@ carespace-pm-crews/
 
 ### Design Principles
 
-- **AI suggests, team decides** — crews never override human assignments or sprint selections
+- **AI suggests, team decides** — crews never override human sprint selections
+- **GitHub is source of truth** — ClickUp tasks sync status from GitHub issues
+- **Backlog stays unassigned** — assignees are set during sprint planning only
 - **Single pipeline** — all work enters via GitHub → intake crew → ClickUp backlog
 - **Sprint Candidates** — staging area where team curates what goes into the sprint
 - **No noise** — SLA/alerts only for sprint items, not backlog
@@ -72,6 +74,8 @@ carespace-pm-crews/
     └── Support Escalations (901326439271)
 ```
 
+**ClickUp statuses:** TO DO → IN PROGRESS → BLOCKED → COMPLETE
+
 ---
 
 ## Data Flow
@@ -80,7 +84,7 @@ carespace-pm-crews/
 /backlog skill ──→ GitHub Issue ──→ Intake Crew ──→ MASTER BACKLOG
                                                         │
                                                    Triage Crew (every 6h)
-                                                   • Dedup → Assign → SP → Alerts
+                                                   • Dedup → Unassign → SP → Alerts
                                                         │
                           ┌─────────────────────────────┘
                           ▼
@@ -99,6 +103,10 @@ carespace-pm-crews/
                                               Retrospective Crew
                                               • Completed → archived
                                               • Incomplete → backlog + "carryover" tag
+
+GitHub↔ClickUp Sync (runs with intake):
+  • GitHub closed → ClickUp complete
+  • GitHub open → ClickUp reopened to "to do"
 ```
 
 ---
@@ -108,9 +116,11 @@ carespace-pm-crews/
 ### 1. `intake_crew` — GitHub → ClickUp Pipeline
 **Schedule:** Daily 07:00 PDT (cron: `0 14 * * *`)
 
-Scans 59 GitHub repos + VantaCrews compliance repo. Cached dedup loads full backlog once, checks in memory. If API fails, blocks creation (prevents duplicates).
+Two-step workflow:
+1. **Import** — scans 59 GitHub repos + VantaCrews compliance repo. Cached dedup loads full backlog once, checks in memory. Creates tasks in "to do" status, unassigned.
+2. **Sync** — two-way GitHub↔ClickUp status sync. GitHub is source of truth: closed issues → complete tasks, open issues → reopened tasks.
 
-**Posts to:** `#pm-engineering` | **Guardrail:** None (batch tools validate internally)
+**Posts to:** `#pm-engineering` (only when changes made) | **Guardrail:** None
 
 ---
 
@@ -118,10 +128,12 @@ Scans 59 GitHub repos + VantaCrews compliance repo. Cached dedup loads full back
 **Schedule:** Every 6 hours (cron: `0 */6 * * *`)
 
 1. `dedup_backlog_cleanup` — remove duplicate tasks
-2. `bulk_assign_and_estimate` — assign unassigned + set SP
+2. `bulk_estimate_sp` — estimate SP on tasks without points + remove any assignees (backlog must stay unassigned)
 3. `scan_backlog_for_triage` — health report
 4. `execute_triage_actions` — priority adjustments, grouped alerts
 5. Aging backlog detection (>21 days old)
+
+**No assignments.** Backlog items stay unassigned — assignees are set during sprint planning.
 
 **SLA alerts only for sprint items**, not backlog. Max 3 compliance/sprint.
 
@@ -132,7 +144,7 @@ Scans 59 GitHub repos + VantaCrews compliance repo. Cached dedup loads full back
 ### 3. `sprint_crew` — Sprint Planning (Team-Curated)
 **Schedule:** Bi-weekly Sunday 18:00 PDT (cron: `0 1 * * 1`)
 
-**NEW FLOW:** Sprint crew is an **executor**, not a decision-maker.
+Sprint crew is an **executor**, not a decision-maker.
 1. Check Sprint Candidates list (team-curated staging area)
 2. If candidates exist → validate assignments, budget, carryovers
 3. `finalize_sprint_from_candidates` → move to sprint
@@ -149,7 +161,7 @@ Scans 59 GitHub repos + VantaCrews compliance repo. Cached dedup loads full back
 
 Structured digest:
 - **Executive Summary** — sprint timing (pre-calculated), progress, status
-- **Sprint Status** — Done/In Progress/Blocked/Pending (literal ClickUp status)
+- **Sprint Status** — Done/In Progress/Blocked/To Do (literal ClickUp status)
 - **Needs Attention** — stale PRs, CI failures
 - **Sprint Risks** — items at risk of not completing (high SP pending, external deps)
 - **Meeting Mode** — STANDUP (risks exist) or OPEN SLOT
@@ -173,7 +185,15 @@ CI repos: carespace-ui, carespace-admin, carespace-api-gateway, carespace-sdk.
 ### 6. `compliance_crew` — Compliance Health
 **Schedule:** Daily 06:30 PDT (cron: `30 13 * * *`)
 
-Vanta MCP health + ClickUp compliance task count. ONE combined report.
+Two-agent workflow (prevents duplicate Slack posts):
+1. **gather_agent** — calls Vanta API directly (no MCP) + ClickUp compliance task count
+2. **post_agent** — posts ONE combined report to Slack
+
+Health indicator based on real Vanta test data:
+- **RED** — test pass rate < 70% OR critical unowned tests failing
+- **YELLOW** — test pass rate < 90% OR critical tests failing (owned)
+- **GREEN** — ≥ 90% passing, no critical failures
+
 Owner: Luis Freitas (sole compliance person).
 
 **Posts to:** `#pm-compliance` | **Guardrail:** `validate_compliance_output`
@@ -213,7 +233,7 @@ Only posts when issues found — no empty reports.
 **Schedule:** Friday 17:00 PDT (cron: `0 0 * * 6`)
 
 5-dimension health dashboard: Engineering, GTM, Compliance, Customer Success, Bug Health.
-Traffic light format (🟢🟡🔴) with risks and wins.
+Traffic light format with risks and wins.
 
 **Posts to:** `#pm-exec-updates` | **Memory:** Yes | **Guardrail:** `validate_exec_report`
 
@@ -223,11 +243,11 @@ Traffic light format (🟢🟡🔴) with risks and wins.
 
 ```
 06:30  compliance_crew       Vanta health → #pm-compliance
-07:00  intake_crew           GitHub + VantaCrews → backlog → #pm-engineering
+07:00  intake_crew           GitHub import + sync → #pm-engineering
 07:45  daily_pulse_crew      Sprint Digest → #pm-standup
 08:30  customer_success_crew Onboarding + churn → #pm-customer-success
 10:00  pr_radar_crew         Stale PRs + CI → #pm-engineering
-*/6h   triage_crew           Dedup + assign + triage → #pm-engineering
+*/6h   triage_crew           Dedup + unassign + estimate + triage → #pm-engineering
 
 Mon    deal_intel_crew       Pipeline → #pm-gtm
 Fri    exec_report_crew      Weekly dashboard → #pm-exec-updates
@@ -245,7 +265,7 @@ Creates GitHub issues that the intake crew imports to ClickUp automatically.
 ```
 User: /backlog camera freezes on iOS during ROM scan
   → GitHub issue in carespace-ai/carespace-mobile-ios
-  → Intake crew (next run) creates ClickUp task with naming, tags, SP, assignment
+  → Intake crew (next run) creates ClickUp task with naming, tags, SP
 ```
 
 ### `/sprint-plan` — Interactive Sprint Planning
@@ -267,7 +287,7 @@ User: /sprint-plan
 |---------|---------|---------|
 | `#pm-standup` | Daily Pulse | Sprint Digest (Mon-Fri) |
 | `#pm-sprint-board` | Sprint, Retrospective | Sprint plan, retro summary |
-| `#pm-engineering` | Intake, Triage, PR Radar | New tasks, triage, stale PRs |
+| `#pm-engineering` | Intake, Triage, PR Radar | New tasks, sync, triage, stale PRs |
 | `#pm-alerts` | (auto from tools) | Critical alerts only |
 | `#pm-gtm` | Deal Intel | Pipeline report (weekly) |
 | `#pm-exec-updates` | Exec Report | Executive summary (weekly) |
@@ -288,8 +308,8 @@ User: /sprint-plan
 | `GITHUB_TOKEN` | intake, pr_radar, daily_pulse (ghp_ format) |
 | `OPENAI_API_KEY` or `GEMINI_API_KEY` | All crews (LLM — model-agnostic) |
 | `SLACK_BOT_TOKEN` | All crews (xoxb_ format) |
-| `VANTA_CLIENT_ID` | compliance (via MCP) |
-| `VANTA_CLIENT_SECRET` | compliance (via MCP) |
+| `VANTA_CLIENT_ID` | compliance, exec_report (direct API) |
+| `VANTA_CLIENT_SECRET` | compliance, exec_report (direct API) |
 
 ### Configuration
 
@@ -327,4 +347,4 @@ See the **Configuration Manual** in ClickUp for detailed documentation.
 4. Move tasks to "done" when complete
 5. Run `/sprint-plan` before each sprint
 
-**AI does everything else** — intake, dedup, assign, estimate, triage, sprint finalization, standup, PR monitoring, compliance, reporting, carryovers, and escalation.
+**AI does everything else** — intake, sync, dedup, estimate, triage, sprint finalization, standup, PR monitoring, compliance, reporting, carryovers, and escalation.
