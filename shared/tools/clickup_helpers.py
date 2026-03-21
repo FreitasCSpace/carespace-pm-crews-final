@@ -1378,16 +1378,16 @@ def close_sprint() -> str:
 @tool("Bulk Assign And Estimate All Tasks")
 def bulk_estimate_sp() -> str:
     """
-    Estimates story points for ALL backlog tasks that don't have SP yet.
-    Processes the ENTIRE backlog (paginated). Does NOT assign tasks —
-    backlog items stay unassigned until sprint planning.
+    Processes the ENTIRE backlog (paginated):
+    1. Removes assignees from any assigned tasks (backlog must be unassigned)
+    2. Estimates story points for tasks that don't have SP yet
 
-    SP estimation uses task name heuristics.
+    Assignees are selected during sprint planning, not in the backlog.
     Call this ONCE — it processes all tasks.
     """
     stats = {
-        "total_tasks": 0, "sp_set": 0,
-        "already_has_sp": 0, "errors": 0,
+        "total_tasks": 0, "sp_set": 0, "unassigned": 0,
+        "already_has_sp": 0, "already_unassigned": 0, "errors": 0,
     }
 
     try:
@@ -1407,8 +1407,21 @@ def bulk_estimate_sp() -> str:
 
         for t in all_tasks:
             task_id = t["id"]
+            assignees = t.get("assignees", [])
             points = t.get("points")
             pri = t.get("priority", {}).get("priority", "normal") if t.get("priority") else "normal"
+
+            # Remove assignees — backlog items must be unassigned
+            if assignees:
+                assignee_ids = [a["id"] for a in assignees]
+                try:
+                    _clickup_api(f"task/{task_id}", method="PUT",
+                                payload={"assignees": {"rem": assignee_ids}})
+                    stats["unassigned"] += 1
+                except Exception:
+                    stats["errors"] += 1
+            else:
+                stats["already_unassigned"] += 1
 
             # Set SP if missing (check native points + custom field)
             cf_sp = next((cf.get("value") for cf in t.get("custom_fields", [])
@@ -1423,7 +1436,8 @@ def bulk_estimate_sp() -> str:
             else:
                 stats["already_has_sp"] += 1
 
-            if stats["sp_set"] % 25 == 0 and stats["sp_set"] > 0:
+            changes = stats["unassigned"] + stats["sp_set"]
+            if changes % 25 == 0 and changes > 0:
                 time.sleep(0.5)
 
     except Exception as e:
