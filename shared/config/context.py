@@ -224,6 +224,7 @@ MAX_COMPLIANCE_PER_SPRINT = 3
 # SPRINT CONFIG
 # ======================================================================
 SPRINT_FOLDER_ID = FOLDERS["sprints"]  # sprint_crew creates lists here (901317811717)
+SPRINT_TEMPLATE_LIST_ID = "901326512991"  # template list to duplicate for new sprints
 
 # Custom field ID for Story Points (Number field, space-level)
 SP_CUSTOM_FIELD_ID = "1662e3e7-b018-47b7-8881-e30f6831c674"

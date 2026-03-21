@@ -8,7 +8,7 @@ import os, json, time
 from datetime import date, timedelta
 from collections import defaultdict
 from crewai.tools import tool
-from shared.config.context import L, WORKSPACE_ID, SP_ESTIMATE, SPRINT_FOLDER_ID, SP_CUSTOM_FIELD_ID, SPRINT_RULES
+from shared.config.context import L, WORKSPACE_ID, SP_ESTIMATE, SPRINT_FOLDER_ID, SP_CUSTOM_FIELD_ID, SPRINT_RULES, SPRINT_TEMPLATE_LIST_ID
 
 
 def _clickup_api(endpoint: str, method: str = "GET", payload: dict | None = None) -> dict:
@@ -1120,10 +1120,12 @@ def create_sprint_list() -> str:
         existing = data.get("lists", [])
         today = date.today()
 
-        # Parse existing sprints to find the latest one
+        # Parse existing sprints to find the latest one (skip template)
         latest_sprint = None
         latest_number = 0
         for lst in existing:
+            if lst.get("id") == SPRINT_TEMPLATE_LIST_ID:
+                continue
             name = lst.get("name", "")
             # Extract sprint number
             num = 0
@@ -1205,7 +1207,7 @@ def create_sprint_list() -> str:
                 "message": f"Sprint {latest_sprint['number']} is still active (ends {e}). No new sprint created.",
             })
 
-        # No active sprint — create new one
+        # No active sprint — create new one by duplicating template
         sprint_number = latest_number + 1 if latest_number > 0 else 1
 
         days_until_monday = (7 - today.weekday()) % 7
@@ -1214,16 +1216,20 @@ def create_sprint_list() -> str:
 
         sprint_name = f"Sprint {sprint_number} — {start.strftime('%b %d')} to {end.strftime('%b %d')}"
 
+        # Duplicate template list (preserves views, field visibility, settings)
         result = _clickup_api(
-            f"folder/{SPRINT_FOLDER_ID}/list",
+            f"list/{SPRINT_TEMPLATE_LIST_ID}/duplicate",
             method="POST",
             payload={"name": sprint_name},
         )
 
+        # Duplicate API may return {"id": ...} or {"list": {"id": ...}}
+        new_list_id = result.get("id") or result.get("list", {}).get("id")
+
         days_until = (start - today).days
         total_days = (end - start).days + 1
         return json.dumps({
-            "list_id": result.get("id"),
+            "list_id": new_list_id,
             "sprint_name": sprint_name,
             "sprint_number": sprint_number,
             "start_date": start.isoformat(),
