@@ -1216,15 +1216,14 @@ def create_sprint_list() -> str:
 
         sprint_name = f"Sprint {sprint_number} — {start.strftime('%b %d')} to {end.strftime('%b %d')}"
 
-        # Duplicate template list (preserves views, field visibility, settings)
+        # Create new list in sprint folder
         result = _clickup_api(
-            f"list/{SPRINT_TEMPLATE_LIST_ID}/duplicate",
+            f"folder/{SPRINT_FOLDER_ID}/list",
             method="POST",
-            payload={"name": sprint_name},
+            payload={"name": sprint_name, "status": "active"},
         )
 
-        # Duplicate API may return {"id": ...} or {"list": {"id": ...}}
-        new_list_id = result.get("id") or result.get("list", {}).get("id")
+        new_list_id = result.get("id")
 
         days_until = (start - today).days
         total_days = (end - start).days + 1
