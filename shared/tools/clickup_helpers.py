@@ -717,6 +717,287 @@ def scan_backlog_for_sprint() -> str:
     return json.dumps(summary, indent=2)
 
 
+# ── Sprint Candidates (staging area between backlog and sprint) ──────────────
+
+@tool("Suggest Tasks For Sprint Candidates")
+def suggest_sprint_candidates() -> str:
+    """
+    AI-powered suggestion: scans the backlog and recommends tasks for the
+    Sprint Candidates list based on priority, age, carryover status, and
+    team capacity. Does NOT move anything — just returns suggestions.
+
+    Returns a ranked list with reason for each suggestion.
+    """
+    # Load current candidates to avoid suggesting duplicates
+    existing_candidates = set()
+    try:
+        data = _clickup_api(f"list/{L['sprint_candidates']}/task?archived=false&page_size=100")
+        for t in data.get("tasks", []):
+            existing_candidates.add(t["id"])
+            # Also track by name fragment for backlog tasks
+            existing_candidates.add(t["name"].lower()[:60])
+    except Exception:
+        pass
+
+    # Load backlog
+    backlog_summary = json.loads(scan_backlog_for_sprint.run())
+
+    suggestions = []
+
+    # 1. Carryovers are always suggested first (non-negotiable)
+    for item in backlog_summary.get("carryovers", []):
+        if item["name"].lower()[:60] not in existing_candidates:
+            suggestions.append({
+                **item,
+                "reason": "Carryover from previous sprint — should be included",
+                "category": "carryover",
+                "suggested_priority": "must-include",
+            })
+
+    # 2. Urgent/high priority items
+    for category in ["bugs", "features", "tasks", "compliance"]:
+        for item in backlog_summary.get(category, []):
+            if item["name"].lower()[:60] in existing_candidates:
+                continue
+            if item["priority"] in ("urgent", "high"):
+                suggestions.append({
+                    **item,
+                    "reason": f"{item['priority'].title()} priority {category.rstrip('s')} — age: {item['age_days']}d",
+                    "category": category,
+                    "suggested_priority": "recommended",
+                })
+
+    # 3. Normal priority but aging (>14 days)
+    for category in ["bugs", "features", "tasks"]:
+        for item in backlog_summary.get(category, []):
+            if item["name"].lower()[:60] in existing_candidates:
+                continue
+            if item["priority"] == "normal" and item["age_days"] > 14:
+                if not any(s["id"] == item["id"] for s in suggestions):
+                    suggestions.append({
+                        **item,
+                        "reason": f"Aging {category.rstrip('s')} ({item['age_days']}d old) — risk of becoming stale",
+                        "category": category,
+                        "suggested_priority": "consider",
+                    })
+
+    # Cap compliance suggestions
+    compliance_count = sum(1 for s in suggestions if s["category"] == "compliance")
+    if compliance_count > MAX_COMPLIANCE_PER_SPRINT:
+        compliance_items = [s for s in suggestions if s["category"] == "compliance"]
+        keep = compliance_items[:MAX_COMPLIANCE_PER_SPRINT]
+        suggestions = [s for s in suggestions if s["category"] != "compliance"] + keep
+
+    total_sp = sum(s["sp"] for s in suggestions)
+    budget = SPRINT_RULES["budget_sp"]
+
+    return json.dumps({
+        "suggestions": suggestions[:20],  # Cap at 20
+        "total_suggested_sp": total_sp,
+        "sprint_budget_sp": budget,
+        "over_budget": total_sp > budget,
+        "existing_candidates_count": len(existing_candidates),
+        "note": "These are AI suggestions. Add tasks to Sprint Candidates list for team review. Assignees should be set by the team.",
+    }, indent=2)
+
+
+@tool("Add Task To Sprint Candidates")
+def add_to_sprint_candidates(task_id: str) -> str:
+    """
+    Copies a task from the Master Backlog to the Sprint Candidates list.
+    Preserves all metadata (name, description, tags, SP, priority).
+    Does NOT set assignees — team decides assignments on candidates.
+
+    The original stays in the backlog until sprint planning finalizes.
+    """
+    try:
+        # Get the task
+        task = _clickup_api(f"task/{task_id}")
+        name = task.get("name", "")
+
+        # Check if already in candidates
+        candidates = _clickup_api(f"list/{L['sprint_candidates']}/task?archived=false&page_size=100")
+        for existing in candidates.get("tasks", []):
+            if name.lower()[:60] in existing["name"].lower():
+                return json.dumps({"error": "Already in Sprint Candidates", "task": name[:80]})
+
+        # Copy to candidates
+        payload = {
+            "name": name,
+            "description": task.get("description", "") + f"\n\n---\nBacklog task: https://app.clickup.com/t/{task_id}",
+            "priority": task.get("priority", {}).get("priority", None) if task.get("priority") else None,
+        }
+        if task.get("tags"):
+            payload["tags"] = [t["name"] for t in task["tags"]]
+
+        result = _clickup_api(
+            f"list/{L['sprint_candidates']}/task",
+            method="POST", payload=payload,
+        )
+        new_id = result.get("id", "")
+
+        # Copy SP if set
+        cf_sp = next((cf.get("value") for cf in task.get("custom_fields", [])
+                     if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), None)
+        if cf_sp is not None:
+            _set_sp(new_id, int(cf_sp))
+
+        return json.dumps({
+            "success": True,
+            "task_name": name[:80],
+            "candidate_id": new_id,
+            "backlog_id": task_id,
+            "note": "Task added to Sprint Candidates. Set assignee in ClickUp before sprint planning.",
+        })
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@tool("List Sprint Candidates")
+def list_sprint_candidates() -> str:
+    """
+    Returns all tasks currently in the Sprint Candidates list with their
+    assignees, SP, priority, and tags. Use this to review what's been
+    proposed for the next sprint before finalizing.
+    """
+    try:
+        all_tasks = []
+        page = 0
+        while True:
+            data = _clickup_api(
+                f"list/{L['sprint_candidates']}/task?archived=false&page={page}&page_size=100"
+            )
+            tasks = data.get("tasks", [])
+            if not tasks:
+                break
+            all_tasks.extend(tasks)
+            if len(tasks) < 100:
+                break
+            page += 1
+
+        result = {
+            "total_candidates": len(all_tasks),
+            "total_sp": 0,
+            "unassigned": 0,
+            "tasks": [],
+        }
+
+        for t in all_tasks:
+            assignees = [a.get("username", "") for a in t.get("assignees", [])]
+            cf_sp = next((cf.get("value") for cf in t.get("custom_fields", [])
+                         if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), None)
+            sp = int(cf_sp) if cf_sp is not None else _estimate_sp(t["name"], "normal")
+
+            if not assignees:
+                result["unassigned"] += 1
+
+            result["total_sp"] += sp
+            result["tasks"].append({
+                "id": t["id"],
+                "name": t["name"][:100],
+                "sp": sp,
+                "priority": t.get("priority", {}).get("priority", "normal") if t.get("priority") else "normal",
+                "assignees": assignees,
+                "tags": [tag["name"] for tag in t.get("tags", [])],
+                "url": t.get("url", ""),
+            })
+
+        result["budget_sp"] = SPRINT_RULES["budget_sp"]
+        result["over_budget"] = result["total_sp"] > SPRINT_RULES["budget_sp"]
+
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@tool("Finalize Sprint From Candidates")
+def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
+    """
+    Moves all tasks from Sprint Candidates into the actual Sprint list.
+    This is the final step in sprint planning — called AFTER the team
+    has reviewed and approved the candidates.
+
+    Validates:
+    - All candidates have assignees (warns if not)
+    - Total SP doesn't exceed budget (warns if over)
+    - At least 1 task exists
+
+    Then: copies each candidate to sprint, deletes from candidates,
+    and closes the backlog original.
+    """
+    # Load candidates
+    candidates_data = json.loads(list_sprint_candidates.run())
+    tasks = candidates_data.get("tasks", [])
+
+    if not tasks:
+        return json.dumps({"error": "No tasks in Sprint Candidates. Add tasks first."})
+
+    # Warnings
+    warnings = []
+    unassigned = [t for t in tasks if not t["assignees"]]
+    if unassigned:
+        warnings.append(f"{len(unassigned)} task(s) have no assignee: {', '.join(t['name'][:40] for t in unassigned)}")
+    if candidates_data.get("over_budget"):
+        warnings.append(f"Over budget: {candidates_data['total_sp']} SP vs {candidates_data['budget_sp']} SP budget")
+
+    stats = {"tasks_moved": 0, "total_sp": 0, "errors": 0, "warnings": warnings, "moved": []}
+
+    for task in tasks:
+        task_id = task["id"]
+        try:
+            # Get full task data
+            full_task = _clickup_api(f"task/{task_id}")
+
+            # Copy to sprint
+            payload = {
+                "name": full_task.get("name", ""),
+                "description": full_task.get("description", ""),
+                "priority": full_task.get("priority", {}).get("priority", None) if full_task.get("priority") else None,
+                "assignees": [a["id"] for a in full_task.get("assignees", [])],
+            }
+            if full_task.get("tags"):
+                payload["tags"] = [t["name"] for t in full_task["tags"]]
+
+            result = _clickup_api(
+                f"list/{sprint_list_id}/task",
+                method="POST", payload=payload,
+            )
+            new_id = result.get("id", "")
+
+            # Copy SP
+            cf_sp = next((cf.get("value") for cf in full_task.get("custom_fields", [])
+                         if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), None)
+            if cf_sp is not None:
+                _set_sp(new_id, int(cf_sp))
+
+            # Delete from candidates
+            try:
+                _clickup_api(f"task/{task_id}", method="DELETE")
+            except Exception:
+                pass  # orphan protection — sprint copy exists
+
+            # Close backlog original if linked
+            desc = full_task.get("description", "")
+            if "Backlog task: https://app.clickup.com/t/" in desc:
+                backlog_id = desc.split("Backlog task: https://app.clickup.com/t/")[-1].strip().split()[0]
+                try:
+                    _clickup_api(f"task/{backlog_id}", method="DELETE")
+                except Exception:
+                    pass
+
+            stats["tasks_moved"] += 1
+            stats["total_sp"] += task.get("sp", 0)
+            stats["moved"].append(task["name"][:60])
+        except Exception as e:
+            stats["errors"] += 1
+
+        if stats["tasks_moved"] % 5 == 0 and stats["tasks_moved"] > 0:
+            time.sleep(0.5)
+
+    stats["sprint_list_id"] = sprint_list_id
+    return json.dumps(stats, indent=2)
+
+
 @tool("Execute Sprint Selection")
 def execute_sprint_selection(sprint_list_id: str, task_ids_json: str) -> str:
     """

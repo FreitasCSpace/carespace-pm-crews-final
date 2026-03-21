@@ -18,4 +18,6 @@ from .clickup_helpers import (
     scan_backlog_for_sprint, execute_sprint_selection,
     bulk_assign_and_estimate, batch_compliance_check, dedup_backlog_cleanup,
     scan_backlog_for_triage, execute_triage_actions,
+    suggest_sprint_candidates, add_to_sprint_candidates,
+    list_sprint_candidates, finalize_sprint_from_candidates,
 )

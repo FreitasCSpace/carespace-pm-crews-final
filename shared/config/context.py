@@ -40,7 +40,8 @@ L = {
     # Backlog (single intake point — everything lands here)
     "master_backlog":       "901326439232",
 
-    # Sprints (auto-created by sprint_crew — folder starts empty)
+    # Sprints
+    "sprint_candidates":    "901326510544",   # Staging area — tasks proposed for next sprint
     # sprint_crew creates: "Sprint N — {start} to {end}" in folder 901317811717
 
     # Operations
@@ -368,6 +369,7 @@ def crew_context(**overrides) -> dict:
         "product_launches_id":     L["product_launches"],
         "onboarding_id":           L["onboarding_accounts"],
         "support_escalations_id":  L["support_escalations"],
+        "sprint_candidates_id":    L["sprint_candidates"],
     }
 
     # -- Thresholds --
