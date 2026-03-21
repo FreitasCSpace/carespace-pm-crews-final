@@ -1043,6 +1043,8 @@ def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
             time.sleep(0.5)
 
     stats["sprint_list_id"] = sprint_list_id
+    # Pre-format for post_sprint_plan — agent passes this directly as tasks_json
+    stats["tasks_json"] = json.dumps(stats["moved"])
     return json.dumps(stats, indent=2)
 
 
