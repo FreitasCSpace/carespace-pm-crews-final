@@ -149,7 +149,7 @@ def validate_compliance_output(result):
 
     if not has_vanta:
         return (False, "Compliance output must include Vanta health status. "
-                "Call vanta_health_summary.")
+                "Call get_vanta_compliance_health_summary.")
 
     if not has_tasks:
         return (False, "Compliance output must include open task count. "
