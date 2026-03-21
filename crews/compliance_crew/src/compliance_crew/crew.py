@@ -25,10 +25,21 @@ class ComplianceCrew:
         return ctx
 
     @agent
-    def compliance_agent(self) -> Agent:
+    def gather_agent(self) -> Agent:
+        """Data-only agent for gather step — no Slack tools to prevent early posting."""
         return Agent(
             config=interpolate_config(self.agents_config["compliance_agent"]),
-            tools=[batch_compliance_check, create_clickup_task, post_compliance, vanta_health_summary],
+            tools=[batch_compliance_check, vanta_health_summary],
+            verbose=True,
+            allow_delegation=False,
+        )
+
+    @agent
+    def post_agent(self) -> Agent:
+        """Post agent — has Slack + alert tools, runs only after gather completes."""
+        return Agent(
+            config=interpolate_config(self.agents_config["compliance_agent"]),
+            tools=[post_compliance, create_clickup_task],
             verbose=True,
             allow_delegation=False,
         )
@@ -37,12 +48,16 @@ class ComplianceCrew:
     def gather_health(self) -> Task:
         return Task(
             config=interpolate_config(self.tasks_config["gather_health"]),
+            agent=self.gather_agent(),
             guardrail=validate_compliance_output,
         )
 
     @task
     def post_report(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["post_report"]))
+        return Task(
+            config=interpolate_config(self.tasks_config["post_report"]),
+            agent=self.post_agent(),
+        )
 
     @crew
     def crew(self) -> Crew:
