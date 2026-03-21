@@ -26,13 +26,22 @@ class TriageCrew:
 
     @agent
     def triage_agent(self) -> Agent:
+        """Data agent — dedup, estimate, scan, execute. No Slack access."""
         return Agent(
             config=interpolate_config(self.agents_config["triage_agent"]),
             tools=[
                 dedup_backlog_cleanup, bulk_assign_and_estimate,
                 scan_backlog_for_triage, execute_triage_actions,
-                post_triage_summary,
             ],
+            verbose=True,
+        )
+
+    @agent
+    def triage_post_agent(self) -> Agent:
+        """Post agent — Slack only, runs once after all data tasks complete."""
+        return Agent(
+            config=interpolate_config(self.agents_config["triage_post_agent"]),
+            tools=[post_triage_summary],
             verbose=True,
         )
 
@@ -54,6 +63,10 @@ class TriageCrew:
             config=interpolate_config(self.tasks_config["decide_and_execute_task"]),
             guardrail=validate_triage_actions,
         )
+
+    @task
+    def post_triage_task(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["post_triage_task"]))
 
     @crew
     def crew(self) -> Crew:

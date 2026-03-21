@@ -9,10 +9,10 @@ dedup_task:
 estimate_sp_task:
   description: >
     Call bulk_assign_and_estimate to set story points on ALL backlog
-    tasks that don't have SP yet. This does NOT assign tasks — backlog
-    items stay unassigned until sprint planning.
+    tasks that don't have SP yet and remove assignees from any assigned
+    tasks. Backlog items stay unassigned until sprint planning.
   expected_output: >
-    JSON with sp_set, already_has_sp counts.
+    JSON with sp_set, unassigned, already_has_sp counts.
   agent: triage_agent
   context:
     - dedup_task
@@ -38,25 +38,29 @@ decide_and_execute_task:
        all overdue" is one alert, not 20)
     4. AGING BACKLOG: flag backlog tasks older than 21 days with no updates
        as "aging". For urgent/high priority aging tasks, escalate them into the
-       Needs Attention section of the triage summary. Do NOT create separate
-       alerts for aging tasks — just include them in the triage summary.
+       Needs Attention section of the triage summary.
 
-    IMPORTANT: Do NOT assign tasks. Backlog items must stay unassigned.
-    Assignees are selected during sprint planning, not triage.
-
-    Call execute_triage_actions with your decisions.
-
-    Then post summary using post_triage_summary (NOT the generic post tool):
-    - priorities_set: bullet list of priority changes
-    - assignments: "None — backlog items stay unassigned"
-    - story_points: summary of SP set
-    - alerts: bullet list of alerts created
-    - reasoning: why you made these decisions
-
-    IMPORTANT: Use post_triage_summary for formatted output. Do NOT use
-    the generic 'post' tool — it produces ugly unformatted text.
+    IMPORTANT: Do NOT assign tasks. Do NOT post to Slack.
+    Call execute_triage_actions with your decisions only.
   expected_output: >
     JSON summary of actions taken with reasoning.
   agent: triage_agent
   context:
     - scan_task
+
+post_triage_task:
+  description: >
+    Post ONE triage summary to {slack_alerts} using post_triage_summary.
+    Pass these sections from the previous step's results:
+    - priorities_set: bullet list of priority changes
+    - assignments: "None — backlog items stay unassigned"
+    - story_points: summary of SP set
+    - alerts: bullet list of alerts created
+    - reasoning: why decisions were made
+
+    Post ONE message only. Do NOT post multiple times.
+  expected_output: >
+    Confirmation of report posted to Slack.
+  agent: triage_post_agent
+  context:
+    - decide_and_execute_task
