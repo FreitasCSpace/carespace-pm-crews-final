@@ -150,6 +150,7 @@ def _create_task(list_id: str, name: str, description: str, priority: int,
             "description": description,
             "priority": priority,
             "tags": tags,
+            "status": "to do",
         }
         result = _clickup_api(f"list/{list_id}/task", method="POST", payload=payload)
         return result

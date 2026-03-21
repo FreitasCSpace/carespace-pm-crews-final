@@ -250,7 +250,7 @@ def create_clickup_task(list_id: str, name: str, description: str = "",
     Returns the created task id, name, and url.
     """
     try:
-        payload = {"name": name, "priority": priority}
+        payload = {"name": name, "priority": priority, "status": "to do"}
         if description:
             payload["description"] = description
         if assignees:
