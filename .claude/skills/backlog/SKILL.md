@@ -1,182 +1,200 @@
 ---
 name: backlog
-description: Create tasks in the CareSpace ClickUp Master Backlog. Supports BUG, FEATURE, TASK, SECURITY, and COMPLIANCE items with proper naming, tags, priorities, and team assignments. Use when someone says "create a task", "log a bug", "add a feature", "new backlog item", or "report an issue".
+description: Create issues in the CareSpace GitHub repos. The intake crew automatically imports them to ClickUp with proper naming, tags, and priorities. Supports BUG, FEATURE, TASK, SECURITY, and COMPLIANCE items. Use when someone says "create a task", "log a bug", "add a feature", "new backlog item", or "report an issue".
 argument-hint: "[description of the task, bug, or feature]"
 allowed-tools: Bash, Read, Grep, Glob
 ---
 
-# CareSpace Backlog Task Creator
+# CareSpace Issue Creator (GitHub → Intake → ClickUp)
 
-You help team members create properly formatted tasks in the ClickUp Master Backlog.
+You help team members create properly formatted GitHub issues. The intake crew
+automatically picks them up and creates ClickUp tasks with correct naming,
+tags, SP estimates, and assignments.
+
+**Flow:** `/backlog` → GitHub issue → Intake crew (next cron) → ClickUp backlog
 
 ## How to interact
 
-If `$ARGUMENTS` is provided, infer the task type and details from it. Otherwise, ask conversationally.
+If `$ARGUMENTS` is provided, infer the type and details. Otherwise, ask conversationally.
 
-1. **Determine type** — infer from description or ask:
-   - BUG: "crash", "broken", "error", "fail", "not working", "fix"
-   - FEATURE: "add", "implement", "new", "support", "enable"
+1. **Determine type** — infer from description:
+   - BUG: "crash", "broken", "error", "fail", "not working", "fix", "freeze"
+   - FEATURE: "add", "implement", "new", "support", "enable", "improve"
    - SECURITY: "vulnerability", "CVE", "RBAC", "bypass", "injection"
    - COMPLIANCE: "SOC2", "HIPAA", "Vanta", "audit", "BAA", "control failure"
    - TASK: anything else (refactor, update, cleanup, etc.)
 
-2. **Gather details** — ask only what's missing:
-   - Title/description
-   - Repo (if engineering) or compliance framework (if compliance)
-   - Priority (suggest based on type, confirm)
-   - Assignee (suggest based on domain, confirm)
-   - Story points (suggest based on type/size, confirm)
+2. **Determine repo** — based on domain keywords in the description:
+   - Frontend: carespace-ui
+   - Backend: carespace-admin
+   - Mobile iOS: carespace-mobile-ios
+   - Mobile Android: carespace-mobile-android
+   - SDK: carespace-sdk
+   - AI/CV/Posture: PoseEstimator or carespace-poseestimation
+   - Infra: carespace-docker
+   - Compliance: FreitasCSpace/CareSpace-Compliance-Repo
+   - If unclear, ask the user
 
-3. **Check for duplicates** before creating
+3. **Gather details** — ask only what's missing:
+   - Clear title
+   - Description with context
+   - Priority suggestion (user confirms)
+   - Affected component/area
 
-4. **Create the task** via ClickUp API
+4. **Check for duplicates** — search existing issues in the repo
 
-5. **Return the URL** to the user
+5. **Create the GitHub issue** with proper labels
 
-Keep it conversational and fast. Don't ask unnecessary questions — infer what you can.
+6. **Return the URL** and confirm intake crew will pick it up
 
-## Naming Formats
+Keep it conversational and fast. Infer what you can.
 
-| Type | Format | Example |
-|------|--------|---------|
-| BUG | `[BUG] <title> (<repo>#<N>)` | `[BUG] Login crashes on iOS (carespace-mobile-ios#145)` |
-| FEATURE | `[FEATURE] <title> (<repo>#<N>)` | `[FEATURE] Add SSO support (carespace-admin#89)` |
-| TASK | `[TASK] <title> (<repo>#<N>)` | `[TASK] Update dependencies (carespace-ui#412)` |
-| SECURITY | `[SECURITY] <title> (<repo>#<N>)` | `[SECURITY] SQL injection in search (carespace-admin#234)` |
-| COMPLIANCE | `[COMPLIANCE] <title> (#<N>)` | `[COMPLIANCE] Missing BAA for Azure (#432)` |
+## GitHub Issue Format
 
-- If no GitHub issue number, omit the `(repo#N)` part
-- Titles max 150 characters
-- Type prefix is ALWAYS uppercase in brackets
+### Title format by type:
+| Type | Title Format |
+|------|-------------|
+| BUG | `fix: <description>` |
+| FEATURE | `feat: <description>` |
+| TASK | `chore: <description>` |
+| SECURITY | `security: <description>` |
+| COMPLIANCE | `compliance: <description>` |
 
-## Tag Rules
+### Body template:
+```markdown
+## Description
+<What's happening / what's needed>
 
-Every task gets 3 tags minimum: **domain + type + source**
+## Type
+<BUG / FEATURE / TASK / SECURITY / COMPLIANCE>
 
-**Type tags:** `bug`, `feature`, `task`, `security`, `compliance`, `tech-debt`
-**Source tags:** `github`, `vanta`, `client-feedback`, `internal`
-**Domain tags:** `frontend`, `backend`, `mobile`, `sdk`, `ai-cv`, `infra`, `bots`, `video`
+## Priority
+<P0-critical / P1-high / P2-medium / P3-low>
 
-### Tag combinations by type:
-- BUG from GitHub: `[domain, "bug", "github"]`
-- BUG internal: `[domain, "bug", "internal"]`
-- FEATURE: `[domain, "feature", "github"]` or `[domain, "feature", "internal"]`
-- SECURITY: `[domain, "security", "github"]`
-- COMPLIANCE: `["compliance", "vanta"]` + optional: `"soc2"`, `"hipaa"`, `"security"`
-- TASK: `[domain, "task", "github"]` or `[domain, "task", "internal"]`
+## Affected Area
+<Component, page, or service affected>
 
-## Priority Mapping
+## Steps to Reproduce (bugs only)
+1. ...
+2. ...
 
-| Priority | ClickUp Value | When to use |
-|----------|---------------|-------------|
-| urgent | 1 | Security issues, P0, critical production bugs |
-| high | 2 | Most bugs, blocking issues, P1 |
-| normal | 3 | Features, tasks, P2 (default) |
-| low | 4 | Nice-to-haves, P3, tech debt |
+## Expected Behavior (bugs only)
+<What should happen>
 
-## Domain Mapping (repo to domain)
-
-```
-frontend: carespace-ui, carespace-landingpage, carespace-site, healthstartiq
-backend:  carespace-admin, carespace-api-gateway, carespace-crud
-mobile:   carespace-mobile-android, carespace-mobile-ios
-sdk:      carespace-sdk
-ai-cv:    PoseEstimator, carespace-poseestimation
-infra:    carespace-docker, carespace-monitoring, carespace-k8s
-video:    carespace-jitsi, carespace-videocall
+## Acceptance Criteria (features only)
+- [ ] ...
 ```
 
-## Story Point Estimates
+## GitHub Labels
 
-| Type | Size | SP |
-|------|------|----|
-| Security issue | — | 8 |
-| Bug | low | 2 |
-| Bug | medium | 5 |
-| Bug | high/critical | 8 |
-| Feature | small | 5 |
-| Feature | medium | 13 |
-| Feature | large | 21 |
-| Task | — | 3-5 |
-| PR review | — | 2 |
-| CI fix | — | 3 |
+The intake crew maps these labels to ClickUp tags/priorities:
 
-## Team Members (for assignment suggestions)
+### Priority labels (pick one):
+- `P0-critical` → ClickUp urgent
+- `P1-high` → ClickUp high
+- `P2-medium` → ClickUp normal
+- `P3-low` → ClickUp low
 
-| Name | ClickUp ID | Domain |
-|------|-----------|--------|
-| Andre C Dutra | 49000180 | frontend |
-| Fabiano Fiorentin | 49000181 | backend |
-| Willian Schaitel | 49057990 | backend |
-| Bharath | 93908270 | sdk, ai-cv |
-| Flavio Fusuma | 48998538 | infra, compliance |
-| Luis Freitas | 118004891 | compliance, management |
-| Bhavya Saurabh | 49069843 | mobile, frontend |
+### Type labels (pick one):
+- `bug` → tag: bug
+- `feature` → tag: feature
+- `task` → tag: task
+- `security` → tag: security
+- `compliance` → tag: compliance
 
-## ClickUp API
+### Compliance-specific labels (for CareSpace-Compliance-Repo):
+- `HIPAA`, `soc2`, `control-failure`, `evidence-gap`, `vendor-risk`
 
-**Create task:**
+## Domain → Repo Mapping
+
+```
+frontend:  carespace-ui, carespace-landingpage, carespace-site, healthstartiq
+backend:   carespace-admin, carespace-api-gateway, carespace-strapi
+mobile:    carespace-mobile-ios, carespace-mobile-android
+sdk:       carespace-sdk
+ai-cv:     PoseEstimator, carespace-poseestimation
+infra:     carespace-docker, carespace-monitoring
+video:     carespace-media-converter, carespace-video-converter
+bots:      carespace-botkit, carespace-chat
+```
+
+Default repo if domain is clear but specific repo isn't:
+- frontend → carespace-ui
+- backend → carespace-admin
+- mobile → carespace-mobile-ios (ask if Android)
+- compliance → FreitasCSpace/CareSpace-Compliance-Repo
+
+## Creating the Issue
+
+Use `gh` CLI:
+
 ```bash
-curl -s -X POST "https://api.clickup.com/api/v2/list/{LIST_ID}/task" \
-  -H "Authorization: {API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "[TYPE] title",
-    "description": "description text",
-    "priority": 3,
-    "tags": ["domain", "type", "source"],
-    "assignees": [USER_ID]
-  }'
+# Engineering issues (carespace-ai org)
+gh issue create --repo carespace-ai/REPO_NAME \
+  --title "fix: camera freezes during ROM scan" \
+  --body "$(cat <<'EOF'
+## Description
+Camera freezes during ROM scan on iOS devices.
+
+## Type
+BUG
+
+## Priority
+P1-high
+
+## Affected Area
+ROM scan camera view
+
+## Steps to Reproduce
+1. Open ROM scan
+2. Position camera
+3. Camera freezes after 5 seconds
+EOF
+)" \
+  --label "bug,P1-high"
+
+# Compliance issues
+gh issue create --repo FreitasCSpace/CareSpace-Compliance-Repo \
+  --title "compliance: Missing BAA for Azure" \
+  --body "..." \
+  --label "compliance,P1-high,vendor-risk"
 ```
 
-**IDs:**
-- Master Backlog: `901326439232`
-- Alerts list: `901326439234`
-- SP custom field: `1662e3e7-b018-47b7-8881-e30f6831c674`
+## Duplicate Check
 
-**Duplicate check** — before creating, search the backlog:
+Before creating, check for existing issues:
+
 ```bash
-curl -s "https://api.clickup.com/api/v2/list/901326439232/task?archived=false&include_closed=true&page=0" \
-  -H "Authorization: {API_KEY}"
-```
-Search task names for the title fragment. If found, warn the user.
-
-**Set story points** after creation:
-```bash
-curl -s -X POST "https://api.clickup.com/api/v2/task/{TASK_ID}/field/1662e3e7-b018-47b7-8881-e30f6831c674" \
-  -H "Authorization: {API_KEY}" \
-  -H "Content-Type: application/json" \
-  -d '{"value": 5}'
+# Search for similar issues
+gh issue list --repo carespace-ai/REPO_NAME --state open --search "KEYWORDS" --limit 5
 ```
 
-## Auto-alert rules
-
-Create an additional alert in the Alerts list (901326439234) when:
-- Type is SECURITY (always) — priority urgent, tags: `[domain, "security", "urgent"]`
-- Type is COMPLIANCE with priority urgent — tags: `["compliance", "urgent"]`
-
-Alert name format: `[ALERT] <title>`
-
-## API Key
-
-Look for the ClickUp API key in this order:
-1. Environment variable `CLICKUP_API_KEY`
-2. Ask the user to provide it
+If a potential duplicate is found, show it to the user and ask if they still want to create.
 
 ## Example Flow
 
-User: `/backlog camera freezes during ROM scan on iOS`
+User: `/backlog camera freezes on iOS during ROM scan`
 
 You:
-> Got it — that sounds like a **BUG** in **carespace-mobile-ios** (mobile domain).
+> That sounds like a **BUG** in **carespace-mobile-ios**.
 >
-> Here's what I'll create:
-> - **Name:** `[BUG] Camera freezes during ROM scan on iOS`
+> I'll create:
+> - **Title:** `fix: camera freezes during ROM scan on iOS`
+> - **Repo:** carespace-ai/carespace-mobile-ios
+> - **Labels:** bug, P1-high
 > - **Priority:** high (production bug)
-> - **Assignee:** Bhavya Saurabh (mobile)
-> - **SP:** 5 (medium bug)
-> - **Tags:** mobile, bug, internal
 >
 > Want me to create it, or change anything?
 
-After confirmation, create and return the ClickUp URL.
+After confirmation:
+> Created: https://github.com/carespace-ai/carespace-mobile-ios/issues/47
+>
+> The intake crew will pick this up on the next run and create the
+> ClickUp task with proper naming, tags, SP estimate, and assignment.
+
+## What NOT to do
+
+- Do NOT create ClickUp tasks directly — that's the intake crew's job
+- Do NOT assign in GitHub — intake crew handles assignment based on domain
+- Do NOT estimate SP in GitHub — intake crew does that automatically
+- Do NOT create alerts — intake crew creates alerts for P0/urgent items
