@@ -2,11 +2,9 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
-    create_sprint_list, scan_backlog_for_sprint,
-    execute_sprint_selection, post_sprint_plan, post,
+    create_sprint_list, post_sprint_plan,
 )
 from shared.tools.clickup_helpers import (
-    suggest_sprint_candidates, add_to_sprint_candidates,
     list_sprint_candidates, finalize_sprint_from_candidates,
 )
 from shared.config.context import interpolate_config
@@ -15,7 +13,7 @@ from shared.guardrails import validate_sprint_plan
 
 @CrewBase
 class SprintCrew:
-    """AI-assisted sprint planning — uses Sprint Candidates as staging area."""
+    """Sprint finalization — moves Sprint Candidates into the sprint."""
 
     agents_config  = "config/agents.yaml"
     tasks_config   = "config/tasks.yaml"
@@ -29,14 +27,22 @@ class SprintCrew:
 
     @agent
     def sprint_agent(self) -> Agent:
+        """Data agent — create sprint, check candidates, finalize. No Slack."""
         return Agent(
             config=interpolate_config(self.agents_config["sprint_agent"]),
             tools=[
-                create_sprint_list, scan_backlog_for_sprint,
-                execute_sprint_selection, post_sprint_plan, post,
-                suggest_sprint_candidates, add_to_sprint_candidates,
+                create_sprint_list,
                 list_sprint_candidates, finalize_sprint_from_candidates,
             ],
+            verbose=True,
+        )
+
+    @agent
+    def sprint_post_agent(self) -> Agent:
+        """Post agent — Slack only, runs once after finalization."""
+        return Agent(
+            config=interpolate_config(self.agents_config["sprint_post_agent"]),
+            tools=[post_sprint_plan],
             verbose=True,
         )
 
@@ -49,9 +55,9 @@ class SprintCrew:
         return Task(config=interpolate_config(self.tasks_config["check_candidates_task"]))
 
     @task
-    def plan_and_execute_task(self) -> Task:
+    def finalize_task(self) -> Task:
         return Task(
-            config=interpolate_config(self.tasks_config["plan_and_execute_task"]),
+            config=interpolate_config(self.tasks_config["finalize_task"]),
             guardrail=validate_sprint_plan,
         )
 

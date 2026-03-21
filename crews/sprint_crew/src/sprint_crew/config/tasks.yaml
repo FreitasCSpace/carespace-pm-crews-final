@@ -2,85 +2,57 @@ create_sprint_task:
   description: >
     Call create_or_get_sprint_list. It checks if an active sprint exists:
     - If status = 'active': a sprint is already running. Return it.
-    - If status = 'created': a new sprint was created. Proceed to plan it.
+    - If status = 'created': a new sprint was created. Proceed.
   expected_output: >
     JSON with list_id, sprint_name, sprint_number, dates, and status.
   agent: sprint_agent
 
 check_candidates_task:
   description: >
-    Check the Sprint Candidates list using list_sprint_candidates.
-    This list is the staging area where the team has placed tasks they
-    want in the next sprint. It may have been populated by:
-    - Team members adding tasks directly in ClickUp
-    - AI suggestions via suggest_sprint_candidates
-    - The /sprint-plan interactive skill
+    Call list_sprint_candidates to see what the team has selected.
 
     Report: total candidates, total SP, unassigned tasks, over/under budget.
 
-    If the Sprint Candidates list is EMPTY and a new sprint needs planning,
-    call suggest_sprint_candidates to generate AI recommendations.
-    Then report the suggestions — but do NOT add them automatically.
-    The team must add tasks to Sprint Candidates before the sprint
-    can be finalized.
+    If Sprint Candidates is EMPTY, report that the team needs to populate
+    it before the sprint can be finalized. Do NOT scan the backlog or
+    pick tasks — that is the team's job via /sprint-plan.
   expected_output: >
     Sprint Candidates summary with task list, SP total, and assignment status.
   agent: sprint_agent
   context:
     - create_sprint_task
 
-plan_and_execute_task:
+finalize_task:
   description: >
-    Based on the create_sprint_task status and candidates check:
+    IF Sprint Candidates has tasks:
+    Call finalize_sprint_from_candidates with the sprint list_id from
+    create_sprint_task. This moves ALL candidates into the sprint:
+    - Copies each task to the sprint list (with assignees, SP, tags)
+    - Deletes each task from Sprint Candidates
+    - Closes the backlog original
 
-    IF STATUS = 'active' (sprint already running):
-    - Check if the sprint needs more tasks (underfilled).
-    - If it's already well-populated, just report status and SKIP execution.
-    - If it needs tasks AND Sprint Candidates has items, add them.
+    IF Sprint Candidates is EMPTY:
+    Do NOT pull from the backlog. Report that sprint planning needs
+    the team to populate Sprint Candidates first.
 
-    IF STATUS = 'created' (new sprint):
-    - Check Sprint Candidates list.
-    - If candidates exist: validate the sprint plan:
-      * All tasks should have assignees (WARN if not — team decides assignments)
-      * Total SP should be within budget ({sprint_budget_sp} SP)
-      * Carryovers should be included
-    - If valid: call finalize_sprint_from_candidates to move all candidates
-      into the sprint list. This copies them to sprint and cleans up.
-    - If Sprint Candidates is EMPTY: do NOT pull directly from backlog.
-      Post a warning to Slack that sprint planning needs attention.
-      The team must use Sprint Candidates for sprint planning.
-
-    SPRINT BUILDING PRINCIPLES:
-    1. Budget: {sprint_budget_sp} SP total (80% of velocity)
-       IMPORTANT: subtract carryover SP from budget FIRST. Carryovers are
-       non-negotiable (always included), so new tasks fill remaining capacity.
-    2. CARRYOVER FIRST: tasks tagged "carryover" always go in
-    3. TEAM DECIDES: assignments are set by the team on Sprint Candidates.
-       AI suggests but NEVER overrides human assignments.
-    4. COMPLIANCE: max {max_compliance} items (Luis handles these alone)
-    5. MIX: aim for ~2 bugs + ~5 features + ~2 tasks + ~3 compliance
-
-    CRITICAL: Sprint crew is an EXECUTOR, not a decision-maker.
-    The team curates Sprint Candidates. Sprint crew finalizes.
+    IMPORTANT: Do NOT use scan_backlog_for_sprint or execute_sprint_selection.
+    Those tools do not exist. Only use finalize_sprint_from_candidates.
   expected_output: >
-    JSON with tasks_moved, total_sp, or status report if sprint was
-    already active. Warning if candidates list was empty.
+    JSON with tasks_moved, total_sp, warnings. Or empty candidates warning.
   agent: sprint_agent
   context:
     - check_candidates_task
 
 post_sprint_plan_task:
   description: >
-    Post to {slack_sprint} using post_sprint_plan.
-    - If new sprint was created from candidates: full sprint plan with
-      task list, assignees, SP totals, and any warnings (unassigned, over budget).
-    - If sprint was already active: status update ("Sprint N still active,
-      ends Apr 05, N tasks remaining").
-    - If candidates were empty: warning message that sprint planning needs
-      the team to populate Sprint Candidates.
-    Post ONLY to {slack_sprint}. Do NOT post to other channels.
+    Post ONE message to {slack_sprint} using post_sprint_plan:
+    - If sprint was finalized: full plan with tasks, assignees, SP, warnings
+    - If sprint was already active: status update
+    - If candidates were empty: warning that team needs to plan
+
+    Post ONE message only. Do NOT post to other channels.
   expected_output: >
     Confirmation of Slack post to {slack_sprint}.
-  agent: sprint_agent
+  agent: sprint_post_agent
   context:
-    - plan_and_execute_task
+    - finalize_task
