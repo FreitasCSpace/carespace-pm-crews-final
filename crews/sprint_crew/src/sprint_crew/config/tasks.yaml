@@ -9,15 +9,21 @@ create_sprint_task:
 
 check_candidates_task:
   description: >
-    Call list_sprint_candidates to see what the team has selected.
+    First call get_last_sprint_velocity to get the recommended SP budget
+    based on the team's actual last-sprint delivery. Use the returned
+    recommended_budget_sp as the target for this sprint.
 
-    Report: total candidates, total SP, unassigned tasks, over/under budget.
+    Then call list_sprint_candidates to see what the team has selected.
+
+    Report: recommended budget (from velocity history), total candidates SP,
+    over/under budget delta, unassigned tasks.
 
     If Sprint Candidates is EMPTY, report that the team needs to populate
     it before the sprint can be finalized. Do NOT scan the backlog or
     pick tasks — that is the team's job via /sprint-plan.
   expected_output: >
-    Sprint Candidates summary with task list, SP total, and assignment status.
+    Sprint Candidates summary: recommended budget, current SP total,
+    over/under delta, task list, and assignment status.
   agent: sprint_agent
   context:
     - create_sprint_task

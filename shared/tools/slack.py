@@ -434,6 +434,55 @@ def post_exec(health_dashboard: str, key_metrics: str, sprint_analysis: str,
     return json.dumps({"ok": r.get("ok")})
 
 
+# ── Engineer DM Notifications ─────────────────────────────────────────────────
+
+@tool("notify_task_assignee")
+def notify_task_assignee(task_id: str, message: str) -> str:
+    """
+    Sends a Slack DM to the assignee(s) of a ClickUp task.
+    Use for SLA breach alerts and blocker notifications so engineers
+    are informed directly, not just via channel posts.
+
+    task_id: ClickUp task ID
+    message: what to tell the engineer (e.g. 'Your task has breached SLA — please update status or flag a blocker.')
+    """
+    from shared.config.context import CU_TO_SLACK
+    import os, urllib.request as _req
+
+    # Fetch task to get assignees and name
+    try:
+        token = os.environ.get("CLICKUP_PERSONAL_TOKEN", os.environ.get("CLICKUP_API_TOKEN", ""))
+        req = _req.Request(
+            f"https://api.clickup.com/api/v2/task/{task_id}",
+            headers={"Authorization": token},
+        )
+        with _req.urlopen(req, timeout=15) as resp:
+            task = json.loads(resp.read().decode())
+    except Exception as e:
+        return json.dumps({"ok": False, "error": f"Failed to fetch task: {e}"})
+
+    task_name = task.get("name", task_id)
+    assignees  = task.get("assignees", [])
+
+    sent, skipped = [], []
+    for a in assignees:
+        cu_id    = str(a.get("id", ""))
+        slack_id = CU_TO_SLACK.get(cu_id, "")
+        username = a.get("username", cu_id)
+
+        if not slack_id:
+            skipped.append(username)
+            continue
+
+        r = _api(slack_id, f"🔔 *{task_name}*\n{message}")
+        if r.get("ok"):
+            sent.append(username)
+        else:
+            skipped.append(f"{username}: {r.get('error', 'unknown')}")
+
+    return json.dumps({"ok": bool(sent), "sent": sent, "skipped_no_slack_id": skipped})
+
+
 # ── Compliance ────────────────────────────────────────────────────────────────
 
 @tool("post_compliance_report")

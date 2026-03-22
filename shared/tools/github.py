@@ -436,6 +436,30 @@ def sync_closed_issues() -> str:
         stats["error_detail"] = f"Failed to load backlog: {e}"
         return json.dumps(stats, indent=2)
 
+    # Also scan sprint lists — tasks moved to sprint are no longer in backlog
+    # but still need GitHub sync (merged PR → task done)
+    try:
+        from shared.config.context import SPRINT_FOLDER_ID
+        sprint_folder = _clickup_api(f"folder/{SPRINT_FOLDER_ID}/list")
+        sprint_tasks_found = 0
+        for sprint_list in sprint_folder.get("lists", []):
+            page = 0
+            while True:
+                sprint_data = _clickup_api(
+                    f"list/{sprint_list['id']}/task?archived=false&include_closed=true&page={page}&page_size=100"
+                )
+                batch = sprint_data.get("tasks", [])
+                if not batch:
+                    break
+                all_tasks.extend(batch)
+                sprint_tasks_found += len(batch)
+                if len(batch) < 100:
+                    break
+                page += 1
+        stats["sprint_tasks_scanned"] = sprint_tasks_found
+    except Exception as sprint_e:
+        stats["sprint_scan_error"] = str(sprint_e)
+
     # Extract GitHub refs from all tasks
     github_tasks = []
     for t in all_tasks:

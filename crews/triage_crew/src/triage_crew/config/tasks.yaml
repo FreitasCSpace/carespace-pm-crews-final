@@ -39,11 +39,18 @@ decide_and_execute_task:
     4. AGING BACKLOG: flag backlog tasks older than 21 days with no updates
        as "aging". For urgent/high priority aging tasks, escalate them into the
        Needs Attention section of the triage summary.
+    5. ENGINEER NOTIFICATIONS: For each SLA breach task (in_sprint=True,
+       breached=True), call notify_task_assignee(task_id, message) with
+       a clear, direct message. Example message:
+       "⏰ SLA breach on your sprint task. Priority: {priority}. Please
+       update the task status or flag a blocker immediately."
+       Skip if the task has no assignee.
 
-    IMPORTANT: Do NOT assign tasks. Do NOT post to Slack.
-    Call execute_triage_actions with your decisions only.
+    IMPORTANT: Do NOT assign tasks. Do NOT post to Slack channels.
+    Call execute_triage_actions first, then notify_task_assignee for each breach.
   expected_output: >
-    JSON summary of actions taken with reasoning.
+    JSON summary of actions taken with reasoning, including which engineers
+    were notified.
   agent: triage_agent
   context:
     - scan_task

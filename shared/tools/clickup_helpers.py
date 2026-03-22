@@ -1111,6 +1111,44 @@ def move_task_to_list(task_id: str, target_list_id: str) -> str:
         return json.dumps({"error": "Failed to move task"})
 
 
+@tool("get_last_sprint_velocity")
+def get_last_sprint_velocity() -> str:
+    """
+    Reads Sprint History to find the last sprint's actual velocity.
+    Returns the recommended SP budget for the next sprint.
+
+    Recommended budget = last_velocity × 0.80 (conservative buffer).
+    Falls back to 48 SP if no history exists yet.
+    """
+    import re
+    try:
+        data = _clickup_api(
+            f"list/{L['sprint_history']}/task?archived=false"
+            f"&order_by=created&reverse=true&page_size=10"
+        )
+        tasks = data.get("tasks", [])
+        for task in tasks:
+            name = task.get("name", "")
+            m = re.search(r'Velocity:\s*(\d+)\s*SP', name, re.IGNORECASE)
+            if m:
+                last_velocity = int(m.group(1))
+                recommended = max(20, int(last_velocity * 0.80))
+                return json.dumps({
+                    "source": name,
+                    "last_velocity_sp": last_velocity,
+                    "recommended_budget_sp": recommended,
+                    "note": f"{last_velocity} SP delivered last sprint × 0.80 = {recommended} SP budget",
+                })
+        return json.dumps({
+            "source": "default",
+            "last_velocity_sp": None,
+            "recommended_budget_sp": 48,
+            "note": "No sprint history yet — using default 48 SP budget",
+        })
+    except Exception as e:
+        return json.dumps({"source": "error", "recommended_budget_sp": 48, "error": str(e)})
+
+
 @tool("create_or_get_sprint_list")
 def create_sprint_list() -> str:
     """

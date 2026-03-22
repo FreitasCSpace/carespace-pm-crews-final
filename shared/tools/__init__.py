@@ -7,6 +7,7 @@ from .slack import (
     post, post_standup, post_sprint_plan, post_blocker, post_blocker_summary,
     post_sla_breach, post_retro, post_gtm, post_exec, post_compliance,
     post_cs_alert, post_cs_summary, post_triage_summary, post_pr_radar,
+    notify_task_assignee,
 )
 # Vanta health check via direct API (no MCP needed).
 from .vanta import get_health_summary as vanta_health_summary
@@ -19,4 +20,5 @@ from .clickup_helpers import (
     scan_backlog_for_triage, execute_triage_actions,
     suggest_sprint_candidates, add_to_sprint_candidates,
     list_sprint_candidates, finalize_sprint_from_candidates,
+    get_last_sprint_velocity,
 )

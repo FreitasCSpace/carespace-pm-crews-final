@@ -2,7 +2,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
-    create_sprint_list, post_sprint_plan,
+    create_sprint_list, post_sprint_plan, get_last_sprint_velocity,
 )
 from shared.tools.clickup_helpers import (
     list_sprint_candidates, finalize_sprint_from_candidates,
@@ -33,7 +33,7 @@ class SprintCrew:
         return Agent(
             config=interpolate_config(self.agents_config["sprint_agent"]),
             tools=[
-                create_sprint_list,
+                create_sprint_list, get_last_sprint_velocity,
                 list_sprint_candidates, finalize_sprint_from_candidates,
             ],
             verbose=True,

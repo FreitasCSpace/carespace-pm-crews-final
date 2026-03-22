@@ -20,7 +20,7 @@ class RetrospectiveCrew:
     def inject_context(self, inputs):
         from shared.config.context import crew_context
         ctx = crew_context()
-        ctx.update(inputs or {})
+        ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return ctx
 
     @agent
