@@ -56,7 +56,8 @@ def get_tasks_by_list(list_id: str, status: str = "", include_closed: bool = Fal
     try:
         params = f"?archived=false&include_closed={str(include_closed).lower()}"
         if status:
-            params += f"&statuses[]={status}"
+            import urllib.parse
+            params += f"&statuses[]={urllib.parse.quote(status)}"
         data = _clickup_api(f"list/{list_id}/task{params}")
         tasks = data.get("tasks", [])
         out = []
