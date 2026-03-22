@@ -4,7 +4,7 @@ gather:
 
     1. Call create_or_get_sprint_list to find the active sprint.
        Use the list_id to pull sprint tasks via get_tasks_by_list.
-       Calculate: total tasks, done, in progress, pending, SP progress.
+       Calculate: total tasks, done, in progress, to do, SP progress.
 
     2. Call batch_compliance_check for compliance task count.
 
@@ -37,7 +37,7 @@ write_and_post:
 
     sprint_status: Sprint progress, e.g.:
     "Sprint 1 — Mar 23 to Apr 05
-    • 3 done, 5 in progress, 2 pending
+    • 3 done, 5 in progress, 2 to do
     • 36/45 SP delivered (80%)"
 
     compliance: Compliance summary, e.g.:
