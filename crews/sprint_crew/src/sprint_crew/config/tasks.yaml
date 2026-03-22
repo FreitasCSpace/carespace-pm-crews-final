@@ -45,18 +45,18 @@ finalize_task:
 
 post_sprint_plan_task:
   description: >
-    Post ONE message to {slack_sprint} using post_sprint_plan.
+    Post ONE message to #pm-sprint-board using post_sprint_plan.
 
-    Call: post_sprint_plan(sprint_name=<sprint name from create_sprint_task>,
-                           sprint_list_id=<list_id from create_sprint_task or finalize_task>)
+    Call: post_sprint_plan(sprint_list_id=<list_id from create_sprint_task or finalize_task>)
 
-    The tool fetches tasks directly from ClickUp — you do NOT need to pass task data.
+    The tool fetches the sprint name and tasks directly from ClickUp — you only
+    need to pass sprint_list_id. Do NOT pass sprint_name.
 
     If candidates were empty or finalize errored, post a warning instead.
-
     Post ONE message only. Do NOT post to other channels.
   expected_output: >
-    Confirmation of Slack post to {slack_sprint}.
+    Confirmation of Slack post to #pm-sprint-board.
   agent: sprint_post_agent
   context:
+    - create_sprint_task
     - finalize_task

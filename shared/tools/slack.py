@@ -116,17 +116,18 @@ def post_standup(executive_summary: str, done: str, in_progress: str,
 # ── Sprint Plan ───────────────────────────────────────────────────────────────
 
 @tool("Post Sprint Plan to Slack")
-def post_sprint_plan(sprint_name: str, sprint_list_id: str) -> str:
+def post_sprint_plan(sprint_list_id: str) -> str:
     """
     Posts the sprint planning results to #pm-sprint-board.
-    Fetches tasks directly from the sprint list — no JSON passing needed.
-    sprint_name: e.g. 'Sprint 1 — Mar 23 to Apr 05'
+    Fetches sprint name and tasks directly from ClickUp — only list ID needed.
     sprint_list_id: ClickUp list ID of the sprint to post about
     """
     from shared.tools.clickup_helpers import _clickup_api
     from shared.config.context import SP_CUSTOM_FIELD_ID
 
-    # Fetch tasks directly from the sprint list
+    # Fetch list name (= sprint name) and tasks directly from ClickUp
+    list_info = _clickup_api(f"list/{sprint_list_id}")
+    sprint_name = list_info.get("name", sprint_list_id)
     data = _clickup_api(f"list/{sprint_list_id}/task?archived=false")
     tasks = data.get("tasks", [])
 

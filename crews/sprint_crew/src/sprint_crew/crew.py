@@ -22,7 +22,9 @@ class SprintCrew:
     def inject_context(self, inputs):
         from shared.config.context import crew_context
         ctx = crew_context()
-        ctx.update(inputs or {})
+        # Only override with non-empty input values — CrewHub sends empty strings
+        # for unset variables which would otherwise clobber crew_context() defaults.
+        ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return ctx
 
     @agent
