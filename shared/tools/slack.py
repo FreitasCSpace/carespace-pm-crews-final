@@ -430,6 +430,7 @@ def post_exec(health_dashboard: str, key_metrics: str, sprint_analysis: str,
         blocks.append(_div())
         blocks.append(_sec(f"*🔴 Decisions Needed*\n{decisions_needed}"))
     blocks.append(_ctx("_Executive report by CareSpace PM AI_"))
+    r = _api(SLACK["exec"], f"CareSpace Weekly Status — {today}", blocks)
     return json.dumps({"ok": r.get("ok")})
 
 
