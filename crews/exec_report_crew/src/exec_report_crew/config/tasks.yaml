@@ -1,63 +1,133 @@
 gather:
   description: >
-    Collect data across all dimensions:
+    Collect and ANALYSE data across all dimensions. This report is read by the CEO
+    and CTO — every number must have context, every risk must have business impact.
 
-    1. Call create_or_get_sprint_list to find the active sprint.
-       Use the list_id to pull sprint tasks via get_tasks_by_list.
-       Calculate: total tasks, done, in progress, to do, SP progress.
+    1. SPRINT ANALYSIS
+       Call create_or_get_sprint_list to find the active sprint list_id.
+       Pull all sprint tasks via get_tasks_by_list.
+       Calculate:
+       - Sprint day X of Y, SP delivered vs total, % complete
+       - Task breakdown: done / in progress / to do / blocked counts
+       - Per-engineer breakdown: who has what, SP load, status
+       - Velocity vs budget (46 SP committed, 48 SP budget)
+       - Flag any unassigned tasks or tasks with no SP
 
-    2. Call batch_compliance_check for compliance task count.
+    2. COMPLIANCE ANALYSIS
+       Call batch_compliance_check for open task count.
+       Call get_vanta_compliance_health_summary (MCP) for Vanta health.
+       Analyse:
+       - Test pass rate % (flag if below 95%)
+       - Critical failing controls with business impact
+       - BAA gaps (Azure, Google Workspace) → PHI processing legality
+       - HIPAA evidence gaps → breach notification / audit risk
+       - Overdue tests with entity failure counts
+       Frame every finding in business risk terms, not just technical terms.
 
-    3. Call get_vanta_compliance_health_summary (MCP tool) for Vanta health.
+    3. GTM ANALYSIS
+       Pull Active Deals ({active_deals_id}) and At-Risk ({at_risk_deals_id}).
+       Calculate pipeline value, at-risk count, stale deals.
 
-    4. Pull Active Deals ({active_deals_id}) and At-Risk ({at_risk_deals_id})
-       via get_tasks_by_list for GTM health.
+    4. BUG HEALTH
+       Filter Master Backlog ({master_backlog_id}) by 'bug' tag.
+       Count by priority. Flag urgent bugs open >4h, high >24h (SLA breach).
 
-    5. Pull Alerts list ({alerts_id}) via get_tasks_by_list.
-       Count open alerts, check for stale >{ticket_stale_hours}h.
+    5. ALERTS & CREW HEALTH
+       Pull Alerts list ({alerts_id}). Count open, stale >{ticket_stale_hours}h.
+       Flag if no alerts in 7d (crews not running).
 
-    6. Count bugs in Master Backlog ({master_backlog_id}) — filter for 'bug' tag.
+    6. WINS & RISKS
+       Wins: concrete, business-relevant (not "sprint populated" but "sprint fully
+       staffed and on budget — team is execution-ready").
+       Risks: ranked by business impact. Each risk must have:
+       - What: specific technical fact
+       - Impact: business consequence (revenue, compliance, legal, security)
+       - Owner: named person
+       - Action: specific next step with urgency
 
-    7. Identify top 3 risks and wins of the week.
+    7. DECISIONS NEEDED
+       Identify anything that requires CEO or CTO action this week.
+       Examples: vendor escalations, resourcing decisions, policy approvals.
   expected_output: >
-    Complete data JSON with all dimensions.
+    Complete analysis with all data, per-engineer breakdown, business-framed risks,
+    and decisions needed for CEO/CTO.
   agent: exec_reporter_agent
 
 write_and_post:
   description: >
-    Compile and post the executive report using post_executive_report
-    (NOT the generic post tool). Pass these 5 parameters:
+    Post the executive report using post_executive_report (NOT the generic post tool).
+    This report is read by CEO and CTO — be specific, analytical, business-focused.
 
-    health_dashboard: Traffic light per dimension, e.g.:
-    "🟢 Engineering: Sprint 80% complete (36/45 SP)
-    🟡 GTM: 2 deals at risk, pipeline needs attention
-    🔴 Compliance: RED — 16 failing controls, BAA gaps
-    🟡 Customer Success: Onboarding list empty
-    🟢 Bug Health: 0 open bugs"
+    Pass ALL 8 parameters:
 
-    sprint_status: Sprint progress, e.g.:
-    "Sprint 1 — Mar 23 to Apr 05
-    • 3 done, 5 in progress, 2 to do
-    • 36/45 SP delivered (80%)"
+    health_dashboard: one-line traffic light per dimension with key number, e.g.:
+    "🔴 Engineering: 0% (0/46 SP) | 🟢 GTM: 0 deals at risk | 🔴 Compliance: 51% pass rate | 🟡 CS: no data | 🟢 Bugs: 0 open"
 
-    compliance: Compliance summary, e.g.:
-    "Vanta: RED | 268 open tasks | 16 failing controls
-    • BAA gaps: Azure, Google Workspace
-    • Evidence gaps: 20+ HIPAA items overdue"
+    key_metrics: 4-5 bullet KPIs, quantified, with trend or target context, e.g.:
+    "• Sprint 1: 0/46 SP delivered (0%) — starts tomorrow, team fully assigned
+     • Backlog: 332 tasks | 1 open bug (normal priority)
+     • Compliance: 51% pass rate vs 95% target — 13 critical controls failing
+     • GTM: 0 deals at risk | pipeline healthy
+     • Crew health: intake + triage + standup running autonomously"
 
-    risks: Top 3 risks, e.g.:
-    "1. HIPAA evidence gaps blocking audit readiness — Owner: Luis
-    2. Stale PR #36 (35d) blocking onboarding feature — Owner: binunexturn
-    3. MFA enforcement gaps in Google Workspace — Owner: IT"
+    sprint_analysis: full sprint breakdown with per-engineer status, e.g.:
+    "Sprint 1 — Mar 23 to Apr 05 (Day 0 of 14)
+     Status: 0 done | 0 in progress | 8 to do | 0 blocked
+     Delivered: 0/46 SP (0%) — sprint begins tomorrow
 
-    wins: Wins, e.g.:
-    "• Vendor risk task for Azure completed
-    • All CI checks passing
-    • Sprint populated with 10 tasks"
+     Engineer workload:
+     — Fabiano Fiorentin: RBAC Guards (8 SP, urgent) + Auth middleware (5 SP) = 13 SP
+     — Bharath: Production Readiness Check (8 SP, high)
+     — Andre C Dutra: Cover Images ×2 + Pre-Existing Conditions = 15 SP
+     — Sandeep Pulichinthala: Vanta API integration (5 SP, high)
+     — Luis Freitas: Employee exit evidence (5 SP, high — compliance owner)
 
-    IMPORTANT: Use post_executive_report for formatted output.
+     Risk flags: RBAC Guards is urgent security — must not slip."
+
+    compliance: compliance analysis with business impact framing, e.g.:
+    "Vanta: 🔴 RED — 51% test pass rate (target: 95%)
+     Critical issues:
+     • 13 failing controls → SOC 2 Type II audit readiness at risk
+     • BAA missing: Azure + Google Workspace → PHI processing legally blocked (HIPAA)
+     • 20+ HIPAA evidence items overdue → breach notification exposure
+     • 282 open compliance tasks in backlog (highest volume area)
+     Business impact: enterprise sales blocked until SOC 2 clean; PHI handling at legal risk"
+
+    gtm: GTM pipeline with deal-level analysis, e.g.:
+    "• Active pipeline: [N deals | $X value if available]
+     • At risk: 0 deals — pipeline healthy
+     • No product launches within 14 days
+     • [Any stale deals or coverage gaps]"
+
+    risks: top 3-5 risks ranked by business impact, e.g.:
+    "1. 🔴 HIPAA BAA gap — Azure + Google Workspace
+        Impact: PHI processing legally blocked → HIPAA violation liability
+        Owner: Luis Freitas | Urgency: This week
+        Action: Executive escalation to Azure + Google account teams
+
+     2. 🔴 SOC 2 — 13 critical controls failing (51% pass rate)
+        Impact: Enterprise sales blocked; audit readiness at risk
+        Owner: Luis + Sandeep | Urgency: Ongoing sprint
+        Action: Vanta remediation — Sandeep on Vanta API this sprint
+
+     3. 🔴 RBAC Guards bypassed (carespace-admin#80)
+        Impact: Authorization returning true unconditionally — active security vuln in prod
+        Owner: Fabiano Fiorentin | Urgency: P0 — this sprint
+        Action: Patch RolesGuard and RelationshipValidatorGuard"
+
+    wins: concrete wins with business relevance (not just operational facts), e.g.:
+    "• Sprint 1 fully staffed: 8 tasks, 46 SP, all assigned and SP-estimated (100%)
+     • AI PM system running autonomously: intake, triage, standup, exec report — 0 manual ops
+     • No GTM deals at risk — pipeline clean heading into sprint"
+
+    decisions_needed: items needing CEO/CTO action (omit param if none this week), e.g.:
+    "• BAA escalation: Azure + Google — needs CEO to contact account executives
+     • Compliance resourcing: Sandeep carrying Vanta API + compliance load — assess capacity"
+
+    IMPORTANT: Use post_executive_report. Be specific — no vague statements.
+    Every risk must have owner + action. Every metric must have a number.
   expected_output: >
-    Confirmation of Slack post.
+    Confirmation of Slack post with full analytical report.
   agent: exec_reporter_agent
   context:
     - gather

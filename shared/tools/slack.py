@@ -349,32 +349,87 @@ def post_gtm(headline: str, deals_at_risk: int, pipeline_value: str,
 # ── Executive Report ──────────────────────────────────────────────────────────
 
 @tool("post_executive_report")
-def post_exec(health_dashboard: str, sprint_status: str, compliance: str,
-              risks: str, wins: str) -> str:
+def post_exec(health_dashboard: str, key_metrics: str, sprint_analysis: str,
+              compliance: str, gtm: str, risks: str, wins: str,
+              decisions_needed: str = "") -> str:
     """
     Posts the weekly executive report to #pm-exec-updates. Template enforced.
     Do NOT use generic 'post' — use this for the exec report.
 
-    health_dashboard: traffic light status per dimension (engineering, GTM, compliance, etc.)
-    sprint_status: sprint progress summary (tasks done, SP, % complete)
-    compliance: compliance health summary
-    risks: top 3 risks with owner and mitigation
-    wins: wins this week
+    health_dashboard: one-line traffic light per dimension with key number, e.g.:
+      '🔴 Engineering: 0% (0/46 SP) | 🟢 GTM: $0 at risk | 🔴 Compliance: 51% pass rate | 🟡 CS: no data | 🟢 Bugs: 0 open'
+
+    key_metrics: 3-5 bullet KPIs the CEO/CTO needs at a glance, e.g.:
+      '• Sprint velocity: 0/46 SP delivered (0%) — sprint starts tomorrow
+       • Backlog: 332 tasks | 1 open bug
+       • Compliance pass rate: 51% (target: 95%) — 13 critical controls failing
+       • GTM: 0 deals at risk | pipeline healthy'
+
+    sprint_analysis: detailed sprint breakdown with per-engineer status, e.g.:
+      'Sprint 1 — Mar 23 to Apr 05 (Day 0 of 14)
+       • 0 done | 0 in progress | 8 to do | 0 blocked
+       • 0/46 SP delivered
+       Engineer breakdown:
+       — Fabiano: RBAC Guards (8 SP) + Auth middleware (5 SP) → to do
+       — Bharath: Production Readiness (8 SP) → to do
+       — Andre: Cover Images ×2 + Pre-Existing Conditions (15 SP) → to do
+       — Sandeep: Vanta API (5 SP) → to do
+       — Luis: Employee exit evidence (5 SP) → to do'
+
+    compliance: compliance analysis with business impact, e.g.:
+      'Vanta: RED — 51% test pass rate (target: 95%)
+       • 13 critical controls failing — SOC 2 audit at risk
+       • BAA gaps: Azure + Google Workspace → PHI processing legally blocked
+       • 20+ HIPAA evidence items overdue → breach notification risk
+       • 282 open compliance tasks in backlog
+       Impact: audit readiness blocked until BAA + evidence gaps resolved'
+
+    gtm: GTM pipeline analysis, e.g.:
+      '• 0 deals at risk
+       • Pipeline: [value if available]
+       • No launches within 14 days'
+
+    risks: top risks with business impact + owner + mitigation, e.g.:
+      '1. 🔴 BAA gap — Azure + Google Workspace
+          Impact: PHI processing legally blocked → HIPAA violation exposure
+          Owner: Luis | Action: Escalate to Azure/Google account teams this week
+       2. 🔴 SOC 2 controls failing (13 critical)
+          Impact: audit readiness at risk → customer trust + enterprise sales blocked
+          Owner: Luis + Sandeep | Action: Vanta remediation sprint
+       3. 🟡 RBAC Guards bypassed (admin#80, 8 SP)
+          Impact: authorization checks returning true — security vulnerability in prod
+          Owner: Fabiano | Action: P0 — patch this sprint'
+
+    wins: concrete wins with business relevance, e.g.:
+      '• Sprint 1 fully staffed: 8 tasks, 46 SP, all assigned (100%)
+       • No GTM deals at risk — pipeline healthy
+       • Intake + triage crews running autonomously daily'
+
+    decisions_needed: items requiring CEO/CTO action or decision (omit if none), e.g.:
+      '• BAA with Azure — needs executive escalation to account team
+       • SOC 2 remediation resourcing — Sandeep at capacity, may need additional help'
     """
     today = date.today().strftime("%B %d, %Y")
-    r = _api(SLACK["exec"], "Weekly Status Report", [
+    blocks = [
         _hdr(f"📊 CareSpace Weekly Status — {today}"),
-        _sec(f"*Health Dashboard*\n{health_dashboard}"),
+        _sec(health_dashboard),
         _div(),
-        _sec(f"*Sprint Status*\n{sprint_status}"),
+        _sec(f"*📈 Key Metrics*\n{key_metrics}"),
         _div(),
-        _sec(f"*Compliance*\n{compliance}"),
+        _sec(f"*🏗️ Sprint Analysis*\n{sprint_analysis}"),
         _div(),
-        _sec(f"*Top Risks*\n{risks}"),
+        _sec(f"*🔒 Compliance*\n{compliance}"),
         _div(),
-        _sec(f"*Wins This Week*\n{wins}"),
-        _ctx("_Executive report by CareSpace PM AI_"),
-    ])
+        _sec(f"*💰 GTM Pipeline*\n{gtm}"),
+        _div(),
+        _sec(f"*⚡ Top Risks*\n{risks}"),
+        _div(),
+        _sec(f"*🏆 Wins This Week*\n{wins}"),
+    ]
+    if decisions_needed and decisions_needed.strip():
+        blocks.append(_div())
+        blocks.append(_sec(f"*🔴 Decisions Needed*\n{decisions_needed}"))
+    blocks.append(_ctx("_Executive report by CareSpace PM AI_"))
     return json.dumps({"ok": r.get("ok")})
 
 
