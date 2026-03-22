@@ -96,7 +96,7 @@ def post_standup(executive_summary: str, done: str, in_progress: str,
             f"*✅ Done*\n{done or '_None_'}\n\n"
             f"*🔄 In Progress*\n{in_progress or '_None_'}\n\n"
             f"*🚫 Blocked*\n{blocked or '_None_'}\n\n"
-            f"*⏳ Pending*\n{pending or '_None_'}"
+            f"*⏳ To Do*\n{pending or '_None_'}"
         ),
         _div(),
         _sec(f"*⚠️ Needs Attention*\n{attention or '_All clear_'}"),

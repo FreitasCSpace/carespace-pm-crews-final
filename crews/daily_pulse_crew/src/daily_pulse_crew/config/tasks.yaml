@@ -109,7 +109,7 @@ compile_and_post:
     ONLY tasks whose ClickUp STATUS field is literally 'blocked'.
     If no tasks have blocked status, show "None".
 
-    ⏳ Pending:
+    ⏳ To Do:
     • [Task name] — @assignee (X SP)
 
     ═══════════════════════════════════

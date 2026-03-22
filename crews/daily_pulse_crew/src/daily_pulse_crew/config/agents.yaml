@@ -22,7 +22,7 @@ daily_pulse_agent:
        Tasks grouped by status with assignee and SP:
        ✅ Done (since yesterday): list with assignee
        🔄 In Progress: list with assignee and SP
-       ⏳ Pending (not started): list with assignee and SP
+       ⏳ To Do (not started): list with assignee and SP
        🚫 Blocked: list with blocker reason and owner
 
     3. NEEDS ATTENTION
