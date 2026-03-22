@@ -130,6 +130,14 @@ def _load_all_backlog_tasks() -> list[str]:
     except Exception:
         pass
 
+    # 3. Load Sprint Candidates — tasks staged here must not be re-created in backlog
+    try:
+        from shared.config.context import L
+        candidates = _clickup_api(f"list/{L['sprint_candidates']}/task?archived=false&page=0")
+        names.extend(t["name"].lower() for t in candidates.get("tasks", []))
+    except Exception:
+        pass
+
     return names
 
 
