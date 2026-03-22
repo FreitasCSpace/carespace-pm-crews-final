@@ -140,7 +140,9 @@ def post_sprint_plan(sprint_list_id: str) -> str:
                     if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), "?")
         if sp != "?":
             total_sp += int(sp)
-        lines.append(f"• *{t['name']}*  →  _{assignee_str}_  `{sp} SP`")
+        url = t.get("url", "")
+        name_link = f"<{url}|{t['name']}>" if url else t['name']
+        lines.append(f"• *{name_link}*  →  _{assignee_str}_  `{sp} SP`")
 
     r = _api(SLACK["sprint"], f"Sprint plan: {sprint_name}", [
         _hdr(f"📅 {sprint_name}"),
