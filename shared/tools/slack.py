@@ -222,6 +222,7 @@ def post_triage_summary(priorities_set: str, assignments: str,
 
 
 _pr_radar_posted = False
+_exec_posted = False
 
 
 @tool("post_pr_radar_report")
@@ -437,10 +438,14 @@ def post_exec(health_dashboard: str, key_metrics: str, sprint_analysis: str,
       '• BAA with Azure — needs executive escalation to account team
        • SOC 2 remediation resourcing — Sandeep at capacity, may need additional help'
     """
+    global _exec_posted
     today = date.today().strftime("%B %d, %Y")
 
-    # Dedup guard — only one exec report per day.
-    # Check channel history for a post with today's header before posting.
+    # In-process dedup — never post twice in the same run
+    if _exec_posted:
+        return json.dumps({"ok": True, "skipped": "already_posted_this_run"})
+
+    # Slack history dedup — only one exec report per day.
     try:
         import time as _time
         dedup_resp = requests.get(
@@ -451,6 +456,7 @@ def post_exec(health_dashboard: str, key_metrics: str, sprint_analysis: str,
         )
         for msg in dedup_resp.json().get("messages", []):
             if f"CareSpace Weekly Status — {today}" in msg.get("text", ""):
+                _exec_posted = True
                 return json.dumps({"ok": False, "skipped": "already_posted_today"})
     except Exception:
         pass  # If dedup check fails, proceed with posting
@@ -476,6 +482,7 @@ def post_exec(health_dashboard: str, key_metrics: str, sprint_analysis: str,
         blocks.append(_sec(f"*🔴 Decisions Needed*\n{decisions_needed}"))
     blocks.append(_ctx("_Executive report by CareSpace PM AI_"))
     r = _api(SLACK["exec"], f"CareSpace Weekly Status — {today}", blocks)
+    _exec_posted = True
     return json.dumps({"ok": r.get("ok")})
 
 
