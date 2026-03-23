@@ -1,35 +1,45 @@
 gather_health:
   description: >
-    Collect compliance health data from two sources:
+    Call compliance_health_check to get the complete daily compliance snapshot.
+    This single tool call returns: Vanta health data, delta from yesterday,
+    critical items needing action with ClickUp links, sprint compliance tasks,
+    and backlog statistics.
 
-    1. Call compliance_health_check to get open compliance task count
-       and a sample of critical compliance tasks.
-
-    2. Call get_vanta_compliance_health_summary for live Vanta health
-       data including failing controls, test failures, evidence gaps,
-       and overall health indicator (GREEN/YELLOW/RED).
-
-    Compile results into a structured summary with:
-    - vanta_health: GREEN/YELLOW/RED with critical issue count
-    - open_tasks: total count with sample of highest priority items
-    - critical_findings: any critical items requiring immediate attention
-    - status_summary: one-line status
+    Call it ONCE and return the full JSON output. Do NOT summarize or
+    paraphrase the numbers — return the exact tool output.
   expected_output: >
-    JSON: {vanta_health: str, open_compliance_tasks: N, critical_findings: [],
-    status_summary: str}
+    The EXACT JSON returned by compliance_health_check with keys:
+    vanta, delta, needs_action, sprint_compliance, backlog, errors
   agent: gather_agent
 
 post_report:
   description: >
-    Post ONE combined report to {slack_compliance} using post_compliance_report
-    (NOT the generic post tool). Pass these 4 parameters:
-    - vanta_health: "RED — 13 critical issues (11 unowned)" or "GREEN — 0 critical"
-    - open_tasks: "283 open compliance tasks (sample: Physical Security Policy, Non-Compliant Devices...)"
-    - critical_findings: bullet list of any critical findings, or "None"
-    - status_summary: "Vanta Health: RED | Tasks: 283 | Alerts: 2 | Date: 2026-03-21"
+    Format the gathered data into 5 parameters for post_compliance_report
+    and post ONE message to {slack_compliance}.
 
-    IMPORTANT: Post everything in ONE message using post_compliance_report.
-    Do NOT post separate messages for alert and status.
+    health_headline: Build from vanta.health_indicator, delta.consecutive_red_days,
+    and vanta.pass_rate. Example: "RED (5 consecutive days) -- 51% pass rate"
+
+    changes_section: Build from delta fields using Slack mrkdwn.
+    If delta.has_previous is false: "_First run -- no previous data for comparison_"
+    Otherwise: "+N new failures | -M resolved | net: +/-X"
+    Then list each delta.new_failures item with clickup_url if available:
+    "* :new: Test Name\n  -> <https://app.clickup.com/t/abc123|link>"
+    And each delta.resolved: "* :white_check_mark: Test Name -- resolved"
+
+    needs_action_section: Build from needs_action list.
+    Each item: "* Name -- critical, no owner\n  -> <clickup_url|link>"
+    If list is empty: "_All critical items have owners_"
+
+    sprint_compliance_section: Build from sprint_compliance list.
+    Each item: "* Name -- Assignee -- status\n  -> <clickup_url|link>"
+    If list is empty: pass empty string ""
+
+    footer_stats: Use EXACT numbers:
+    "{backlog.open_compliance_tasks} total | {vanta.critical_failing} critical | {vanta.pass_rate} Vanta pass rate"
+
+    IMPORTANT: Call post_compliance_report EXACTLY ONCE with these 5 params.
+    Do NOT use the generic 'post' tool. When it returns ok:true, stop.
   expected_output: >
     Confirmation of report posted to Slack.
   agent: post_agent

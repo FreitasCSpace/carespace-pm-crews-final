@@ -563,31 +563,57 @@ def notify_task_assignee(task_id: str, message: str) -> str:
 # ── Compliance ────────────────────────────────────────────────────────────────
 
 @tool("post_compliance_report")
-def post_compliance(vanta_health: str, open_tasks: str,
-                    critical_findings: str, status_summary: str) -> str:
+def post_compliance(health_headline: str, changes_section: str,
+                    needs_action_section: str, sprint_compliance_section: str,
+                    footer_stats: str) -> str:
     """
-    Posts the daily compliance health report to #pm-compliance as ONE message.
-    Template enforced — just pass content for each section.
+    Posts the daily delta-based compliance report to #pm-compliance.
+    Template enforced — pass preformatted mrkdwn for each section.
 
-    vanta_health: Vanta status (e.g., 'GREEN — 0 critical issues' or 'RED — 3 critical')
-    open_tasks: open compliance task count and sample
-    critical_findings: bullet list of critical findings (or 'None')
-    status_summary: one-line status (e.g., 'Vanta Health: GREEN | Tasks: 268 | Alerts: 0')
+    health_headline: e.g. 'RED (5 consecutive days) -- 51% pass rate'
+    changes_section: delta since yesterday with links, or 'First run -- no previous data'
+    needs_action_section: critical unowned items with links, or 'All critical items have owners'
+    sprint_compliance_section: sprint tasks with links, or '' to omit section
+    footer_stats: e.g. '282 total | 11 critical | 51% Vanta pass rate'
     """
     today = date.today().strftime("%B %d, %Y")
-    health_upper = vanta_health.split("—")[0].strip().upper() if "—" in vanta_health else vanta_health.upper()
-    emoji = "🟢" if "GREEN" in health_upper else ("🟡" if "YELLOW" in health_upper else "🔴")
-    r = _api(SLACK["compliance"], f"Compliance Report {today}", [
-        _hdr(f"🔒 Compliance Health — {today}"),
-        _sec(f"*{emoji} {vanta_health}*"),
+
+    # Dedup guard
+    try:
+        import time as _time
+        dedup_resp = requests.get(
+            "https://slack.com/api/conversations.history",
+            headers={"Authorization": f"Bearer {os.environ.get('SLACK_BOT_TOKEN', '')}"},
+            params={"channel": SLACK["compliance"], "oldest": str(_time.time() - 3600 * 4), "limit": 20},
+            timeout=10,
+        )
+        for msg in dedup_resp.json().get("messages", []):
+            if f"Compliance Health" in msg.get("text", "") and today in msg.get("text", ""):
+                return json.dumps({"ok": False, "skipped": "already_posted_today"})
+    except Exception:
+        pass
+
+    health_upper = health_headline.upper()
+    emoji = "\U0001f7e2" if "GREEN" in health_upper else ("\U0001f7e1" if "YELLOW" in health_upper else "\U0001f534")
+
+    blocks = [
+        _hdr(f"\U0001f512 Compliance Health \u2014 {today}"),
+        _sec(f"*{emoji} {health_headline}*"),
         _div(),
-        _sec(f"*Open Compliance Tasks*\n{open_tasks or '_None_'}"),
+        _sec(f"*\U0001f4ca Changes Since Yesterday*\n{_trunc(changes_section) or '_No data_'}"),
         _div(),
-        _sec(f"*Critical Findings*\n{critical_findings or '_None — all clear_'}"),
+        _sec(f"*\U0001f6a8 Needs Action*\n{_trunc(needs_action_section) or '_All clear_'}"),
+    ]
+    if sprint_compliance_section:
+        blocks.append(_div())
+        blocks.append(_sec(f"*\U0001f3c3 Sprint Compliance*\n{_trunc(sprint_compliance_section)}"))
+    blocks.extend([
         _div(),
-        _sec(f"*{status_summary}*"),
+        _sec(f"*\U0001f4c8 {footer_stats}*"),
         _ctx("_Compliance report by CareSpace PM AI_"),
     ])
+
+    r = _api(SLACK["compliance"], f"Compliance Health {today}", blocks)
     return json.dumps({"ok": r.get("ok")})
 
 

@@ -3,9 +3,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     batch_compliance_check,
-    create_clickup_task,
     post_compliance,
-    vanta_health_summary,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_compliance_output
@@ -21,7 +19,7 @@ class ComplianceCrew:
     def inject_context(self, inputs):
         from shared.config.context import crew_context
         ctx = crew_context()
-        ctx.update(inputs or {})
+        ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return ctx
 
     @agent
@@ -29,7 +27,7 @@ class ComplianceCrew:
         """Data-only agent for gather step — no Slack tools to prevent early posting."""
         return Agent(
             config=interpolate_config(self.agents_config["gather_agent"]),
-            tools=[batch_compliance_check, vanta_health_summary],
+            tools=[batch_compliance_check],
             verbose=True,
             allow_delegation=False,
         )
@@ -39,7 +37,7 @@ class ComplianceCrew:
         """Post agent — has Slack + alert tools, runs only after gather completes."""
         return Agent(
             config=interpolate_config(self.agents_config["post_agent"]),
-            tools=[post_compliance, create_clickup_task],
+            tools=[post_compliance],
             verbose=True,
             allow_delegation=False,
         )

@@ -1567,26 +1567,45 @@ bulk_assign_and_estimate = bulk_estimate_sp
 @tool("compliance_health_check")
 def batch_compliance_check() -> str:
     """
-    Complete daily compliance health check in one call. Pulls Vanta health
-    data AND counts open compliance tasks in the backlog. Returns everything
-    the compliance agent needs to make decisions and post status.
+    Complete daily compliance health check with delta analysis.
+
+    Returns everything in ONE call:
+    - vanta: live health data (indicator, pass rate, failing tests)
+    - delta: what changed since yesterday (new failures, resolved, trend)
+    - needs_action: critical unowned items with ClickUp links
+    - sprint_compliance: compliance tasks in the active sprint
+    - backlog: total count + sample with URLs
 
     No other tools needed — this does the full check.
     """
-    result = {
-        "vanta_health": {"health_indicator": "PENDING", "note": "Call vanta_health_summary tool for live Vanta data"},
-        "open_compliance_tasks": 0,
-        "task_sample": [],
-        "errors": [],
-    }
+    from shared.tools.vanta import _get_health_data
+    from shared.data.compliance_state import (
+        load_previous_state, save_current_state, compute_delta,
+    )
 
-    # 1. Count open compliance tasks in backlog (paginated)
-    # Vanta health comes from the vanta_health_summary Python tool.
+    errors = []
+
+    # ── 1. Vanta health (direct Python call, no tool overhead) ──
+    try:
+        vanta = _get_health_data()
+    except Exception as e:
+        vanta = {"health_indicator": "UNKNOWN", "tests": {}, "errors": [str(e)]}
+        errors.append(f"vanta: {str(e)[:100]}")
+
+    tests = vanta.get("tests", {})
+    all_failing = tests.get("all_failing", [])
+
+    # ── 2. Compliance backlog tasks with URLs ──
+    backlog_data = {"open_compliance_tasks": 0, "task_sample": []}
+    # Build a name→url index for cross-referencing with Vanta tests
+    compliance_url_index: dict[str, str] = {}
     try:
         all_tasks = []
         page = 0
         while True:
-            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}&page_size=100")
+            data = _clickup_api(
+                f"list/{L['master_backlog']}/task?archived=false&page={page}&page_size=100"
+            )
             tasks = data.get("tasks", [])
             if not tasks:
                 break
@@ -1599,18 +1618,121 @@ def batch_compliance_check() -> str:
             t for t in all_tasks
             if any(tag["name"] == "compliance" for tag in t.get("tags", []))
         ]
-        result["open_compliance_tasks"] = len(compliance_tasks)
+        backlog_data["open_compliance_tasks"] = len(compliance_tasks)
 
-        # Sample of first 5 for context
+        for t in compliance_tasks:
+            url = t.get("url", f"https://app.clickup.com/t/{t['id']}")
+            name_lower = t["name"].lower()
+            compliance_url_index[name_lower] = url
+
+        # Sample of top 5 by priority
         for t in compliance_tasks[:5]:
-            result["task_sample"].append({
+            backlog_data["task_sample"].append({
                 "name": t["name"][:80],
-                "priority": t.get("priority", {}).get("priority", "none") if t.get("priority") else "none",
-                "assigned": len(t.get("assignees", [])) > 0,
+                "id": t["id"],
+                "url": t.get("url", f"https://app.clickup.com/t/{t['id']}"),
+                "priority": (t.get("priority", {}).get("priority", "none")
+                             if t.get("priority") else "none"),
             })
     except Exception as e:
-        result["errors"].append(f"clickup: {str(e)[:100]}")
+        errors.append(f"clickup_backlog: {str(e)[:100]}")
 
+    # ── 3. Cross-reference Vanta critical+unowned → ClickUp URLs ──
+    needs_action = []
+    for tf in tests.get("top_failing", []):
+        if tf.get("is_critical") and tf.get("owner") in ("unowned", None, ""):
+            clickup_url = ""
+            tf_lower = tf["name"].lower()
+            for cu_name, cu_url in compliance_url_index.items():
+                # Match if Vanta test name appears as substring in ClickUp task name
+                if tf_lower[:40] in cu_name or any(
+                    w in cu_name for w in tf_lower.split()[:4] if len(w) > 3
+                ):
+                    clickup_url = cu_url
+                    break
+            needs_action.append({
+                "name": tf["name"],
+                "owner": tf.get("owner", "unowned"),
+                "is_critical": True,
+                "clickup_url": clickup_url,
+            })
+
+    # ── 4. Sprint compliance tasks ──
+    sprint_compliance = []
+    try:
+        sprint_folder = _clickup_api(f"folder/{SPRINT_FOLDER_ID}/list")
+        for sprint_list in sprint_folder.get("lists", []):
+            sp_page = 0
+            while True:
+                sp_data = _clickup_api(
+                    f"list/{sprint_list['id']}/task?archived=false&page={sp_page}&page_size=100"
+                )
+                sp_tasks = sp_data.get("tasks", [])
+                if not sp_tasks:
+                    break
+                for t in sp_tasks:
+                    tags = [tag["name"] for tag in t.get("tags", [])]
+                    if "compliance" in tags:
+                        assignees = [a.get("username", "?") for a in t.get("assignees", [])]
+                        sprint_compliance.append({
+                            "name": t["name"][:80],
+                            "assignee": assignees[0] if assignees else "unassigned",
+                            "status": t.get("status", {}).get("status", "?"),
+                            "clickup_url": t.get("url", f"https://app.clickup.com/t/{t['id']}"),
+                        })
+                if len(sp_tasks) < 100:
+                    break
+                sp_page += 1
+    except Exception as e:
+        errors.append(f"sprint_compliance: {str(e)[:100]}")
+
+    # ── 5. Delta computation ──
+    pass_rate_str = tests.get("pass_rate", "0%")
+    pass_rate_pct = int(pass_rate_str.replace("%", "")) if pass_rate_str else 0
+
+    current_snapshot = {
+        "date": __import__("datetime").date.today().isoformat(),
+        "health_indicator": vanta.get("health_indicator", "UNKNOWN"),
+        "pass_rate_pct": pass_rate_pct,
+        "failing_test_ids": [f["test_id"] for f in all_failing],
+        "failing_test_names": {f["test_id"]: f["name"] for f in all_failing},
+        "critical_test_ids": [f["test_id"] for f in all_failing if f.get("is_critical")],
+        "open_compliance_tasks": backlog_data["open_compliance_tasks"],
+        "critical_failing_count": tests.get("critical_failing", 0),
+    }
+
+    previous = load_previous_state()
+    delta = compute_delta(current_snapshot, previous)
+
+    # Attach ClickUp URLs to delta new_failures
+    for nf in delta.get("new_failures", []):
+        nf_lower = nf["name"].lower()
+        for cu_name, cu_url in compliance_url_index.items():
+            if nf_lower[:40] in cu_name or any(
+                w in cu_name for w in nf_lower.split()[:4] if len(w) > 3
+            ):
+                nf["clickup_url"] = cu_url
+                break
+
+    # Persist consecutive_red_days into snapshot for next run
+    current_snapshot["consecutive_red_days"] = delta["consecutive_red_days"]
+    save_current_state(current_snapshot)
+
+    # ── 6. Return structured result ──
+    result = {
+        "vanta": {
+            "health_indicator": vanta.get("health_indicator", "UNKNOWN"),
+            "health_reason": vanta.get("health_reason", ""),
+            "pass_rate": pass_rate_str,
+            "critical_failing": tests.get("critical_failing", 0),
+            "critical_unowned": tests.get("critical_unowned", 0),
+        },
+        "delta": delta,
+        "needs_action": needs_action,
+        "sprint_compliance": sprint_compliance,
+        "backlog": backlog_data,
+        "errors": errors if errors else None,
+    }
     return json.dumps(result, indent=2)
 
 

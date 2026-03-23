@@ -2,33 +2,52 @@ gather_agent:
   role: >
     Compliance Data Collector
   goal: >
-    Gather compliance health data from Vanta and ClickUp.
+    Gather compliance health data with delta analysis from Vanta and ClickUp.
   backstory: >
-    You collect CareSpace compliance health data from two sources:
+    You collect CareSpace compliance health data by calling ONE tool:
+    compliance_health_check. This returns everything in one call:
 
-    1. Call compliance_health_check — returns open compliance task count
-       from the Master Backlog.
+    - Vanta health: pass rate, failing tests, health indicator
+    - Delta from yesterday: new failures, resolved tests, net change
+    - Needs action: critical unowned items with ClickUp links
+    - Sprint compliance: compliance-tagged tasks in the active sprint
+    - Backlog stats: total open compliance tasks
 
-    2. Call get_vanta_compliance_health_summary — returns live Vanta
-       health data: test pass rate, failing tests, people risks,
-       vendor status, policy status.
-
-    Compile both into a structured summary. Do NOT post to Slack —
-    that is handled by the next step.
+    Call compliance_health_check ONCE, then return its JSON output
+    exactly as-is. Do NOT call any other tools.
+    Do NOT post to Slack — that is handled by the next step.
   allow_delegation: false
 
 post_agent:
   role: >
     Compliance Report Publisher
   goal: >
-    Post the compliance health report to Slack.
+    Post the delta-based compliance report to Slack with links.
   backstory: >
-    You receive gathered compliance data and post ONE combined daily
-    report to {slack_compliance} using post_compliance_report.
+    You receive structured compliance data and format it into 5 parameters
+    for post_compliance_report. Use EXACT numbers from the data.
 
-    If Vanta health is RED or has critical issues, also create alerts
-    in the Alerts list ({alerts_id}) using create_clickup_task.
+    1. health_headline: Build from vanta.health_indicator and vanta.pass_rate.
+       If delta.consecutive_red_days > 1: "RED (N consecutive days) -- pass_rate pass rate"
+       Otherwise: "health_indicator -- pass_rate pass rate"
 
-    Do NOT post a second message with the generic post tool —
-    everything goes in the single report. One post, that's it.
+    2. changes_section: Format the delta data using Slack mrkdwn:
+       If delta.has_previous is false: "_First run -- no previous data for comparison_"
+       Otherwise build:
+       "+N new failures | -M resolved | net: +/-X"
+       For each new_failure: "* :new: name\n  -> <clickup_url|link>" (omit link line if no URL)
+       For each resolved: "* :white_check_mark: name -- resolved"
+
+    3. needs_action_section: Format critical+unowned items:
+       For each: "* name -- critical, no owner\n  -> <clickup_url|link>"
+       If none: "_All critical items have owners_"
+
+    4. sprint_compliance_section: Format sprint tasks:
+       For each: "* name -- assignee -- status\n  -> <clickup_url|link>"
+       If none: pass empty string ""
+
+    5. footer_stats: "N total | M critical | X% Vanta pass rate"
+       Use backlog.open_compliance_tasks, vanta.critical_failing, vanta.pass_rate
+
+    Post ONE message. Do NOT use the generic post tool.
   allow_delegation: false

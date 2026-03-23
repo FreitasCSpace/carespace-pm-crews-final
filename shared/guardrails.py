@@ -140,20 +140,25 @@ def validate_pr_radar_output(result):
 # ── Compliance Crew ──────────────────────────────────────────────────────────
 
 def validate_compliance_output(result):
-    """Ensure compliance check includes both data sources."""
+    """Ensure compliance check includes Vanta health, tasks, and delta."""
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
 
     has_vanta = "vanta" in lower or "green" in lower or "red" in lower or "yellow" in lower
-    has_tasks = "task" in lower or "compliance" in lower
+    has_tasks = "task" in lower or "compliance" in lower or "backlog" in lower
+    has_delta = "delta" in lower or "has_previous" in lower or "first run" in lower
 
     if not has_vanta:
         return (False, "Compliance output must include Vanta health status. "
-                "Call get_vanta_compliance_health_summary.")
+                "Call compliance_health_check.")
 
     if not has_tasks:
         return (False, "Compliance output must include open task count. "
                 "Call compliance_health_check.")
+
+    if not has_delta:
+        return (False, "Compliance output must include delta analysis. "
+                "Call compliance_health_check (it computes deltas automatically).")
 
     return (True, raw)
 

@@ -351,17 +351,9 @@ def get_policies(status_filter: str = "") -> str:
 
 # == COMPREHENSIVE COMPLIANCE HEALTH SNAPSHOT ==
 
-@tool("Get Vanta Compliance Health Summary")
-def get_health_summary() -> str:
-    """
-    Returns a complete compliance health snapshot across all dimensions.
-    Use this as the PRIMARY ENTRY POINT for the compliance crew.
-
-    Health indicator logic:
-      RED    — test pass rate < 70% OR any critical test failing and unowned
-      YELLOW — test pass rate < 90% OR critical test failing (owned)
-      GREEN  — >= 90% tests passing, no critical unowned failures
-    """
+def _get_health_data() -> dict:
+    """Internal: returns the health summary as a Python dict (not JSON string).
+    Called directly by batch_compliance_check for delta computation."""
     errors = []
 
     # -- Tests (primary signal) --
@@ -449,9 +441,15 @@ def get_health_summary() -> str:
             "critical_failing": len(critical_failing),
             "critical_unowned": len(critical_unowned),
             "top_failing": [
-                {"name": t["name"], "owner": t.get("owner_email", "unowned"),
+                {"test_id": t["test_id"], "name": t["name"],
+                 "owner": t.get("owner_email", "unowned"),
                  "is_critical": t.get("is_critical", False)}
                 for t in failing_tests[:10]
+            ],
+            "all_failing": [
+                {"test_id": t["test_id"], "name": t["name"],
+                 "is_critical": t.get("is_critical", False)}
+                for t in failing_tests
             ],
         },
         "people": {
@@ -477,4 +475,18 @@ def get_health_summary() -> str:
         "errors": errors if errors else None,
     }
 
-    return json.dumps(summary, indent=2)
+    return summary
+
+
+@tool("Get Vanta Compliance Health Summary")
+def get_health_summary() -> str:
+    """
+    Returns a complete compliance health snapshot across all dimensions.
+    Use this as the PRIMARY ENTRY POINT for the compliance crew.
+
+    Health indicator logic:
+      RED    — test pass rate < 70% OR any critical test failing and unowned
+      YELLOW — test pass rate < 90% OR critical test failing (owned)
+      GREEN  — >= 90% tests passing, no critical unowned failures
+    """
+    return json.dumps(_get_health_data(), indent=2)
