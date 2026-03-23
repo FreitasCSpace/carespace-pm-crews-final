@@ -34,7 +34,7 @@ gather:
        - Features (features_total)
        - Bugs (bugs_total) — flag by priority, urgent >4h / high >24h = SLA breach
        - Compliance (compliance_total)
-       - Other tasks (tasks_total)
+       - Tasks (tasks_total) — general tasks not tagged as feature/bug/compliance
        - Carryovers from last sprint (carryovers_total)
        Total = features + bugs + compliance + tasks + carryovers.
 
@@ -71,7 +71,7 @@ write_and_post:
 
     key_metrics: 4-5 bullet KPIs, quantified, with trend or target context, e.g.:
     "• Sprint 1: 0/46 SP delivered (0%) — Day 1 of 14, team fully assigned
-     • Backlog: 350 total — 45 features | 12 bugs (2 high, 1 urgent) | 282 compliance | 11 other
+     • Backlog: 350 total — 45 features | 12 bugs (2 high, 1 urgent) | 282 compliance | 11 tasks
      • Compliance: 51% pass rate vs 95% target — 13 critical controls failing
      • GTM: 0 deals at risk | pipeline healthy
      • Crew health: intake + triage + standup running autonomously"
