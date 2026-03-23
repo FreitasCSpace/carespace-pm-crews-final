@@ -17,11 +17,11 @@ scan_and_triage:
 
 post_report:
   description: >
-    Post summary using post_pr_radar_report (NOT generic post):
+    Post summary using post_pr_radar_report (NOT generic post).
+    Pass exactly these 4 parameters:
     - stale_prs: bullet list of stale PRs with age and link
     - critical_prs: bullet list of critical (>{critical_stale_pr_days}d) PRs
     - ci_status: failures or 'All passing ✅'
-    - tasks_created: 'None — PRs tracked in GitHub directly'
     - summary: one-line totals (e.g. '5 stale, 1 critical, 0 CI failures')
 
     IMPORTANT: Call post_pr_radar_report EXACTLY ONCE. When it returns ok:true,
