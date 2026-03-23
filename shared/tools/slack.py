@@ -415,6 +415,23 @@ def post_exec(health_dashboard: str, key_metrics: str, sprint_analysis: str,
        • SOC 2 remediation resourcing — Sandeep at capacity, may need additional help'
     """
     today = date.today().strftime("%B %d, %Y")
+
+    # Dedup guard — only one exec report per day.
+    # Check channel history for a post with today's header before posting.
+    try:
+        import time as _time
+        dedup_resp = requests.get(
+            "https://slack.com/api/conversations.history",
+            headers={"Authorization": f"Bearer {os.environ.get('SLACK_BOT_TOKEN', '')}"},
+            params={"channel": SLACK["exec"], "oldest": str(_time.time() - 3600 * 4), "limit": 20},
+            timeout=10,
+        )
+        for msg in dedup_resp.json().get("messages", []):
+            if f"CareSpace Weekly Status — {today}" in msg.get("text", ""):
+                return json.dumps({"ok": False, "skipped": "already_posted_today"})
+    except Exception:
+        pass  # If dedup check fails, proceed with posting
+
     blocks = [
         _hdr(f"📊 CareSpace Weekly Status — {today}"),
         _sec(health_dashboard),

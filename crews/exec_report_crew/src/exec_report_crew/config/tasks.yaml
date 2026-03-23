@@ -124,8 +124,11 @@ write_and_post:
     "• BAA escalation: Azure + Google — needs CEO to contact account executives
      • Compliance resourcing: Sandeep carrying Vanta API + compliance load — assess capacity"
 
-    IMPORTANT: Use post_executive_report. Be specific — no vague statements.
-    Every risk must have owner + action. Every metric must have a number.
+    IMPORTANT:
+    - Call post_executive_report EXACTLY ONCE with all 8 parameters in a single call.
+    - When it returns ok:true, your task is complete. Do NOT call it again.
+    - Do NOT call the generic 'post' tool. Do NOT post to any other channel.
+    - Every risk must have owner + action. Every metric must have a number.
   expected_output: >
     Confirmation of Slack post with full analytical report.
   agent: exec_reporter_agent
