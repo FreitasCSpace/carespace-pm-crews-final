@@ -123,6 +123,7 @@ REPO_DOMAIN = {
     "carespace-fusionauth":               "infra",
     "carespace-monitoring":                "infra",
     "carespace-bug-tracker":               "infra",
+    "carespace-posture-engine":            "ai-cv",
 }
 
 # Everything routes to master_backlog with tags — no more per-domain lists

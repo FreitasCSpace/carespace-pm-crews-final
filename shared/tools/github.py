@@ -186,7 +186,12 @@ def batch_import_engineering() -> str:
     Call this ONCE — it processes everything and returns a summary.
     No need to call check_duplicate_task or create_clickup_task separately.
     """
-    repos = list(REPO_DOMAIN.keys())
+    # Discover ALL repos in the org dynamically (not just hardcoded list)
+    try:
+        org = _g().get_organization(ORG)
+        repos = [r.name for r in org.get_repos(type="all")]
+    except Exception:
+        repos = list(REPO_DOMAIN.keys())  # fallback to hardcoded list
     stats = {
         "repos_scanned": 0, "issues_found": 0, "tasks_created": 0,
         "duplicates_skipped": 0, "errors": 0, "by_domain": {}, "by_type": {},
