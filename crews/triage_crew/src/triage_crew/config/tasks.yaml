@@ -42,8 +42,8 @@ decide_and_execute_task:
     5. ENGINEER NOTIFICATIONS: For each SLA breach task (in_sprint=True,
        breached=True), call notify_task_assignee(task_id, message) with
        a clear, direct message. Example message:
-       "⏰ SLA breach on your sprint task. Priority: {priority}. Please
-       update the task status or flag a blocker immediately."
+       "⏰ SLA breach on your sprint task. Please update the task status
+       or flag a blocker immediately."
        Skip if the task has no assignee.
 
     IMPORTANT: Do NOT assign tasks. Do NOT post to Slack channels.
