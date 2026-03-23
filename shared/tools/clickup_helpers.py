@@ -426,7 +426,9 @@ def scan_backlog_for_triage() -> str:
             tags = [tag["name"] for tag in t.get("tags", [])]
             pri = t.get("priority", {}).get("priority", "none") if t.get("priority") else "none"
             assignees = t.get("assignees", [])
-            points = t.get("points")
+            cf_sp = next((cf.get("value") for cf in t.get("custom_fields", [])
+                         if cf.get("id") == SP_CUSTOM_FIELD_ID and cf.get("value") is not None), None)
+            points = t.get("points") or cf_sp  # check both native and custom field
             created_ms = int(t.get("date_created", "0"))
             age_hours = round((now_ms - created_ms) / (1000 * 3600), 1) if created_ms else 0
             name = t["name"]
