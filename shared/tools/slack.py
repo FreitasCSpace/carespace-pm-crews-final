@@ -185,6 +185,13 @@ def post_blocker(description: str, task_url: str, owner: str, impact: str = "") 
     return json.dumps({"ok": r.get("ok")})
 
 
+def _trunc(text: str, max_chars: int = 2800) -> str:
+    """Truncate text to Slack's block limit (3000 chars). Adds note if cut."""
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "\n_… (truncated — see ClickUp for full details)_"
+
+
 @tool("Post Triage Summary to Slack")
 def post_triage_summary(priorities_set: str, assignments: str,
                         story_points: str, alerts: str, reasoning: str) -> str:
@@ -200,19 +207,17 @@ def post_triage_summary(priorities_set: str, assignments: str,
     reasoning: why these decisions were made
     """
     today = date.today().strftime("%B %d, %Y")
-    r = _api(SLACK["engineering"], f"Triage Report {today}", [
+    blocks = [
         _hdr(f"🔍 Triage Report — {today}"),
-        _sec(
-            f"*Priorities Changed*\n{priorities_set or '_None_'}\n\n"
-            f"*Assignments*\n{assignments or '_None_'}\n\n"
-            f"*Story Points*\n{story_points or '_None_'}"
-        ),
+        _sec(_trunc(f"*Priorities Changed*\n{priorities_set or '_None_'}")),
+        _sec(_trunc(f"*Story Points Set*\n{story_points or '_None_'}")),
         _div(),
-        _sec(f"*Alerts Created*\n{alerts or '_None_'}"),
+        _sec(_trunc(f"*Alerts Created*\n{alerts or '_None_'}")),
         _div(),
-        _sec(f"*Reasoning*\n{reasoning}"),
+        _sec(_trunc(f"*Reasoning*\n{reasoning}")),
         _ctx("_Triage by CareSpace PM AI_"),
-    ])
+    ]
+    r = _api(SLACK["engineering"], f"Triage Report {today}", blocks)
     return json.dumps({"ok": r.get("ok")})
 
 
