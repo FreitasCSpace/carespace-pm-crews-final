@@ -176,33 +176,37 @@ DOMAIN_KEYWORDS = {
 # TEAM
 # ======================================================================
 TEAM = {
+    # slack_name: the engineer's display name in Slack (used for DM lookup)
     # Core engineering
-    # slack_id: Slack user ID (e.g. "U012AB3CD") — find via Slack profile or /whois
-    # Fill these in so the triage crew can DM engineers on SLA breach / blocker
-    "fusuma":            {"domains": ["ai-cv","sdk","mobile","backend"], "cap_sp": 20, "max_tasks": 4, "cu_id": "48998538",  "slack_id": ""},
-    "andreCarespace":    {"domains": ["frontend"],                       "cap_sp": 20, "max_tasks": 4, "cu_id": "49000180",  "slack_id": ""},
-    "BMarcano":          {"domains": ["frontend"],                       "cap_sp": 18, "max_tasks": 3, "cu_id": "112101513", "slack_id": ""},
-    "bhavyasaurabh":     {"domains": ["ai-cv","frontend"],              "cap_sp": 18, "max_tasks": 3, "cu_id": "93908266",  "slack_id": ""},
-    "Deekshakain":       {"domains": ["frontend"],                       "cap_sp": 16, "max_tasks": 3, "cu_id": "61019156",  "slack_id": ""},
-    "binunexturn":       {"domains": ["frontend","backend"],             "cap_sp": 20, "max_tasks": 4, "cu_id": "61025897",  "slack_id": ""},
-    "fabiano-carespace": {"domains": ["backend","infra"],                "cap_sp": 18, "max_tasks": 3, "cu_id": "49000181",  "slack_id": ""},
-    "YeddulaBharath":    {"domains": ["mobile","sdk"],                   "cap_sp": 16, "max_tasks": 3, "cu_id": "93908270",  "slack_id": ""},
-    "R-Kapil-Kumar":     {"domains": ["mobile","sdk"],                   "cap_sp": 16, "max_tasks": 3, "cu_id": "81941440",  "slack_id": ""},
+    "fusuma":            {"domains": ["ai-cv","sdk","mobile","backend"], "cap_sp": 20, "max_tasks": 4, "cu_id": "48998538",  "slack_name": "Flavio Fusuma"},
+    "andreCarespace":    {"domains": ["frontend"],                       "cap_sp": 20, "max_tasks": 4, "cu_id": "49000180",  "slack_name": "Andre Dutra"},
+    "BMarcano":          {"domains": ["frontend"],                       "cap_sp": 18, "max_tasks": 3, "cu_id": "112101513", "slack_name": "Brayan Marcano"},
+    "bhavyasaurabh":     {"domains": ["ai-cv","frontend"],              "cap_sp": 18, "max_tasks": 3, "cu_id": "93908266",  "slack_name": "Bhavya Saurabh"},
+    "Deekshakain":       {"domains": ["frontend"],                       "cap_sp": 16, "max_tasks": 3, "cu_id": "61019156",  "slack_name": "Deeksha Kain"},
+    "binunexturn":       {"domains": ["frontend","backend"],             "cap_sp": 20, "max_tasks": 4, "cu_id": "61025897",  "slack_name": "Binu G"},
+    "fabiano-carespace": {"domains": ["backend","infra"],                "cap_sp": 18, "max_tasks": 3, "cu_id": "49000181",  "slack_name": "Fabiano"},
+    "YeddulaBharath":    {"domains": ["mobile","sdk"],                   "cap_sp": 16, "max_tasks": 3, "cu_id": "93908270",  "slack_name": "Bharath"},
+    "R-Kapil-Kumar":     {"domains": ["mobile","sdk"],                   "cap_sp": 16, "max_tasks": 3, "cu_id": "81941440",  "slack_name": "R. Kapil Kumar"},
     # Nexturn extended team
-    "harshitdiyora":     {"domains": ["frontend","backend"],             "cap_sp": 16, "max_tasks": 3, "cu_id": "81942238",  "slack_id": ""},
-    "ratnakumar":        {"domains": ["mobile","backend"],               "cap_sp": 16, "max_tasks": 3, "cu_id": "81941439",  "slack_id": ""},
-    "sreenivas":         {"domains": ["mobile","sdk"],                   "cap_sp": 16, "max_tasks": 3, "cu_id": "93908269",  "slack_id": ""},
-    "rohithsuri":        {"domains": ["frontend","backend"],             "cap_sp": 16, "max_tasks": 3, "cu_id": "93908271",  "slack_id": ""},
-    "sandeep":           {"domains": ["backend","infra"],                "cap_sp": 16, "max_tasks": 3, "cu_id": "111928715", "slack_id": ""},
-    "sujanmahapatra":    {"domains": ["frontend","backend"],             "cap_sp": 16, "max_tasks": 3, "cu_id": "111951799", "slack_id": ""},
-    "shubhamsanjog":     {"domains": ["frontend"],                       "cap_sp": 16, "max_tasks": 3, "cu_id": "112029068", "slack_id": ""},
-    "mubinashaikh":      {"domains": ["frontend"],                       "cap_sp": 16, "max_tasks": 3, "cu_id": "111980875", "slack_id": ""},
-    "kishorkumar":       {"domains": ["backend"],                        "cap_sp": 16, "max_tasks": 3, "cu_id": "254678220", "slack_id": ""},
+    "harshitdiyora":     {"domains": ["frontend","backend"],             "cap_sp": 16, "max_tasks": 3, "cu_id": "81942238",  "slack_name": "Harshit Diyora"},
+    "ratnakumar":        {"domains": ["mobile","backend"],               "cap_sp": 16, "max_tasks": 3, "cu_id": "81941439",  "slack_name": "Ratnakumar A"},
+    "sreenivas":         {"domains": ["mobile","sdk"],                   "cap_sp": 16, "max_tasks": 3, "cu_id": "93908269",  "slack_name": ""},
+    "rohithsuri":        {"domains": ["frontend","backend"],             "cap_sp": 16, "max_tasks": 3, "cu_id": "93908271",  "slack_name": "Sai Rohith Suri"},
+    "sandeep":           {"domains": ["backend","infra"],                "cap_sp": 16, "max_tasks": 3, "cu_id": "111928715", "slack_name": ""},
+    "sujanmahapatra":    {"domains": ["frontend","backend"],             "cap_sp": 16, "max_tasks": 3, "cu_id": "111951799", "slack_name": "Sujan"},
+    "shubhamsanjog":     {"domains": ["frontend"],                       "cap_sp": 16, "max_tasks": 3, "cu_id": "112029068", "slack_name": "Shubham Sanjog"},
+    "mubinashaikh":      {"domains": ["frontend"],                       "cap_sp": 16, "max_tasks": 3, "cu_id": "111980875", "slack_name": "Mubina Shaikh"},
+    "kishorkumar":       {"domains": ["backend"],                        "cap_sp": 16, "max_tasks": 3, "cu_id": "254678220", "slack_name": "Kishorkumar"},
 }
 
-# ClickUp user ID → Slack user ID mapping (built from TEAM above)
-# Used by notify_task_assignee to DM engineers directly
-CU_TO_SLACK = {info["cu_id"]: info["slack_id"] for info in TEAM.values() if info.get("slack_id")}
+# ClickUp user ID → Slack display name mapping
+# notify_task_assignee resolves display names → Slack user IDs at runtime via users.list API
+CU_TO_SLACK_NAME = {info["cu_id"]: info["slack_name"] for info in TEAM.values() if info.get("slack_name")}
+
+# Luis Freitas (CEO / compliance owner) — not an engineer but needs DM notifications
+LUIS_CU_ID  = "118004891"
+LUIS_SLACK  = "Luis Freitas"
+CU_TO_SLACK_NAME[LUIS_CU_ID] = LUIS_SLACK
 
 # Domain leads — for auto-assignment fallback
 DOMAIN_LEADS = {

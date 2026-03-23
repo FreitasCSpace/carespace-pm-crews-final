@@ -436,6 +436,33 @@ def post_exec(health_dashboard: str, key_metrics: str, sprint_analysis: str,
 
 # ── Engineer DM Notifications ─────────────────────────────────────────────────
 
+_slack_user_cache: dict | None = None
+
+def _resolve_slack_id(display_name: str) -> str:
+    """Resolve a Slack display name to a user ID via users.list. Cached per process."""
+    global _slack_user_cache
+    if _slack_user_cache is None:
+        _slack_user_cache = {}
+        try:
+            resp = requests.get(
+                "https://slack.com/api/users.list",
+                headers={"Authorization": f"Bearer {os.environ.get('SLACK_BOT_TOKEN', '')}"},
+                timeout=15,
+            )
+            for member in resp.json().get("members", []):
+                if member.get("deleted") or member.get("is_bot"):
+                    continue
+                uid = member["id"]
+                profile = member.get("profile", {})
+                for field in ("display_name", "real_name", "name"):
+                    val = (profile.get(field) or member.get(field, "")).strip().lower()
+                    if val:
+                        _slack_user_cache[val] = uid
+        except Exception:
+            pass
+    return _slack_user_cache.get(display_name.strip().lower(), "")
+
+
 @tool("notify_task_assignee")
 def notify_task_assignee(task_id: str, message: str) -> str:
     """
@@ -446,15 +473,15 @@ def notify_task_assignee(task_id: str, message: str) -> str:
     task_id: ClickUp task ID
     message: what to tell the engineer (e.g. 'Your task has breached SLA — please update status or flag a blocker.')
     """
-    from shared.config.context import CU_TO_SLACK
-    import os, urllib.request as _req
+    from shared.config.context import CU_TO_SLACK_NAME
+    import urllib.request as _req
 
     # Fetch task to get assignees and name
     try:
-        token = os.environ.get("CLICKUP_PERSONAL_TOKEN", os.environ.get("CLICKUP_API_TOKEN", ""))
+        cu_token = os.environ.get("CLICKUP_PERSONAL_TOKEN", os.environ.get("CLICKUP_API_TOKEN", ""))
         req = _req.Request(
             f"https://api.clickup.com/api/v2/task/{task_id}",
-            headers={"Authorization": token},
+            headers={"Authorization": cu_token},
         )
         with _req.urlopen(req, timeout=15) as resp:
             task = json.loads(resp.read().decode())
@@ -466,21 +493,26 @@ def notify_task_assignee(task_id: str, message: str) -> str:
 
     sent, skipped = [], []
     for a in assignees:
-        cu_id    = str(a.get("id", ""))
-        slack_id = CU_TO_SLACK.get(cu_id, "")
-        username = a.get("username", cu_id)
+        cu_id      = str(a.get("id", ""))
+        username   = a.get("username", cu_id)
+        slack_name = CU_TO_SLACK_NAME.get(cu_id, "")
 
-        if not slack_id:
-            skipped.append(username)
+        if not slack_name:
+            skipped.append(f"{username} (no slack_name mapped)")
             continue
 
-        r = _api(slack_id, f"🔔 *{task_name}*\n{message}")
+        slack_uid = _resolve_slack_id(slack_name)
+        if not slack_uid:
+            skipped.append(f"{username} ('{slack_name}' not found in workspace)")
+            continue
+
+        r = _api(slack_uid, f"🔔 *{task_name}*\n{message}")
         if r.get("ok"):
             sent.append(username)
         else:
             skipped.append(f"{username}: {r.get('error', 'unknown')}")
 
-    return json.dumps({"ok": bool(sent), "sent": sent, "skipped_no_slack_id": skipped})
+    return json.dumps({"ok": bool(sent), "sent": sent, "skipped": skipped})
 
 
 # ── Compliance ────────────────────────────────────────────────────────────────
