@@ -961,9 +961,29 @@ def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
 
             # Build sprint task payload from full task data
             pri = full_task.get("priority")
+            description = full_task.get("description", "") or ""
+
+            # If candidate has no description, pull it from the original backlog task
+            if not description.strip():
+                import re as _re
+                github_ref = _re.search(r'\(([^)]+#\d+)\)', full_task.get("name", ""))
+                if github_ref:
+                    ref = github_ref.group(1)  # e.g. "carespace-ui#64"
+                    try:
+                        bl_data = _clickup_api(
+                            f"list/{L['master_backlog']}/task?archived=false&include_closed=true&page_size=100"
+                        )
+                        for bl_task in bl_data.get("tasks", []):
+                            if ref.lower() in bl_task.get("name", "").lower():
+                                bl_full = _clickup_api(f"task/{bl_task['id']}")
+                                description = bl_full.get("description", "") or ""
+                                break
+                    except Exception:
+                        pass
+
             payload = {
                 "name": full_task.get("name", ""),
-                "description": full_task.get("description", ""),
+                "description": description,
                 "assignees": [a["id"] for a in full_task.get("assignees", [])],
                 "tags": [t["name"] for t in full_task.get("tags", [])],
             }
