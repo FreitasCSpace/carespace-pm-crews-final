@@ -3,8 +3,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     get_prs, get_ci, get_stale_prs, get_contributors,
-    get_tasks_by_list, check_duplicate_task, create_clickup_task,
-    post_blocker, post_pr_radar,
+    post_pr_radar,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_pr_radar_output
@@ -19,7 +18,7 @@ class PrRadarCrew:
     def inject_context(self, inputs):
         from shared.config.context import crew_context
         ctx = crew_context()
-        ctx.update(inputs or {})
+        ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return ctx
 
     @agent
@@ -28,8 +27,7 @@ class PrRadarCrew:
             config=interpolate_config(self.agents_config["pr_radar_agent"]),
             tools=[
                 get_prs, get_ci, get_stale_prs, get_contributors,
-                get_tasks_by_list, check_duplicate_task, create_clickup_task,
-                post_blocker, post_pr_radar,
+                post_pr_radar,
             ],
             verbose=True,
             allow_delegation=False,

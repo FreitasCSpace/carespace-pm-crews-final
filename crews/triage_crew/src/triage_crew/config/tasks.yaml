@@ -11,8 +11,13 @@ estimate_sp_task:
     Call bulk_assign_and_estimate to set story points on ALL backlog
     tasks that don't have SP yet and remove assignees from any assigned
     tasks. Backlog items stay unassigned until sprint planning.
+
+    IMPORTANT: Return the EXACT numbers from the tool response.
+    Do NOT fabricate, round, or estimate any counts. Copy sp_set,
+    already_has_sp, and total_tasks verbatim from the JSON output.
   expected_output: >
-    JSON with sp_set, unassigned, already_has_sp counts.
+    The EXACT JSON returned by bulk_assign_and_estimate — do not
+    paraphrase or summarize the numbers.
   agent: triage_agent
   context:
     - dedup_task
@@ -61,7 +66,9 @@ post_triage_task:
     Pass these sections from the previous step's results:
     - priorities_set: bullet list of priority changes
     - assignments: "None — backlog items stay unassigned"
-    - story_points: summary of SP set
+    - story_points: EXACT numbers from estimate task (e.g. "4 tasks
+      estimated (318 already had SP)"). Use the real sp_set and
+      already_has_sp counts. Do NOT fabricate numbers.
     - alerts: bullet list of alerts created
     - reasoning: why decisions were made
 

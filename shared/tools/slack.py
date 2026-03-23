@@ -221,9 +221,12 @@ def post_triage_summary(priorities_set: str, assignments: str,
     return json.dumps({"ok": r.get("ok")})
 
 
+_pr_radar_posted = False
+
+
 @tool("post_pr_radar_report")
 def post_pr_radar(stale_prs: str, critical_prs: str, ci_status: str,
-                  tasks_created: str, summary: str) -> str:
+                  summary: str) -> str:
     """
     Posts the PR & CI radar report to #pm-engineering. Template enforced.
     Do NOT use the generic 'post' tool — use this instead.
@@ -231,12 +234,16 @@ def post_pr_radar(stale_prs: str, critical_prs: str, ci_status: str,
     stale_prs: bullet list of stale PRs with age and link
     critical_prs: bullet list of critical stale PRs (>30d)
     ci_status: CI status summary (failures or 'All passing ✅')
-    tasks_created: what tasks/alerts were created
     summary: one-line totals (e.g. '5 stale PRs, 1 critical, 0 CI failures')
     """
+    global _pr_radar_posted
     today = date.today().strftime("%B %d, %Y")
 
-    # Dedup guard — only one PR radar per day.
+    # In-process dedup — never post twice in the same run
+    if _pr_radar_posted:
+        return json.dumps({"ok": True, "skipped": "already_posted_this_run"})
+
+    # Slack history dedup — only one PR radar per day.
     try:
         import time as _time
         dedup_resp = requests.get(
@@ -247,6 +254,7 @@ def post_pr_radar(stale_prs: str, critical_prs: str, ci_status: str,
         )
         for msg in dedup_resp.json().get("messages", []):
             if f"PR Radar {today}" in msg.get("text", ""):
+                _pr_radar_posted = True
                 return json.dumps({"ok": False, "skipped": "already_posted_today"})
     except Exception:
         pass  # If dedup check fails, proceed with posting
@@ -261,10 +269,9 @@ def post_pr_radar(stale_prs: str, critical_prs: str, ci_status: str,
         ),
         _div(),
         _sec(f"*🔧 CI Status*\n{ci_status or '_All passing ✅_'}"),
-        _div(),
-        _sec(f"*📋 Actions Taken*\n{tasks_created or '_None_'}"),
         _ctx("_PR Radar by CareSpace PM AI_"),
     ])
+    _pr_radar_posted = True
     return json.dumps({"ok": r.get("ok")})
 
 
