@@ -1,0 +1,16 @@
+[project]
+name = "huddle-notes-crew"
+version = "0.1.0"
+description = "Fetches Slack huddle notes, extracts action items, creates ClickUp tasks."
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai>=1.0.0",
+    "crewai-tools>=0.14.0",
+    "requests>=2.31.0",
+]
+
+[project.scripts]
+run_crew = "huddle_notes_crew.main:run"
+
+[tool.crewai]
+type = "crew"

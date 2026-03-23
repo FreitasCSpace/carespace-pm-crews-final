@@ -667,3 +667,148 @@ def post_cs_summary(onboarding_health: str, support_health: str,
         _ctx("_CS summary by CareSpace PM AI_"),
     ])
     return json.dumps({"ok": r.get("ok")})
+
+
+# ── Huddle Notes ─────────────────────────────────────────────────────────────
+
+@tool("fetch_huddle_notes")
+def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 24) -> str:
+    """
+    Fetches recent Slack huddle notes from a channel.
+    Scans conversation history for huddle note messages (Canvas attachments
+    posted by Slack AI after a huddle ends).
+    Returns structured data: date, attendees, summary, key topics.
+
+    channel: Slack channel to scan (default #carespace-team)
+    lookback_hours: how far back to search (default 24h)
+    """
+    import time as _time
+    headers = {
+        "Authorization": f"Bearer {os.environ.get('SLACK_BOT_TOKEN', '')}",
+    }
+    oldest = str(_time.time() - lookback_hours * 3600)
+
+    try:
+        resp = requests.get(
+            "https://slack.com/api/conversations.history",
+            headers=headers,
+            params={"channel": channel, "oldest": oldest, "limit": 50},
+            timeout=15,
+        )
+        messages = resp.json().get("messages", [])
+    except Exception as e:
+        return json.dumps({"error": f"Failed to fetch channel history: {e}"})
+
+    huddles = []
+    for msg in messages:
+        msg_text = msg.get("text", "")
+        files = msg.get("files", [])
+
+        is_huddle = False
+        canvas_content = ""
+
+        # Check for Canvas files (huddle notes)
+        for f in files:
+            if f.get("filetype") in ("quip", "canvas") or "huddle" in f.get("title", "").lower():
+                is_huddle = True
+                file_id = f.get("id")
+                if file_id:
+                    try:
+                        file_resp = requests.get(
+                            "https://slack.com/api/files.info",
+                            headers=headers,
+                            params={"file": file_id},
+                            timeout=10,
+                        )
+                        file_data = file_resp.json().get("file", {})
+                        canvas_content = (
+                            file_data.get("plain_text", "")
+                            or file_data.get("preview", "")
+                            or file_data.get("content", "")
+                            or f.get("title", "")
+                        )
+                    except Exception:
+                        canvas_content = f.get("title", "")
+                break
+
+        # Check message text for huddle indicators
+        if not is_huddle and "huddle notes" in msg_text.lower():
+            is_huddle = True
+            canvas_content = msg_text
+
+        # Check attachments (older format)
+        if not is_huddle:
+            for att in msg.get("attachments", []):
+                if "huddle" in att.get("title", "").lower() or "huddle" in att.get("text", "").lower():
+                    is_huddle = True
+                    canvas_content = att.get("text", "") or att.get("fallback", "")
+                    break
+
+        if not is_huddle:
+            continue
+
+        ts = msg.get("ts", "")
+        from datetime import datetime
+        try:
+            dt = datetime.fromtimestamp(float(ts))
+            meeting_date = dt.strftime("%Y-%m-%d %H:%M")
+        except Exception:
+            meeting_date = "unknown"
+
+        huddles.append({
+            "date": meeting_date,
+            "channel": channel,
+            "poster": msg.get("user", ""),
+            "text": msg_text[:500] if msg_text else "",
+            "canvas_content": canvas_content[:3000] if canvas_content else "",
+            "ts": ts,
+        })
+
+    if not huddles:
+        return json.dumps({"huddles_found": 0, "message": f"No huddle notes in {channel} in last {lookback_hours}h"})
+
+    return json.dumps({"huddles_found": len(huddles), "huddles": huddles})
+
+
+@tool("post_huddle_actions")
+def post_huddle_actions(meeting_date: str, attendees: str, summary: str,
+                        action_items_json: str, decisions: str) -> str:
+    """
+    Posts a huddle analysis summary with action items to #pm-engineering.
+    Call EXACTLY ONCE per huddle.
+
+    meeting_date: e.g. '2026-03-19'
+    attendees: comma-separated names e.g. 'Andre, Fabiano, Luis, Camila'
+    summary: 2-3 sentence meeting summary
+    action_items_json: JSON array of objects with 'name', 'assignee', 'url' keys
+    decisions: bullet-point list of decisions, or 'None'
+    """
+    try:
+        items = json.loads(action_items_json) if action_items_json else []
+    except (json.JSONDecodeError, TypeError):
+        items = []
+
+    if items:
+        items_text = "\n".join(
+            f"\u2022 {it.get('name', '?')} \u2014 {it.get('assignee', 'unassigned')}"
+            + (f" \u2192 <{it['url']}|task>" if it.get("url") else "")
+            for it in items
+        )
+    else:
+        items_text = "_No action items identified_"
+
+    blocks = [
+        _hdr(f"\U0001f399\ufe0f Huddle Recap \u2014 {meeting_date}"),
+        _sec(f"*Attendees:* {attendees}"),
+        _div(),
+        _sec(f"*Summary*\n{_trunc(summary)}"),
+        _div(),
+        _sec(f"*\u2705 Action Items ({len(items)} tasks created)*\n{_trunc(items_text)}"),
+    ]
+    if decisions and decisions.strip().lower() != "none":
+        blocks.append(_div())
+        blocks.append(_sec(f"*\U0001f4cb Decisions*\n{_trunc(decisions)}"))
+    blocks.append(_ctx("_Huddle recap by CareSpace PM AI_"))
+
+    r = _api(SLACK["engineering"], f"Huddle Recap {meeting_date}", blocks)
+    return json.dumps({"ok": r.get("ok"), "tasks_created": len(items)})

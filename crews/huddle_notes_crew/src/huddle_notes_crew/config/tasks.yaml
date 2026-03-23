@@ -1,0 +1,54 @@
+extract_actions_task:
+  description: >
+    Call fetch_huddle_notes to retrieve recent huddle notes from Slack.
+    For each huddle found, carefully analyze the content and extract:
+
+    1. ACTION ITEMS — concrete commitments someone made
+       Format: who | what | urgency (high/normal/low)
+       Example: "Andre | fix cover image rendering in content library | high"
+
+    2. DECISIONS — agreements the team reached
+       Format: decision text
+       Example: "Team agreed to freeze PRs after Thursday for mobile release"
+
+    3. BLOCKERS — issues raised that need resolution
+       Format: blocker text | who raised it
+       Example: "Vanta API returning 401 | Sandeep"
+
+    If no huddle notes found in the last 24 hours, return "No recent huddles."
+    Do NOT fabricate action items. Only extract what is explicitly stated.
+  expected_output: >
+    Structured list of action items, decisions, and blockers from each huddle,
+    with attendee names and meeting date.
+  agent: huddle_agent
+
+create_tasks_and_post:
+  description: >
+    For each ACTION ITEM extracted from the huddle notes:
+
+    1. Call check_duplicate_task with the action item description to avoid
+       creating duplicates of existing backlog items
+    2. If no duplicate, call create_clickup_task with:
+       - list_id: {master_backlog}
+       - name: "[TASK] action description (from huddle)"
+       - description: "From huddle on DATE. Attendees: X, Y, Z.\n\nContext: relevant discussion summary"
+       - priority: based on urgency (1=urgent, 2=high, 3=normal, 4=low)
+       - tags: ["meeting"] plus domain tags if relevant (e.g. "frontend", "backend", "compliance")
+       - assignees: ClickUp user ID if a specific person was named
+
+    3. After creating all tasks, call post_huddle_actions with:
+       - meeting_date: the huddle date
+       - attendees: comma-separated list of attendees
+       - summary: 2-3 sentence meeting summary
+       - action_items_json: JSON array of created tasks with name, assignee, url
+       - decisions: bullet list of decisions made
+
+    If no action items were found, still post a brief summary noting
+    the huddle happened but no action items were identified.
+
+    IMPORTANT: Call post_huddle_actions EXACTLY ONCE. Stop after ok:true.
+  expected_output: >
+    Confirmation that tasks were created and summary posted to Slack.
+  agent: huddle_agent
+  context:
+    - extract_actions_task
