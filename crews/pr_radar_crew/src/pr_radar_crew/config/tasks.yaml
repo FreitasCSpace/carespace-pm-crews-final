@@ -5,34 +5,14 @@ scan_and_triage:
     STEP 1: Call get_stale_pull_requests to find all PRs older than {stale_pr_days} days.
     For each stale PR, note: repo, PR number, title, author, age, CI status.
 
-    STEP 2: For CRITICAL stale PRs (>{critical_stale_pr_days} days):
-    - Check if an alert exists: check_duplicate_task with "PR #N" and
-      list_id="{alerts_id}" (search ONLY in Alerts list, not whole workspace)
-    - If no duplicate: create alert in Alerts list ({alerts_id}) using
-      create_task_in_list with priority urgent.
-    - Name format: "[ALERT] 🔀 Stale PR >{critical_stale_pr_days}d — repo PR #N: title"
-    - Tags: ["github", "pr-review", "stale"]
-
-    STEP 3: For stale PRs ({stale_pr_days}-{critical_stale_pr_days} days):
-    - Check if a task exists: check_duplicate_task with "repo#N" and
-      list_id="{master_backlog_id}" (search ONLY in Master Backlog)
-    - If no duplicate: create task in Master Backlog ({master_backlog_id}) using
-      create_task_in_list with tags [domain, 'pr-review', 'github'].
-    - Find best reviewer using get_contributors for that repo.
-
-    STEP 4: Check CI on key repos using get_ci_status:
+    STEP 2: Check CI on key repos using get_ci_status:
     {ci_check_repos}.
-    Only report FAILURES. For each failure:
-    - Check if task exists: check_duplicate_task with "CI repo" and
-      list_id="{master_backlog_id}" (search ONLY in Master Backlog)
-    - If no duplicate: create task in Master Backlog with tags [domain, 'ci-fix', 'github'].
+    Only report FAILURES.
 
-    NOTE: This crew typically handles 5-15 PRs — small enough for
-    individual tool calls. No batch tool needed.
+    Do NOT create any ClickUp tasks. Slack visibility is sufficient.
   expected_output: >
     JSON: {total_prs: N, stale_prs: [{repo, number, title, author, age, url}],
-    critical_stale: N, ci_failures: [{repo, status}],
-    tasks_created: N, alerts_created: N}
+    critical_stale: N, ci_failures: [{repo, status}]}
   agent: pr_radar_agent
 
 post_report:
@@ -41,7 +21,7 @@ post_report:
     - stale_prs: bullet list of stale PRs with age and link
     - critical_prs: bullet list of critical (>{critical_stale_pr_days}d) PRs
     - ci_status: failures or 'All passing ✅'
-    - tasks_created: what tasks/alerts were created
+    - tasks_created: 'None — PRs tracked in GitHub directly'
     - summary: one-line totals (e.g. '5 stale, 1 critical, 0 CI failures')
 
     IMPORTANT: Call post_pr_radar_report EXACTLY ONCE. When it returns ok:true,
