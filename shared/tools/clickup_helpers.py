@@ -963,8 +963,10 @@ def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
             pri = full_task.get("priority")
             description = full_task.get("description", "") or ""
 
-            # If candidate has no description, pull it from the original backlog task
-            if not description.strip():
+            tags = [t["name"] for t in full_task.get("tags", [])]
+
+            # If candidate has no description or tags, pull from backlog original
+            if not description.strip() or not tags:
                 import re as _re
                 github_ref = _re.search(r'\(([^)]+#\d+)\)', full_task.get("name", ""))
                 if github_ref:
@@ -976,7 +978,10 @@ def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
                         for bl_task in bl_data.get("tasks", []):
                             if ref.lower() in bl_task.get("name", "").lower():
                                 bl_full = _clickup_api(f"task/{bl_task['id']}")
-                                description = bl_full.get("description", "") or ""
+                                if not description.strip():
+                                    description = bl_full.get("description", "") or ""
+                                if not tags:
+                                    tags = [t["name"] for t in bl_full.get("tags", [])]
                                 break
                     except Exception:
                         pass
@@ -985,7 +990,7 @@ def finalize_sprint_from_candidates(sprint_list_id: str) -> str:
                 "name": full_task.get("name", ""),
                 "description": description,
                 "assignees": [a["id"] for a in full_task.get("assignees", [])],
-                "tags": [t["name"] for t in full_task.get("tags", [])],
+                "tags": tags,
             }
             if isinstance(pri, dict) and pri.get("id"):
                 payload["priority"] = int(pri["id"])
@@ -1672,7 +1677,9 @@ def batch_compliance_check() -> str:
                     break
                 for t in sp_tasks:
                     tags = [tag["name"] for tag in t.get("tags", [])]
-                    if "compliance" in tags:
+                    is_compliance = ("compliance" in tags
+                                    or t.get("name", "").startswith("[COMPLIANCE]"))
+                    if is_compliance:
                         assignees = [a.get("username", "?") for a in t.get("assignees", [])]
                         sprint_compliance.append({
                             "name": t["name"][:80],
