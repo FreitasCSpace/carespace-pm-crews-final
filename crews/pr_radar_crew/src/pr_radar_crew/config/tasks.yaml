@@ -43,6 +43,9 @@ post_report:
     - ci_status: failures or 'All passing ✅'
     - tasks_created: what tasks/alerts were created
     - summary: one-line totals (e.g. '5 stale, 1 critical, 0 CI failures')
+
+    IMPORTANT: Call post_pr_radar_report EXACTLY ONCE. When it returns ok:true,
+    your task is complete. Do NOT call it again.
   expected_output: >
     Confirmation of report posted to Slack.
   agent: pr_radar_agent

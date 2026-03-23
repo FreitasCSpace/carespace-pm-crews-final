@@ -235,6 +235,22 @@ def post_pr_radar(stale_prs: str, critical_prs: str, ci_status: str,
     summary: one-line totals (e.g. '5 stale PRs, 1 critical, 0 CI failures')
     """
     today = date.today().strftime("%B %d, %Y")
+
+    # Dedup guard — only one PR radar per day.
+    try:
+        import time as _time
+        dedup_resp = requests.get(
+            "https://slack.com/api/conversations.history",
+            headers={"Authorization": f"Bearer {os.environ.get('SLACK_BOT_TOKEN', '')}"},
+            params={"channel": SLACK["engineering"], "oldest": str(_time.time() - 3600 * 4), "limit": 20},
+            timeout=10,
+        )
+        for msg in dedup_resp.json().get("messages", []):
+            if f"PR Radar {today}" in msg.get("text", ""):
+                return json.dumps({"ok": False, "skipped": "already_posted_today"})
+    except Exception:
+        pass  # If dedup check fails, proceed with posting
+
     r = _api(SLACK["engineering"], f"PR Radar {today}", [
         _hdr(f"🔀 PR & CI Radar — {today}"),
         _sec(f"*{summary}*"),
