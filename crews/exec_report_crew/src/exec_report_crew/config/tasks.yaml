@@ -28,9 +28,15 @@ gather:
        Pull Active Deals ({active_deals_id}) and At-Risk ({at_risk_deals_id}).
        Calculate pipeline value, at-risk count, stale deals.
 
-    4. BUG HEALTH
-       Filter Master Backlog ({master_backlog_id}) by 'bug' tag.
-       Count by priority. Flag urgent bugs open >4h, high >24h (SLA breach).
+    4. BACKLOG & BUG HEALTH
+       Call scan_backlog_for_sprint to get a full breakdown of the backlog by type.
+       Report total tasks and counts for each category:
+       - Features (features_total)
+       - Bugs (bugs_total) — flag by priority, urgent >4h / high >24h = SLA breach
+       - Compliance (compliance_total)
+       - Other tasks (tasks_total)
+       - Carryovers from last sprint (carryovers_total)
+       Total = features + bugs + compliance + tasks + carryovers.
 
     5. ALERTS & CREW HEALTH
        Pull Alerts list ({alerts_id}). Count open, stale >{ticket_stale_hours}h.
@@ -64,8 +70,8 @@ write_and_post:
     "🔴 Engineering: 0% (0/46 SP) | 🟢 GTM: 0 deals at risk | 🔴 Compliance: 51% pass rate | 🟡 CS: no data | 🟢 Bugs: 0 open"
 
     key_metrics: 4-5 bullet KPIs, quantified, with trend or target context, e.g.:
-    "• Sprint 1: 0/46 SP delivered (0%) — starts tomorrow, team fully assigned
-     • Backlog: 332 tasks | 1 open bug (normal priority)
+    "• Sprint 1: 0/46 SP delivered (0%) — Day 1 of 14, team fully assigned
+     • Backlog: 350 total — 45 features | 12 bugs (2 high, 1 urgent) | 282 compliance | 11 other
      • Compliance: 51% pass rate vs 95% target — 13 critical controls failing
      • GTM: 0 deals at risk | pipeline healthy
      • Crew health: intake + triage + standup running autonomously"
