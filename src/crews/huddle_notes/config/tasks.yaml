@@ -1,15 +1,9 @@
 fetch_and_summarize:
   description: >
-    Fetch huddle notes from Slack and produce structured summaries.
+    Fetch TODAY's huddle notes from Slack and produce a structured summary.
+    Historical huddles are already in the vault — only fetch new ones.
 
-    FIRST RUN vs SUBSEQUENT RUNS:
-    Check vault_context in your inputs. If it's empty or has no previous
-    huddle data, this is the FIRST RUN — call fetch_huddle_notes with
-    fetch_all=True to get ALL historical huddle notes.
-
-    If vault_context contains previous huddle summaries, this is a
-    SUBSEQUENT RUN — call fetch_huddle_notes with lookback_hours=24
-    to only get today's huddle notes.
+    Call fetch_huddle_notes with lookback_hours=24.
 
     For each huddle found, produce a clean structured markdown summary:
 
@@ -25,7 +19,6 @@ fetch_and_summarize:
 
     **Action Items:**
     - Name: what they committed to do
-    - Name: what they committed to do
 
     **Decisions:**
     - What the team agreed on
@@ -35,11 +28,10 @@ fetch_and_summarize:
 
     If no huddle notes found, return "No recent huddles."
     Do NOT fabricate content. Only extract what is explicitly in the notes.
-    The tool already resolves Slack user IDs to real names automatically.
+    The tool resolves Slack user IDs to real names automatically.
 
-    The output will be written to the vault automatically by the system.
-    Do NOT call vault_write yourself.
+    Do NOT call vault_write — vault is handled automatically by the system.
   expected_output: >
-    Structured markdown summaries of all huddles found, each with date,
-    attendees, summary, topics, actions, decisions, and blockers.
+    Structured markdown summary of today's huddle with date, attendees,
+    summary, topics, actions, decisions, and blockers.
   agent: huddle_agent

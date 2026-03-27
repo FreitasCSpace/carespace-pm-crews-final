@@ -699,13 +699,13 @@ def _resolve_channel_id(channel_name: str) -> str | None:
 
 
 @tool("fetch_huddle_notes")
-def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 24, fetch_all: bool = False) -> str:
+def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 24) -> str:
     """
-    Fetches Slack huddle notes and resolves user IDs to real names.
+    Fetches today's Slack huddle notes and resolves user IDs to real names.
+    Historical huddles are already in the vault.
 
     channel: Slack channel name (default #carespace-team)
-    lookback_hours: how far back to search (default 24h for daily runs)
-    fetch_all: if True, fetches ALL huddle notes (no time limit). Use for first run.
+    lookback_hours: how far back to search (default 24h)
     """
     import time as _time
     from datetime import datetime
@@ -721,12 +721,8 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
     if not channel_id:
         return json.dumps({"error": f"Could not find channel {channel}"})
 
-    if fetch_all:
-        oldest = "0"
-        oldest_ts = 0
-    else:
-        oldest = str(_time.time() - lookback_hours * 3600)
-        oldest_ts = int(float(oldest))
+    oldest = str(_time.time() - lookback_hours * 3600)
+    oldest_ts = int(float(oldest))
     seen_ts = set()  # Dedup across both methods
     huddles = []
 
@@ -737,9 +733,9 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
             headers=headers,
             params={
                 "channel": channel_id,
-                **({"ts_from": oldest_ts} if oldest_ts > 0 else {}),
+                "ts_from": oldest_ts,
                 "types": "canvas,quip",
-                "count": 100 if fetch_all else 50,
+                "count": 50,
             },
             timeout=15,
         )
