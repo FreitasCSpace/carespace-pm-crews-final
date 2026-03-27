@@ -33,7 +33,7 @@ create_tasks_and_post:
     1. Call check_duplicate_task with the action item description to avoid
        creating duplicates of existing backlog items
     2. If no duplicate, call create_clickup_task with:
-       - list_id: {master_backlog}
+       - list_id: {master_backlog_id}
        - name: "[TASK] action description (from huddle)"
        - description: "From huddle on DATE. Attendees: X, Y, Z.\n\nContext: relevant discussion summary"
        - priority: based on urgency (1=urgent, 2=high, 3=normal, 4=low)
