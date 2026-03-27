@@ -1,34 +1,81 @@
 """
 Compliance state persistence for delta-based daily reporting.
 
-Stores a snapshot after each successful run so the next run can compute
-what changed (new failures, resolved tests, health trend).
+Stores a snapshot in the vault (GitHub repo) after each successful run
+so the next run can compute what changed (new failures, resolved tests,
+health trend).
+
+Previous approach used a local file — broken on Azure where the venv
+is disposable. Now uses the vault GitHub API directly.
 """
 from __future__ import annotations
 
+import base64
 import json
-from datetime import date
-from pathlib import Path
+import logging
+import os
 
-STATE_FILE = Path(__file__).parent / "compliance_state.json"
+log = logging.getLogger(__name__)
+
+VAULT_REPO = "FreitasCSpace/carespace-pm-vault"
+STATE_PATH = "context/compliance-state.json"
+
+
+def _gh_api(endpoint: str, method: str = "GET", payload: dict | None = None) -> dict:
+    """GitHub API v3 call (duplicated from vault.py to avoid circular imports)."""
+    import urllib.request
+    token = os.environ.get("GITHUB_TOKEN", "")
+    url = f"https://api.github.com/repos/{VAULT_REPO}/{endpoint}"
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json",
+    }
+    data = json.dumps(payload).encode() if payload else None
+    req = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.request.HTTPError as e:
+        body = e.read().decode() if e.fp else ""
+        return {"error": f"HTTP {e.code}", "detail": body[:300]}
 
 
 def load_previous_state() -> dict | None:
-    """Load yesterday's compliance snapshot. Returns None on first run."""
+    """Load the previous compliance snapshot from the vault."""
     try:
-        if STATE_FILE.exists():
-            return json.loads(STATE_FILE.read_text())
-    except Exception:
-        pass
+        result = _gh_api(f"contents/{STATE_PATH}")
+        if "content" in result:
+            decoded = base64.b64decode(result["content"]).decode()
+            return json.loads(decoded)
+    except Exception as e:
+        log.debug("compliance state load failed: %s", e)
     return None
 
 
 def save_current_state(snapshot: dict) -> None:
-    """Persist today's snapshot for tomorrow's delta computation."""
+    """Persist the current snapshot to the vault for the next run's delta."""
     try:
-        STATE_FILE.write_text(json.dumps(snapshot, indent=2))
-    except Exception:
-        pass  # Non-fatal — next run just won't have delta
+        encoded = base64.b64encode(json.dumps(snapshot, indent=2).encode()).decode()
+
+        # Get existing SHA for update
+        sha = None
+        existing = _gh_api(f"contents/{STATE_PATH}")
+        if "sha" in existing:
+            sha = existing["sha"]
+
+        payload = {
+            "message": f"compliance-state: {snapshot.get('date', 'unknown')}",
+            "content": encoded,
+            "committer": {"name": "CareSpace PM AI", "email": "pm-ai@carespace.com"},
+        }
+        if sha:
+            payload["sha"] = sha
+
+        _gh_api(f"contents/{STATE_PATH}", method="PUT", payload=payload)
+        log.info("compliance state saved to vault")
+    except Exception as e:
+        log.warning("compliance state save failed: %s", e)
 
 
 def compute_delta(current: dict, previous: dict | None) -> dict:
