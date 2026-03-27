@@ -1,14 +1,14 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
-from src.shared.tools import (
+from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_activity,
     get_tasks_by_list, create_clickup_task, post_retro, post,
     close_sprint,
 )
-from src.shared.config.context import interpolate_config
-from src.shared.guardrails import validate_retro_metrics
-from src.shared.models.retrospective import RetroMetrics
+from shared.config.context import interpolate_config
+from shared.guardrails import validate_retro_metrics
+from shared.models.retrospective import RetroMetrics
 
 
 @CrewBase
@@ -19,7 +19,7 @@ class RetrospectiveCrew:
 
     @before_kickoff
     def inject_context(self, inputs):
-        from src.shared.config.context import crew_context
+        from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return ctx

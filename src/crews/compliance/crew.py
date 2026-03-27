@@ -1,13 +1,13 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
-from src.shared.tools import (
+from shared.tools import (
     batch_compliance_check,
     post_compliance,
 )
-from src.shared.config.context import interpolate_config
-from src.shared.guardrails import validate_compliance_output
-from src.shared.models.compliance import ComplianceHealth
+from shared.config.context import interpolate_config
+from shared.guardrails import validate_compliance_output
+from shared.models.compliance import ComplianceHealth
 
 
 @CrewBase
@@ -18,7 +18,7 @@ class ComplianceCrew:
 
     @before_kickoff
     def inject_context(self, inputs):
-        from src.shared.config.context import crew_context
+        from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return ctx

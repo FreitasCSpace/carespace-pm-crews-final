@@ -1,14 +1,14 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
-from src.shared.tools import (
+from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_tasks_by_list,
     get_prs, get_contributors, get_stale_issues,
     post_standup,
 )
-from src.shared.config.context import interpolate_config
-from src.shared.guardrails import validate_standup_data
-from src.shared.models.daily_pulse import PulseData
+from shared.config.context import interpolate_config
+from shared.guardrails import validate_standup_data
+from shared.models.daily_pulse import PulseData
 
 
 @CrewBase
@@ -20,7 +20,7 @@ class DailyPulseCrew:
 
     @before_kickoff
     def inject_context(self, inputs):
-        from src.shared.config.context import crew_context
+        from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update(inputs or {})
         return ctx

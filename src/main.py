@@ -20,11 +20,12 @@ import logging
 import os
 from typing import Optional
 
-from crewai.flow.flow import Flow, start, listen, persist
+from crewai.flow.flow import Flow, start, listen
+from crewai.flow.persistence import persist
 from pydantic import BaseModel, Field
 
-from src.shared.vault_hooks import vault_before_kickoff, vault_after_kickoff
-from src.shared.config.context import crew_context
+from shared.vault_hooks import vault_before_kickoff, vault_after_kickoff
+from shared.config.context import crew_context
 
 log = logging.getLogger(__name__)
 
@@ -53,15 +54,15 @@ class PMFlowState(BaseModel):
 # ── Crew Registry ────────────────────────────────────────────────────────────
 
 CREW_REGISTRY = {
-    "compliance":    ("src.crews.compliance.crew",    "ComplianceCrew"),
-    "intake":        ("src.crews.intake.crew",        "IntakeCrew"),
-    "daily_pulse":   ("src.crews.daily_pulse.crew",   "DailyPulseCrew"),
-    "sla":           ("src.crews.sla.crew",           "SlaCrew"),
-    "triage":        ("src.crews.triage.crew",        "TriageCrew"),
-    "sprint":        ("src.crews.sprint.crew",        "SprintCrew"),
-    "retrospective": ("src.crews.retrospective.crew", "RetrospectiveCrew"),
-    "exec_report":   ("src.crews.exec_report.crew",   "ExecReportCrew"),
-    "huddle_notes":  ("src.crews.huddle_notes.crew",  "HuddleNotesCrew"),
+    "compliance":    ("crews.compliance.crew",    "ComplianceCrew"),
+    "intake":        ("crews.intake.crew",        "IntakeCrew"),
+    "daily_pulse":   ("crews.daily_pulse.crew",   "DailyPulseCrew"),
+    "sla":           ("crews.sla.crew",           "SlaCrew"),
+    "triage":        ("crews.triage.crew",        "TriageCrew"),
+    "sprint":        ("crews.sprint.crew",        "SprintCrew"),
+    "retrospective": ("crews.retrospective.crew", "RetrospectiveCrew"),
+    "exec_report":   ("crews.exec_report.crew",   "ExecReportCrew"),
+    "huddle_notes":  ("crews.huddle_notes.crew",  "HuddleNotesCrew"),
 }
 
 

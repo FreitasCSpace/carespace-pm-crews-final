@@ -1,15 +1,15 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
-from src.shared.tools import (
+from shared.tools import (
     create_sprint_list, post_sprint_plan, get_last_sprint_velocity,
 )
-from src.shared.tools.clickup_helpers import (
+from shared.tools.clickup_helpers import (
     list_sprint_candidates, finalize_sprint_from_candidates,
 )
-from src.shared.config.context import interpolate_config
-from src.shared.guardrails import validate_sprint_plan
-from src.shared.models.sprint import SprintPlan
+from shared.config.context import interpolate_config
+from shared.guardrails import validate_sprint_plan
+from shared.models.sprint import SprintPlan
 
 
 @CrewBase
@@ -21,7 +21,7 @@ class SprintCrew:
 
     @before_kickoff
     def inject_context(self, inputs):
-        from src.shared.config.context import crew_context
+        from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return ctx

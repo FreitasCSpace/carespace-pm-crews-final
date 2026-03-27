@@ -1,14 +1,14 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
-from src.shared.tools import (
+from shared.tools import (
     create_sprint_list, get_tasks_by_list, batch_compliance_check,
     check_duplicate_task, create_clickup_task, post_exec,
     vanta_health_summary, scan_backlog_for_sprint,
 )
-from src.shared.config.context import interpolate_config
-from src.shared.guardrails import validate_exec_report
-from src.shared.models.exec_report import ExecGatherData
+from shared.config.context import interpolate_config
+from shared.guardrails import validate_exec_report
+from shared.models.exec_report import ExecGatherData
 
 
 @CrewBase
@@ -20,7 +20,7 @@ class ExecReportCrew:
 
     @before_kickoff
     def inject_context(self, inputs):
-        from src.shared.config.context import crew_context
+        from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return ctx

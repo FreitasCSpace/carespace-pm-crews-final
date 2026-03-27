@@ -1,14 +1,14 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
-from src.shared.tools import (
+from shared.tools import (
     dedup_backlog_cleanup, bulk_assign_and_estimate,
     normalize_backlog_tasks, scan_backlog_for_triage,
     execute_triage_actions, post_triage_summary,
 )
-from src.shared.config.context import interpolate_config
-from src.shared.guardrails import validate_triage_actions
-from src.shared.models.triage import TriageDecision
+from shared.config.context import interpolate_config
+from shared.guardrails import validate_triage_actions
+from shared.models.triage import TriageDecision
 
 
 @CrewBase
@@ -20,7 +20,7 @@ class TriageCrew:
 
     @before_kickoff
     def inject_context(self, inputs):
-        from src.shared.config.context import crew_context
+        from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return ctx

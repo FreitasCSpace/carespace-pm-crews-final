@@ -1,13 +1,13 @@
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
-from src.shared.tools import (
+from shared.tools import (
     fetch_huddle_notes,
     create_clickup_task,
     check_duplicate_task,
     post_huddle_actions,
 )
-from src.shared.config.context import interpolate_config
+from shared.config.context import interpolate_config
 
 
 @CrewBase
@@ -19,7 +19,7 @@ class HuddleNotesCrew:
 
     @before_kickoff
     def inject_context(self, inputs):
-        from src.shared.config.context import crew_context
+        from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return ctx
