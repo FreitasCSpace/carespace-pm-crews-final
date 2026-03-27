@@ -76,8 +76,14 @@ scan_and_gather:
         any sprint task, SKIP it. If the sprint is empty, skip entirely.
         These are sprint-related issues with no comments for >{stale_task_days}d.
 
-    If no active sprint: scan Master Backlog ({master_backlog_id}) instead
-    and report on backlog health.
+    If the sprint list exists but has NO tasks yet (empty sprint):
+    Report "Sprint is empty — no tasks assigned yet" and skip all
+    task-level reporting (done/in-progress/blocked/pending/risks).
+    Only report CI status in that case.
+
+    IMPORTANT: NEVER scan or report on the Master Backlog. The daily
+    pulse ONLY covers the current sprint list. Backlog items are not
+    sprint items.
   expected_output: >
     Complete data JSON for digest compilation.
   agent: daily_pulse_agent
