@@ -485,6 +485,7 @@ def scan_backlog_for_triage() -> str:
     - unassigned: tasks with no assignee
     - wrong_priority: tasks that may need priority adjustment
     - no_story_points: tasks missing SP estimates
+    - aging: tasks with no update in >21 days (uses date_updated)
     - by_tag / by_priority: distribution counts
 
     Sprint scan (SLA — only for committed work):
@@ -503,6 +504,7 @@ def scan_backlog_for_triage() -> str:
         "unassigned": [],
         "wrong_priority": [],
         "no_story_points": [],
+        "aging": [],
         "sla_at_risk": [],
         "by_tag": {},
         "by_priority": {},
@@ -594,6 +596,19 @@ def scan_backlog_for_triage() -> str:
                     task_info["in_sprint"] = True
                     summary["sla_at_risk"].append(task_info)
 
+            # Aging items — no update in >21 days (504 hours)
+            updated_ms = int(t.get("date_updated", "0"))
+            if updated_ms:
+                hours_since_update = round((now_ms - updated_ms) / (1000 * 3600), 1)
+                if hours_since_update > 504:  # 21 days
+                    summary["aging"].append({
+                        "id": t["id"],
+                        "name": name[:100],
+                        "priority": pri,
+                        "days_since_update": round(hours_since_update / 24),
+                        "tags": tags[:3],
+                    })
+
             # Potential wrong priority (AI should verify)
             name_lower = name.lower()
             if pri not in ("urgent",):
@@ -613,6 +628,9 @@ def scan_backlog_for_triage() -> str:
             summary["no_sp_total"] = len(summary["no_story_points"])
             summary["no_story_points"] = summary["no_story_points"][:30]
             summary["no_sp_truncated"] = True
+        if len(summary["aging"]) > 20:
+            summary["aging_total"] = len(summary["aging"])
+            summary["aging"] = summary["aging"][:20]
         if len(summary["sla_at_risk"]) > 20:
             summary["sla_total"] = len(summary["sla_at_risk"])
             summary["sla_at_risk"] = summary["sla_at_risk"][:20]
