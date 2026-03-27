@@ -8,6 +8,7 @@ from src.shared.tools import (
 )
 from src.shared.config.context import interpolate_config
 from src.shared.guardrails import validate_triage_actions
+from src.shared.models.triage import TriageDecision
 
 
 @CrewBase
@@ -35,6 +36,8 @@ class TriageCrew:
             ],
             verbose=True,
             reasoning=True,
+            inject_date=True,
+            function_calling_llm="gpt-4o-mini",
         )
 
     @agent
@@ -43,6 +46,8 @@ class TriageCrew:
             config=interpolate_config(self.agents_config["triage_post_agent"]),
             tools=[post_triage_summary],
             verbose=True,
+            inject_date=True,
+            function_calling_llm="gpt-4o-mini",
         )
 
     @task
@@ -66,6 +71,7 @@ class TriageCrew:
         return Task(
             config=interpolate_config(self.tasks_config["decide_and_execute_task"]),
             guardrail=validate_triage_actions,
+            output_pydantic=TriageDecision,
         )
 
     @task
@@ -82,4 +88,5 @@ class TriageCrew:
             planning=True,
             planning_llm="gpt-4o",
             skills=["src/shared/skills"],
+            output_log_file=True,
         )

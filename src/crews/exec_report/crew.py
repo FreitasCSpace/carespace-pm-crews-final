@@ -8,6 +8,7 @@ from src.shared.tools import (
 )
 from src.shared.config.context import interpolate_config
 from src.shared.guardrails import validate_exec_report
+from src.shared.models.exec_report import ExecGatherData
 
 
 @CrewBase
@@ -35,6 +36,8 @@ class ExecReportCrew:
             ],
             verbose=True,
             reasoning=True,
+            inject_date=True,
+            function_calling_llm="gpt-4o-mini",
         )
 
     @task
@@ -42,6 +45,7 @@ class ExecReportCrew:
         return Task(
             config=interpolate_config(self.tasks_config["gather"]),
             guardrail=validate_exec_report,
+            output_pydantic=ExecGatherData,
         )
 
     @task
@@ -58,4 +62,5 @@ class ExecReportCrew:
             planning=True,
             planning_llm="gpt-4o",
             skills=["src/shared/skills"],
+            output_log_file=True,
         )

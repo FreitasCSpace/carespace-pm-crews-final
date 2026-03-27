@@ -31,6 +31,8 @@ class SlaCrew:
                 notify_task_assignee,
             ],
             verbose=True,
+            inject_date=True,
+            function_calling_llm="gpt-4o-mini",
         )
 
     @agent
@@ -39,6 +41,8 @@ class SlaCrew:
             config=interpolate_config(self.agents_config["sla_post_agent"]),
             tools=[post_sla_breach, post],
             verbose=True,
+            inject_date=True,
+            function_calling_llm="gpt-4o-mini",
         )
 
     @task
@@ -59,4 +63,5 @@ class SlaCrew:
             planning=True,
             planning_llm="gpt-4o",
             skills=["src/shared/skills"],
+            output_log_file=True,
         )

@@ -36,6 +36,8 @@ class HuddleNotesCrew:
             ],
             verbose=True,
             allow_delegation=False,
+            inject_date=True,
+            function_calling_llm="gpt-4o-mini",
         )
 
     @task
@@ -56,4 +58,5 @@ class HuddleNotesCrew:
             planning=True,
             planning_llm="gpt-4o",
             skills=["src/shared/skills"],
+            output_log_file=True,
         )

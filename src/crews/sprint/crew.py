@@ -9,6 +9,7 @@ from src.shared.tools.clickup_helpers import (
 )
 from src.shared.config.context import interpolate_config
 from src.shared.guardrails import validate_sprint_plan
+from src.shared.models.sprint import SprintPlan
 
 
 @CrewBase
@@ -35,6 +36,8 @@ class SprintCrew:
             ],
             verbose=True,
             reasoning=True,
+            inject_date=True,
+            function_calling_llm="gpt-4o-mini",
         )
 
     @agent
@@ -43,6 +46,8 @@ class SprintCrew:
             config=interpolate_config(self.agents_config["sprint_post_agent"]),
             tools=[post_sprint_plan],
             verbose=True,
+            inject_date=True,
+            function_calling_llm="gpt-4o-mini",
         )
 
     @task
@@ -58,6 +63,7 @@ class SprintCrew:
         return Task(
             config=interpolate_config(self.tasks_config["finalize_task"]),
             guardrail=validate_sprint_plan,
+            output_pydantic=SprintPlan,
         )
 
     @task
@@ -74,4 +80,5 @@ class SprintCrew:
             planning=True,
             planning_llm="gpt-4o",
             skills=["src/shared/skills"],
+            output_log_file=True,
         )

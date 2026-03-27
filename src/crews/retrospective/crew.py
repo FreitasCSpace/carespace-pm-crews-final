@@ -8,6 +8,7 @@ from src.shared.tools import (
 )
 from src.shared.config.context import interpolate_config
 from src.shared.guardrails import validate_retro_metrics
+from src.shared.models.retrospective import RetroMetrics
 
 
 @CrewBase
@@ -35,6 +36,8 @@ class RetrospectiveCrew:
             verbose=True,
             allow_delegation=False,
             reasoning=True,
+            inject_date=True,
+            function_calling_llm="gpt-4o-mini",
         )
 
     @task
@@ -46,6 +49,7 @@ class RetrospectiveCrew:
         return Task(
             config=interpolate_config(self.tasks_config["measure"]),
             guardrail=validate_retro_metrics,
+            output_pydantic=RetroMetrics,
         )
 
     @task
@@ -66,4 +70,5 @@ class RetrospectiveCrew:
             planning=True,
             planning_llm="gpt-4o",
             skills=["src/shared/skills"],
+            output_log_file=True,
         )

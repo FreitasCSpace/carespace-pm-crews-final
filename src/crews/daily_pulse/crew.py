@@ -8,6 +8,7 @@ from src.shared.tools import (
 )
 from src.shared.config.context import interpolate_config
 from src.shared.guardrails import validate_standup_data
+from src.shared.models.daily_pulse import PulseData
 
 
 @CrewBase
@@ -34,6 +35,8 @@ class DailyPulseCrew:
                 post_standup,
             ],
             verbose=True,
+            inject_date=True,
+            function_calling_llm="gpt-4o-mini",
         )
 
     @task
@@ -45,6 +48,7 @@ class DailyPulseCrew:
         return Task(
             config=interpolate_config(self.tasks_config["scan_and_gather"]),
             guardrail=validate_standup_data,
+            output_pydantic=PulseData,
         )
 
     @task
@@ -61,4 +65,5 @@ class DailyPulseCrew:
             planning=True,
             planning_llm="gpt-4o",
             skills=["src/shared/skills"],
+            output_log_file=True,
         )
