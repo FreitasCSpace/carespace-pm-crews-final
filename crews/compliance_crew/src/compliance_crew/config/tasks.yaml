@@ -1,6 +1,11 @@
 gather_health:
   description: >
-    Call compliance_health_check to get the complete daily compliance snapshot.
+    VAULT READ: First, call vault_read('context/compliance-trend.md') to get
+    the rolling compliance trend. Use this to calculate streak data
+    (consecutive RED days, improvement trajectory). If file not found, proceed
+    without — this may be the first run.
+
+    Then call compliance_health_check to get the complete daily compliance snapshot.
     This single tool call returns: Vanta health data, delta from yesterday,
     critical items needing action with ClickUp links, sprint compliance tasks,
     and backlog statistics.
@@ -9,7 +14,8 @@ gather_health:
     paraphrase the numbers — return the exact tool output.
   expected_output: >
     The EXACT JSON returned by compliance_health_check with keys:
-    vanta, delta, needs_action, sprint_compliance, backlog, errors
+    vanta, delta, needs_action, sprint_compliance, backlog, errors.
+    Plus any trend context from the vault.
   agent: gather_agent
 
 post_report:
@@ -40,8 +46,28 @@ post_report:
 
     IMPORTANT: Call post_compliance_report EXACTLY ONCE with these 5 params.
     Do NOT use the generic 'post' tool. When it returns ok:true, stop.
+
+    VAULT WRITE: After posting to Slack, call vault_write with:
+    - crew: 'compliance'
+    - content: markdown with YAML frontmatter containing today's health status,
+      pass rate, critical failures count, delta summary, and needs_action count.
+      Format:
+      ---
+      date: YYYY-MM-DD
+      crew: compliance
+      type: daily
+      health: RED|YELLOW|GREEN
+      pass_rate: N%
+      critical_failing: N
+      ---
+      ## Compliance Health — YYYY-MM-DD
+      ... key findings ...
+
+    Also call vault_write with crew='context', filename='compliance-trend.md'
+    to overwrite the rolling trend with: today's status, pass rate, and
+    a list of the last entries you read plus today's entry (max 30 entries).
   expected_output: >
-    Confirmation of report posted to Slack.
+    Confirmation of report posted to Slack and written to vault.
   agent: post_agent
   context:
     - gather_health

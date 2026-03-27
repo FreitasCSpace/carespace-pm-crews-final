@@ -1,7 +1,20 @@
 gather:
   description: >
-    Collect and ANALYSE data across all dimensions. This report is read by the CEO
-    and CTO — every number must have context, every risk must have business impact.
+    VAULT READ: Before collecting live data, read vault context to enrich
+    the report with trends and history:
+    - vault_read('context/velocity.md') — sprint velocity trend
+    - vault_read('context/backlog-health.md') — backlog growth trend
+    - vault_read('context/compliance-trend.md') — compliance trajectory
+    - vault_list('sprints/daily') then read the latest — current sprint pulse
+    - vault_list('sla') then read the latest — SLA breach status
+    - vault_list('sprints/retros') then read the latest — last retro findings
+    Use these to add trend context ("velocity improving 3 sprints in a row",
+    "backlog grew 15% this week", "compliance RED for 5 consecutive days").
+    If any file is missing, proceed without — data may not exist yet.
+
+    Then collect and ANALYSE live data across all dimensions. This report is
+    read by the CEO and CTO — every number must have context, every risk
+    must have business impact.
 
     1. SPRINT ANALYSIS
        Call create_or_get_sprint_list to find the active sprint list_id.
@@ -135,8 +148,28 @@ write_and_post:
     - When it returns ok:true, your task is complete. Do NOT call it again.
     - Do NOT call the generic 'post' tool. Do NOT post to any other channel.
     - Every risk must have owner + action. Every metric must have a number.
+
+    VAULT WRITE: After posting, call vault_write with:
+    - crew: 'exec_report'
+    - content: markdown with frontmatter:
+      ---
+      date: YYYY-MM-DD
+      crew: exec_report
+      type: weekly
+      sprint_completion_pct: N
+      compliance_pass_rate: N
+      open_bugs: N
+      risks_count: N
+      ---
+      ## Executive Report — YYYY-MM-DD
+      - Health: traffic light summary
+      - Sprint: progress and velocity
+      - Compliance: status and trend
+      - Risks: top 3 with owners
+      - Wins: key achievements
+      - Decisions needed: list
   expected_output: >
-    Confirmation of Slack post with full analytical report.
+    Confirmation of Slack post and vault written.
   agent: exec_reporter_agent
   context:
     - gather

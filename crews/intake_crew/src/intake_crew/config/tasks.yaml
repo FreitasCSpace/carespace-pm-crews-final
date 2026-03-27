@@ -10,9 +10,24 @@ intake_scan:
 
     Each batch tool handles dedup, creation, tagging, and cross-linking
     internally. You do NOT need to process individual issues.
+
+    VAULT WRITE: After completing, call vault_write with:
+    - crew: 'intake'
+    - content: markdown with frontmatter containing repos_scanned,
+      issues_found, tasks_created, duplicates_skipped, and a sample
+      of new tasks created (title, priority, domain).
+      ---
+      date: YYYY-MM-DD
+      crew: intake
+      type: daily
+      tasks_created: N
+      duplicates_skipped: N
+      ---
+      ## Intake Summary — YYYY-MM-DD
+      ... details ...
   expected_output: >
     JSON summary: {engineering: {tasks_created, duplicates_skipped},
-    total_new: N, slack_posted: bool}
+    total_new: N, slack_posted: bool, vault_written: bool}
   agent: intake_agent
 
 close_sync:

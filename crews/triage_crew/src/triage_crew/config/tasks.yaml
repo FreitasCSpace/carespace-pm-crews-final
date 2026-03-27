@@ -43,7 +43,15 @@ estimate_sp_task:
 
 scan_task:
   description: >
-    Call scan_backlog_for_triage to get a health report of the backlog:
+    VAULT READ: Call vault_list('sprints/retros') and read the most recent
+    retro file. Look for patterns like "carried over auth tasks" or
+    "high-SP items always slip" — use these to inform priority decisions
+    in the next step. If no retro files exist, proceed without.
+
+    Also call vault_list('triage') and read yesterday's triage report to
+    track backlog growth trends (is total_tasks growing or shrinking?).
+
+    Then call scan_backlog_for_triage to get a health report of the backlog:
     wrong priorities, missing SP, unassigned tasks, tag/priority distribution.
   expected_output: >
     The scan results JSON for analysis.
@@ -91,8 +99,30 @@ post_triage_task:
       were normalized if any were found.
 
     Post ONE message only. Do NOT post multiple times.
+
+    VAULT WRITE: After posting, call vault_write with:
+    - crew: 'triage'
+    - content: markdown with frontmatter:
+      ---
+      date: YYYY-MM-DD
+      crew: triage
+      type: daily
+      total_tasks: N
+      duplicates_removed: N
+      design_tasks_normalized: N
+      sp_estimated: N
+      priorities_changed: N
+      ---
+      ## Triage Report — YYYY-MM-DD
+      - Backlog: N total tasks
+      - Distribution: by_priority, by_tag summary
+      - Actions: priorities changed, SP estimated, aging flagged
+
+    Also call vault_write with crew='context', filename='backlog-health.md'
+    to overwrite with current backlog snapshot (total tasks, distribution,
+    aging count, growth trend vs yesterday).
   expected_output: >
-    Confirmation of report posted to Slack.
+    Confirmation of report posted to Slack and written to vault.
   agent: triage_post_agent
   context:
     - decide_and_execute_task

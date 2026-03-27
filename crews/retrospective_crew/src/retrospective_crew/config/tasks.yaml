@@ -8,6 +8,13 @@ find_sprint_task:
 
 measure:
   description: >
+    VAULT READ: Call vault_read('sprints/plans/sprint-N.md') for the sprint
+    plan (use the sprint number from find_sprint_task). This gives you the
+    original commitment to compare against actuals. If not found, proceed
+    without — plan may not have been vault-logged.
+
+    Also call vault_read('context/velocity.md') for historical velocity trend.
+
     Using the sprint list_id from previous step, pull ALL tasks
     via get_tasks_by_list (include_closed=True to capture done tasks).
 
@@ -19,6 +26,7 @@ measure:
     - Carry-overs: tasks still in progress or pending (incomplete)
     - Recommended next sprint SP = completed_sp × 0.80
     - List each carryover task by name, assignee, and SP
+    - Plan vs actual: compare committed SP against delivered SP
 
     Also check GitHub:
     - Stale PRs (>{stale_pr_days}d) using get_stale_pull_requests
@@ -26,7 +34,8 @@ measure:
     - Commit activity using get_repo_activity on carespace-ui
   expected_output: >
     JSON with completion_rate, velocity_sp, planned_sp, per_engineer,
-    carry_overs (with details), github_health, recommended_next_sp.
+    carry_overs (with details), github_health, recommended_next_sp,
+    plan_vs_actual comparison.
   agent: retrospective_agent
   context:
     - find_sprint_task
@@ -68,8 +77,34 @@ post_and_log:
     using create_task_in_list:
     - name: "Sprint N Velocity: X SP (Y% completion)"
     - description: full metrics summary including carryover list
+
+    VAULT WRITE: Call vault_write with:
+    - crew: 'sprint_retro'
+    - filename: 'sprint-N.md' (use the sprint number)
+    - content: markdown with frontmatter:
+      ---
+      date: YYYY-MM-DD
+      crew: retrospective
+      type: sprint
+      sprint_number: N
+      velocity_sp: N
+      completion_pct: N
+      carryovers: N
+      recommended_next_sp: N
+      ---
+      ## Sprint N Retrospective — YYYY-MM-DD
+      - Velocity: N SP delivered (N% of N planned)
+      - Per-engineer: breakdown
+      - Carryovers: list with reasons
+      - GitHub: stale PRs, CI, activity
+      - Recommended next sprint: N SP
+
+    Also call vault_write with crew='context', filename='velocity.md'
+    to overwrite the rolling velocity file with a table of all sprints:
+    | Sprint | Velocity SP | Completion % | Carryovers | Recommended Next |
+    Include data from the previous velocity.md plus this sprint's data.
   expected_output: >
-    Confirmation of Slack posts and velocity log.
+    Confirmation of Slack posts, velocity log, and vault written.
   agent: retrospective_agent
   context:
     - close_and_carryover

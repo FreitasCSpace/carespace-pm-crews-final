@@ -1,6 +1,10 @@
 extract_actions_task:
   description: >
-    Call fetch_huddle_notes to retrieve recent huddle notes from Slack.
+    VAULT READ: Call vault_list('huddles') and read the most recent huddle
+    file to avoid re-processing the same huddle notes. If today's file
+    already exists, skip extraction and report "Already processed today."
+
+    Then call fetch_huddle_notes to retrieve recent huddle notes from Slack.
     For each huddle found, carefully analyze the content and extract:
 
     1. ACTION ITEMS — concrete commitments someone made
@@ -47,8 +51,27 @@ create_tasks_and_post:
     the huddle happened but no action items were identified.
 
     IMPORTANT: Call post_huddle_actions EXACTLY ONCE. Stop after ok:true.
+
+    VAULT WRITE: After posting, call vault_write with:
+    - crew: 'huddle_notes'
+    - content: markdown with frontmatter:
+      ---
+      date: YYYY-MM-DD
+      crew: huddle_notes
+      type: daily
+      attendees: Name1, Name2, Name3
+      action_items: N
+      tasks_created: N
+      ---
+      ## Huddle — YYYY-MM-DD
+      **Attendees:** list
+      **Summary:** 2-3 sentences
+      **Action Items:**
+      - item 1 — @assignee → ClickUp link
+      - item 2 — @assignee → ClickUp link
+      **Decisions:** list
   expected_output: >
-    Confirmation that tasks were created and summary posted to Slack.
+    Confirmation that tasks were created, summary posted, and vault written.
   agent: huddle_agent
   context:
     - extract_actions_task

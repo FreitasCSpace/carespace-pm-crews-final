@@ -9,7 +9,12 @@ create_sprint_task:
 
 check_candidates_task:
   description: >
-    First call get_last_sprint_velocity to get the recommended SP budget
+    VAULT READ: Call vault_read('context/velocity.md') to get historical
+    velocity trend. Also call vault_list('sprints/retros') and read the
+    latest retro for recommended velocity and carryover context.
+    Use this to validate the velocity budget recommendation.
+
+    Then call get_last_sprint_velocity to get the recommended SP budget
     based on the team's actual last-sprint delivery. Use the returned
     recommended_budget_sp as the target for this sprint.
 
@@ -60,8 +65,26 @@ post_sprint_plan_task:
 
     If candidates were empty or finalize errored, post a warning instead.
     Post ONE message only. Do NOT post to other channels.
+
+    VAULT WRITE: After posting, call vault_write with:
+    - crew: 'sprint_plan'
+    - filename: 'sprint-N.md' (use the sprint number)
+    - content: markdown with frontmatter:
+      ---
+      date: YYYY-MM-DD
+      crew: sprint
+      type: sprint
+      sprint_number: N
+      total_sp: N
+      tasks_committed: N
+      velocity_budget: N
+      ---
+      ## Sprint N Plan — YYYY-MM-DD
+      - Tasks: list with assignee and SP
+      - Total SP: N committed vs N budget
+      - Capacity: over/under analysis
   expected_output: >
-    Confirmation of Slack post to #pm-sprint-board.
+    Confirmation of Slack post and vault written.
   agent: sprint_post_agent
   context:
     - create_sprint_task

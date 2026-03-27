@@ -1,6 +1,10 @@
 scan_sprint_sla_task:
   description: >
-    Scan the active sprint for SLA breaches.
+    VAULT READ: Call vault_list('sla') and vault_read the most recent SLA
+    report to identify repeat offenders — tasks that were at-risk in the
+    previous check. Flag these as "persistent" in your output.
+
+    Then scan the active sprint for SLA breaches:
 
     1. Call scan_sprint_sla to get all sprint tasks with SLA status.
        This returns tasks that are at risk (80%+ of SLA) or breached (100%+).
@@ -18,7 +22,7 @@ scan_sprint_sla_task:
   expected_output: >
     JSON: {sprint_tasks_checked: N, at_risk: [{task_name, assignee, sla_hours, age_hours}],
     breached: [{task_name, assignee, sla_hours, age_hours}],
-    alerts_created: N, dms_sent: N}
+    alerts_created: N, dms_sent: N, persistent_offenders: N}
   agent: sla_monitor_agent
 
 post_sla_report_task:
@@ -32,8 +36,24 @@ post_sla_report_task:
 
     If no SLA issues found:
     Do NOT post anything — silence means healthy.
+
+    VAULT WRITE: Always call vault_write (even if no issues), with:
+    - crew: 'sla'
+    - content: markdown with frontmatter:
+      ---
+      date: YYYY-MM-DD
+      crew: sla
+      type: daily
+      breaches: N
+      at_risk: N
+      tasks_checked: N
+      ---
+      ## SLA Check — YYYY-MM-DD
+      - Breached: list or "None"
+      - At Risk: list or "None"
+      - Persistent: tasks flagged in consecutive checks
   expected_output: >
-    Confirmation of posts sent, or 'No SLA issues — no post needed.'
+    Confirmation of posts sent (or skipped) and vault written.
   agent: sla_post_agent
   context:
     - scan_sprint_sla_task
