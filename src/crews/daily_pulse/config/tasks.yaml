@@ -166,22 +166,27 @@ compile_and_post:
     Do NOT show sub-section headers. Do NOT show "None" for empty categories.
     If nothing needs attention, just write: "All clear ✅"
 
-    Each item gets a single emoji prefix to indicate type:
-    • 😴 = stale task (no activity 3+ days)
-    • 🔀 = missing PR (in progress but no code tracked)
-    • 🐌 = stale PR (open >{stale_pr_days}d)
-    • 🔴 = CI failing
-    • 💬 = stale issue (no comments 3+ days)
+    Group items by type with a short label, then plain bullets below.
+    Do NOT put emojis on individual bullet items.
+    Do NOT show groups with zero items.
 
-    Examples:
-    • 😴 <clickup_url|Task name> — @assignee · 5d no activity
-    • 🔀 <clickup_url|Task name> — @kishorkumar · in progress, no PR
-    • 🐌 <github_pr_url|PR title> — 9d old
-    • 🔴 <github_actions_url|carespace-admin> — CI failing
-    • 💬 <clickup_url|Task name> — 9d no comments
+    Stale tasks (no activity 3+ days):
+    • <clickup_url|Task name> — @assignee · Xd no activity
 
-    If ALL CI is passing, add one line: ✅ All CI passing
-    Do NOT add lines for categories with zero items.
+    Missing PR (in progress, no code tracked):
+    • <clickup_url|Task name> — @assignee · in progress, no PR
+
+    Stale PRs (open >{stale_pr_days}d):
+    • <github_pr_url|PR title> — Xd old
+
+    CI: All passing ✅
+    (or list failing repos as plain bullets if any fail)
+
+    Stale issues (no comments 3+ days):
+    • <clickup_url|Task name> — Xd no comments
+
+    Leave a blank line between each group for readability.
+    Do NOT add lines for groups with zero items.
 
     RULES:
     - Stale PRs: only sprint-related PRs. Skip unrelated.
