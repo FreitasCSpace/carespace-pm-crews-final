@@ -53,24 +53,37 @@ scan_and_gather:
        - Urgent/critical priority tasks still pending late in sprint
        These are RISKS, not blockers. They go in the Sprint Risks section.
 
-    7. Find stale tasks: in progress but date_updated >{stale_task_days} days ago.
+    7. Find stale sprint tasks: any sprint task (not done) where
+       date_updated is older than 3 days. These are tasks with no
+       activity — no ClickUp comments, no status changes, nothing.
+       Flag them in Needs Attention regardless of their status.
 
-    8. Check GitHub: stale PRs (>{stale_pr_days}d) using get_stale_pull_requests.
+    8. PR COVERAGE: For each sprint task that is "in progress" or "to do",
+       check if there's an open PR linked to it. Call get_open_pull_requests
+       (empty repo = all repos) and cross-reference PR titles/branches with
+       sprint task names and GitHub issue references in the task description.
+       For each sprint task, determine:
+       - Has PR: yes/no
+       - If yes: PR status (open, draft, passing CI, failing CI)
+       - If "in progress" but NO PR: flag as a risk — work may not be tracked
+       Report this as a "PR Coverage" sub-section in Needs Attention.
+
+    9. Check GitHub: stale PRs (>{stale_pr_days}d) using get_stale_pull_requests.
        Also identify CRITICAL stale PRs (>{critical_stale_pr_days}d) separately.
        IMPORTANT: Only include PRs that are RELATED to sprint tasks.
        Cross-reference PR titles/branches with sprint task names.
        If a PR doesn't match any sprint task, SKIP it.
        If the sprint is empty, skip stale PR reporting entirely.
 
-    9. Check CI using get_ci_status on repos:
-       {ci_check_repos}.
-       NOTE: Try 'main' first, if 404 try 'master'.
-       IMPORTANT: Only report FAILING CI checks. Do NOT include passing repos.
-       If all repos pass, just note "All CI passing" — don't list them individually.
-       For failures, include the GitHub Actions link:
-       https://github.com/carespace-ai/<repo>/actions
+    10. Check CI using get_ci_status on repos:
+        {ci_check_repos}.
+        NOTE: Try 'main' first, if 404 try 'master'.
+        IMPORTANT: Only report FAILING CI checks. Do NOT include passing repos.
+        If all repos pass, just note "All CI passing" — don't list them individually.
+        For failures, include the GitHub Actions link:
+        https://github.com/carespace-ai/<repo>/actions
 
-    10. Check for stale GitHub issues using get_stale_issues, BUT only
+    11. Check for stale GitHub issues using get_stale_issues, BUT only
         report issues that match a CURRENT SPRINT task name. Cross-reference
         the issue titles with sprint task names. If an issue doesn't match
         any sprint task, SKIP it. If the sprint is empty, skip entirely.
@@ -144,8 +157,14 @@ compile_and_post:
     ═══════════════════════════════════
     ⚠️ NEEDS ATTENTION
     ═══════════════════════════════════
-    Stale sprint tasks (>{stale_task_days}d no update):
-    • <clickup_url|Task name> — @assignee · Xd no update
+    Stale sprint tasks (no activity for 3+ days):
+    • <clickup_url|Task name> — @assignee · Xd no activity
+    These are sprint tasks with no ClickUp updates for 3+ days.
+
+    PR Coverage (sprint tasks missing a PR):
+    • <clickup_url|Task name> — @assignee · in progress, no PR found
+    Only flag "in progress" tasks with no matching open PR.
+    If all in-progress tasks have PRs, write: "All in-progress tasks have PRs ✅"
 
     Stale PRs related to sprint tasks (>{stale_pr_days}d):
     • <github_pr_url|PR title> — Xd old
@@ -207,7 +226,8 @@ compile_and_post:
     - in_progress: active tasks with @assignee (X SP) (or 'None')
     - blocked: ONLY tasks with ClickUp status 'blocked' (or 'None')
     - pending: not-started tasks with @assignee (X SP)
-    - attention: stale sprint tasks, sprint-related stale PRs, CI failures, sprint-related stale issues
+    - attention: stale sprint tasks (3d+ no activity), PR coverage gaps,
+        sprint-related stale PRs, CI failures, sprint-related stale issues
     - meeting_mode: just the headline, e.g.:
         '🔴 STANDUP MODE: 3 risks to discuss. 15-min focused session.'
         OR '🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion.'
