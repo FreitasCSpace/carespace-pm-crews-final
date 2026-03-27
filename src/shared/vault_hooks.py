@@ -19,7 +19,7 @@ Usage in crew.py:
 
 import json
 import logging
-from datetime import date
+from datetime import date, datetime
 from shared.tools.vault import vault_read, vault_write, vault_list
 
 log = logging.getLogger(__name__)
@@ -141,14 +141,14 @@ def vault_before_kickoff(crew_name: str, inputs: dict) -> dict:
 # "date" = YYYY-MM-DD.md, "sprint" = needs sprint number (passed in output)
 CREW_WRITES: dict[str, tuple[str, str]] = {
     "compliance": ("compliance", "date"),
-    "intake": ("intake", "date"),
+    "intake": ("intake", "datetime"),
     "daily_pulse": ("daily_pulse", "date"),
-    "sla": ("sla", "date"),
-    "triage": ("triage", "date"),
+    "sla": ("sla", "datetime"),
+    "triage": ("triage", "datetime"),
     "sprint": ("sprint_plan", "sprint"),
     "retrospective": ("sprint_retro", "sprint"),
     "exec_report": ("exec_report", "date"),
-    "huddle_notes": ("huddle_notes", "date"),
+    "huddle_notes": ("huddle_notes", "datetime"),
 }
 
 # crew_name → context file to overwrite with latest state
@@ -229,7 +229,10 @@ def vault_after_kickoff(crew_name: str, result, sprint_number: int = None):
     output_text = _extract_output_text(result)
 
     # Determine filename
-    if pattern == "date":
+    now = datetime.now()
+    if pattern == "datetime":
+        filename = f"{now.strftime('%Y-%m-%d-%H%M')}.md"
+    elif pattern == "date":
         filename = f"{date.today().isoformat()}.md"
     elif pattern == "sprint" and sprint_number:
         filename = f"sprint-{sprint_number}.md"
@@ -237,8 +240,9 @@ def vault_after_kickoff(crew_name: str, result, sprint_number: int = None):
         filename = f"{date.today().isoformat()}.md"
 
     # Build content with frontmatter
+    timestamp = now.strftime("%Y-%m-%d %H:%M") if pattern == "datetime" else date.today().isoformat()
     frontmatter = _build_frontmatter(crew_name)
-    content = f"{frontmatter}\n\n## {crew_name.replace('_', ' ').title()} — {date.today().isoformat()}\n\n{output_text}"
+    content = f"{frontmatter}\n\n## {crew_name.replace('_', ' ').title()} — {timestamp}\n\n{output_text}"
 
     # Write crew-specific file
     try:
