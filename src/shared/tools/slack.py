@@ -88,18 +88,29 @@ def post_standup(executive_summary: str, done: str, in_progress: str,
         • ⚡ Azure BAA — @Flavio — external dependency, waiting on vendor'
     """
     today = date.today().strftime("%B %d, %Y")
+
+    # Slack section blocks have a 3000 char limit — truncate long fields
+    def _trim(text: str, limit: int = 2800) -> str:
+        if not text or len(text) <= limit:
+            return text
+        # Cut at last newline before limit to keep bullets clean
+        cut = text[:limit].rfind("\n")
+        if cut < limit // 2:
+            cut = limit
+        return text[:cut] + "\n_(truncated — too many items)_"
+
     blocks = [
         _hdr(f"📊 Sprint Digest — {today}"),
-        _sec(f"*Executive Summary*\n{executive_summary}"),
+        _sec(f"*Executive Summary*\n{_trim(executive_summary)}"),
         _div(),
-        _sec(
+        _sec(_trim(
             f"*✅ Done*\n{done or '_None_'}\n\n"
             f"*🔄 In Progress*\n{in_progress or '_None_'}\n\n"
             f"*🚫 Blocked*\n{blocked or '_None_'}\n\n"
             f"*⏳ To Do*\n{pending or '_None_'}"
-        ),
+        )),
         _div(),
-        _sec(f"*⚠️ Needs Attention*\n{attention or '_All clear_'}"),
+        _sec(f"*⚠️ Needs Attention*\n{_trim(attention) or '_All clear_'}"),
         _div(),
     ]
     # Add sprint risks section if there are items at risk
