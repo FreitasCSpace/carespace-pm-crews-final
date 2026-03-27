@@ -144,23 +144,29 @@ compile_and_post:
     ═══════════════════════════════════
     ⚠️ NEEDS ATTENTION
     ═══════════════════════════════════
-    Stale (>{stale_task_days}d no update):
-    • [Task name] — @assignee — last updated X days ago
+    Stale sprint tasks (>{stale_task_days}d no update):
+    • <clickup_url|Task name> — @assignee · Xd no update
 
     Stale PRs related to sprint tasks (>{stale_pr_days}d):
-    • repo PR #N — Xd old — https://github.com/carespace-ai/repo/pull/N
+    • <github_pr_url|PR title> — Xd old
     ONLY include PRs that match sprint task names/branches. Skip unrelated PRs.
 
     Critical Stale PRs (>{critical_stale_pr_days}d) — URGENT:
-    • repo PR #N — Xd old — https://github.com/carespace-ai/repo/pull/N
+    • <github_pr_url|PR title> — Xd old
 
     CI Failures (ONLY if failing — skip if all passing):
-    • [repo] — FAILING — https://github.com/carespace-ai/repo/actions
+    • <github_actions_url|repo> — FAILING
     If all CI is passing, just write: "All CI checks passing ✅"
 
     Stale Issues matching sprint tasks (no comments >{stale_task_days}d):
-    • repo #N — [title] — Xd no comments
+    • <clickup_url|Task name> — Xd no comments
+    Use the ClickUp URL from the matching sprint task, not the GitHub issue URL.
     Only include issues that match a current sprint task. Skip backlog issues.
+
+    FORMAT RULES for Needs Attention:
+    - All items must be clickable Slack links: <url|display text>
+    - Use ClickUp URLs for tasks/issues, GitHub URLs for PRs and CI
+    - Keep each line to one short line — no multi-line items
 
     ═══════════════════════════════════
     ⚡ SPRINT RISKS
@@ -172,9 +178,12 @@ compile_and_post:
     - Unassigned tasks
 
     For EACH risk:
-    • ⚡ [Task name] — @assignee (X SP)
-      Risk: why this might not finish on time
-      Action: what should happen
+    • ⚡ <clickup_url|Task name> — @assignee · X SP
+      → Risk + action on one line
+
+    Example:
+    • ⚡ <https://app.clickup.com/t/abc|Calendar Program UI> — unassigned · 5 SP
+      → Unassigned, sprint starts in 3 days — assign during sprint planning
 
     If sprint hasn't started or no risks identified, skip this section.
 
