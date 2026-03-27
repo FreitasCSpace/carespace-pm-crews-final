@@ -117,10 +117,13 @@ class PMCrewsFlow(Flow[PMFlowState]):
 
         try:
             result = crew_cls().crew().kickoff(inputs=self.state.crew_inputs)
+            # Store full CrewOutput for vault (has tasks_output with all task results)
+            self._crew_result = result
             self.state.crew_raw_output = result.raw if hasattr(result, "raw") else str(result)
             self.state.crew_success = True
             log.info("[%s] Crew completed successfully", self.state.crew_name)
         except Exception as e:
+            self._crew_result = None
             self.state.crew_error = str(e)
             self.state.crew_success = False
             log.error("[%s] Crew failed: %s", self.state.crew_name, e)
@@ -128,11 +131,17 @@ class PMCrewsFlow(Flow[PMFlowState]):
 
     @listen(run_crew)
     def write_vault(self):
-        """Persist crew output to the vault repo."""
+        """Persist crew output to the vault repo.
+
+        Passes the full CrewOutput object (not just .raw) so vault_after_kickoff
+        can extract ALL task outputs — not just the final confirmation message.
+        """
+        # Use full CrewOutput if available, fall back to raw string
+        result_to_save = getattr(self, "_crew_result", None) or self.state.crew_raw_output
         try:
             vault_after_kickoff(
                 self.state.crew_name,
-                self.state.crew_raw_output,
+                result_to_save,
                 sprint_number=self.state.sprint_number,
             )
             self.state.vault_written = True

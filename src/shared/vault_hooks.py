@@ -160,10 +160,43 @@ CREW_CONTEXT_WRITES: dict[str, str] = {
 
 
 def _extract_output_text(result) -> str:
-    """Extract text from CrewAI result object."""
-    if hasattr(result, "raw"):
-        return str(result.raw)
-    if hasattr(result, "output"):
+    """Extract ALL task outputs from a CrewAI result — not just the final task.
+
+    CrewOutput.tasks_output contains every task's output. We combine them
+    into a structured document so the vault file has useful context,
+    not just "Confirmation of report posted to Slack."
+    """
+    sections = []
+
+    # Try to get all task outputs (CrewOutput has tasks_output list)
+    if hasattr(result, "tasks_output") and result.tasks_output:
+        for i, task_output in enumerate(result.tasks_output, 1):
+            task_desc = ""
+            task_raw = ""
+            if hasattr(task_output, "description"):
+                # First 80 chars of description as section header
+                task_desc = str(task_output.description or "")[:80].strip()
+            if hasattr(task_output, "raw"):
+                task_raw = str(task_output.raw or "")
+            elif hasattr(task_output, "output"):
+                task_raw = str(task_output.output or "")
+            else:
+                task_raw = str(task_output)
+
+            # Skip empty or trivial confirmation outputs
+            if task_raw.strip() and len(task_raw.strip()) > 20:
+                header = task_desc if task_desc else f"Task {i}"
+                sections.append(f"### {header}\n\n{task_raw}")
+
+    if sections:
+        return "\n\n---\n\n".join(sections)
+
+    # Fallback: single raw output (for string results passed from Flow)
+    if hasattr(result, "raw") and result.raw:
+        raw = str(result.raw)
+        if len(raw.strip()) > 20:
+            return raw
+    if hasattr(result, "output") and result.output:
         return str(result.output)
     return str(result)
 
