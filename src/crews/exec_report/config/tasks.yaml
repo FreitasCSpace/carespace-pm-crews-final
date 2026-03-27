@@ -57,98 +57,64 @@ gather:
 
 write_and_post:
   description: >
-    Post the executive report using post_executive_report (NOT the generic post tool).
-    The CEO reads this report. Write in PLAIN BUSINESS ENGLISH — no code references,
-    no ticket IDs, no engineering abbreviations.
+    Post the report using post_executive_report (NOT the generic post tool).
 
-    LANGUAGE RULES:
-    - Say "story points (our sprint work units)" on first mention, then just "points" after.
-    - Never write ticket IDs like "admin#80" or "carespace-ui#159".
-    - Never use abbreviations without explanation: SP, SLA, RBAC, BAA, SOC 2, PR, venv.
-    - Write risks as: "What's the problem → What does it mean for the business → Who → Next step"
-    - Use conversational professional tone, not a database dump.
+    CRITICAL RULE: BE SHORT. The CEO will scan this on their phone.
+    - Every section: 2-4 bullets MAX. One short line per bullet.
+    - NO paragraphs. NO multi-sentence explanations.
+    - Do NOT repeat info across sections. Say it once.
+    - No ticket IDs, no jargon, no abbreviations without context.
+    - Total report: fits on one phone screen.
 
     Pass ALL 8 parameters:
 
-    health_dashboard: one-line traffic light per area, e.g.:
-    "🔴 Engineering: not started yet | 🟢 Sales: pipeline healthy | 🔴 Compliance: only 45% of security checks passing | 🟡 Support: no data | 🟢 Bugs: under control"
+    health_dashboard: short traffic lights, e.g.:
+    "🔴 Engineering: 0% done | 🟢 Sales: healthy | 🔴 Compliance: 51% (need 95%) | 🟡 Bugs: 13 open"
 
-    key_metrics: 4-5 headline numbers in context, e.g.:
-    "• Sprint work: 0 of 46 points delivered — sprint starts Monday
-     • To-do list: 350 items (25 features, 12 bugs, 282 compliance fixes, 11 other)
-     • Security & compliance: passing 45% of checks, need 95% — 13 critical items failing
-     • Sales pipeline: no deals at risk
-     • Automated systems: intake, triage, and daily standup running on their own"
+    key_metrics: 3-4 one-liners, e.g.:
+    "• Sprint starts Monday — team assigned, 46 points planned
+     • 398 backlog items (294 are compliance fixes)
+     • Security checks: 51% passing, need 95%
+     • Sales pipeline clean — no deals at risk"
 
-    sprint_analysis: what the team is working on in plain language, e.g.:
-    "Sprint 1 runs Mar 30 to Apr 12 (starts Monday)
-     Nothing delivered yet — sprint hasn't started.
+    sprint_analysis: short team summary, e.g.:
+    "Sprint 1: Mar 30–Apr 12 (starts Monday)
+     — Fabiano: security access fix (urgent)
+     — Andre: user assignment + consent UI
+     — Sandeep: compliance monitoring setup
+     — Luis: vendor privacy agreements
+     Key risk: security fix cannot slip."
 
-     Team assignments:
-     — Fabiano: fixing a security access control issue (high priority, 8 points)
-     — Bharath: production readiness review (8 points)
-     — Andre: building cover image features and pre-existing conditions form (15 points)
-     — Sandeep: connecting our compliance monitoring tool (5 points)
-     — Luis: gathering employee exit compliance evidence (5 points)
+    compliance: 2-3 bullets max, e.g.:
+    "🔴 51% of security checks passing (need 95%)
+     • 13 critical items failing — blocks security audit and enterprise sales
+     • Missing privacy agreements with Azure + Google — blocks patient data handling"
 
-     Watch out: the security fix is urgent and can't slip past this sprint."
+    gtm: 1-2 lines, e.g.:
+    "Pipeline healthy — no deals at risk."
 
-    compliance: plain-English compliance status, e.g.:
-    "Security health: RED — we're only passing 45% of our security checks (target: 95%)
+    risks: top 3, one line each + action, e.g.:
+    "1. 🔴 Privacy agreements missing (Azure + Google) — blocks patient data legally
+        → CEO: escalate to vendor account reps this week
+     2. 🔴 Security audit failing (51%) — blocks enterprise sales
+        → Luis + Sandeep: prioritize compliance fixes this sprint
+     3. 🔴 Access controls broken — security vulnerability in production
+        → Fabiano: fix this sprint, top priority"
 
-     What this means:
-     • 13 critical security requirements are failing — until these are fixed,
-       we cannot pass our security certification (needed for enterprise sales)
-     • We're missing required privacy agreements with Azure and Google — without
-       these, we cannot legally handle patient health data
-     • Over 20 privacy evidence items are overdue — this creates legal exposure
-       if there's ever a data breach investigation
-     • 282 compliance fixes are waiting in our backlog (our biggest category)
+    wins: 2-3 short bullets, e.g.:
+    "• Sprint planned and fully assigned — ready for Monday
+     • AI ops running daily (intake, triage, standups)
+     • Sales pipeline clean"
 
-     Bottom line: enterprise sales are blocked until our security audit is clean,
-     and patient data handling has legal risk until vendor agreements are signed."
-
-    gtm: sales pipeline in plain terms, e.g.:
-    "• No active deals at risk — pipeline is healthy
-     • No product launches in the next 2 weeks"
-
-    risks: top risks in plain language, e.g.:
-    "1. 🔴 Missing vendor privacy agreements (Azure + Google)
-        We can't legally process patient data through these vendors without signed
-        agreements. This creates HIPAA violation exposure.
-        Owner: Luis Freitas
-        Next step: You (CEO) need to escalate to our Azure and Google account reps this week.
-
-     2. 🔴 Security certification not ready (only 45% of checks passing)
-        We need this certification to close enterprise deals. 13 critical requirements
-        are failing, and 12 of them don't have anyone assigned to fix them.
-        Owner: Luis + Sandeep
-        Next step: Dedicate engineering time to compliance fixes this sprint.
-
-     3. 🔴 Access controls not working correctly
-        There's a security issue where the system grants access to everyone regardless
-        of their role. This is a vulnerability that needs immediate patching.
-        Owner: Fabiano
-        Next step: Must be fixed this sprint — it's the #1 priority."
-
-    wins: good news in business terms, e.g.:
-    "• Engineering team is fully assigned and ready to start the sprint Monday
-     • Our AI project management system is running daily without manual intervention
-     • No sales deals are at risk — clean pipeline heading into the sprint"
-
-    decisions_needed: what the CEO needs to act on, e.g.:
-    "• Privacy agreements: you need to contact our Azure and Google account reps
-       to get vendor privacy agreements signed — this is blocking patient data work
-     • Compliance staffing: Sandeep is overloaded with both infrastructure and
-       compliance work — consider whether we need additional help"
+    decisions_needed: specific asks, one line each, e.g.:
+    "• Call Azure + Google reps to sign privacy agreements (blocks patient data)
+     • Decide if we need more help on compliance — Luis is at capacity"
 
     IMPORTANT:
     - Call post_executive_report EXACTLY ONCE with all 8 parameters.
-    - When it returns ok:true, stop. Do NOT call it again.
+    - When it returns ok:true, stop.
     - Do NOT use the generic 'post' tool.
-    - Write for a non-technical CEO. If your grandmother wouldn't understand it, rewrite it.
-
-    Do NOT call vault_write — vault is handled automatically by the system.
+    - Do NOT call vault_write.
   expected_output: >
     Confirmation of Slack post.
   agent: exec_reporter_agent
