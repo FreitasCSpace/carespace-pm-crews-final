@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "carespace-pm-crews"
+version = "2.0.0"
+description = "CareSpace PM AI — production Flow orchestrating 9 autonomous crews"
+requires-python = ">=3.11"
+dependencies = [
+    "crewai>=1.10",
+    "pydantic>=2.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "PyGithub>=2.0",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff",
+]
+
+[tool.crewai]
+type = "flow"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
