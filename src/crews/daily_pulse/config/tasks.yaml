@@ -53,10 +53,12 @@ scan_and_gather:
        - Urgent/critical priority tasks still pending late in sprint
        These are RISKS, not blockers. They go in the Sprint Risks section.
 
-    7. Find stale sprint tasks: any sprint task (not done) where
-       date_updated is older than 3 days. These are tasks with no
-       activity — no ClickUp comments, no status changes, nothing.
-       Flag them in Needs Attention regardless of their status.
+    7. Find stale sprint tasks using check_stale_sprint_tasks tool.
+       Pass all non-done sprint task IDs as a JSON array and days=3.
+       This checks actual ClickUp COMMENTS, not date_updated (which
+       gets bumped by bot activity like triage SP estimates).
+       A task with no human comments for 3+ days is truly stale.
+       Flag them in Needs Attention.
 
     8. PR COVERAGE: For each sprint task that is "in progress" or "to do",
        check if there's an open PR linked to it. Call get_open_pull_requests

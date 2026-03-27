@@ -89,6 +89,52 @@ def get_tasks_by_list(list_id: str, status: str = "", include_closed: bool = Fal
         return json.dumps({"error": str(e)})
 
 
+@tool("check_stale_sprint_tasks")
+def check_stale_sprint_tasks(task_ids_json: str, days: int = 3) -> str:
+    """
+    Checks which sprint tasks have NO ClickUp comments for N+ days.
+    This detects truly silent tasks — ignores bot updates to date_updated.
+
+    task_ids_json: JSON array of task ID strings, e.g. '["abc123", "def456"]'
+    days: number of days without comments to flag (default: 3)
+
+    Returns: JSON array of stale tasks with id, name, days_silent, last_comment_date.
+    Tasks with zero comments are always flagged.
+    """
+    from datetime import datetime, timezone
+    task_ids = json.loads(task_ids_json) if isinstance(task_ids_json, str) else task_ids_json
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    stale = []
+
+    for task_id in task_ids:
+        try:
+            comments_data = _clickup_api(f"task/{task_id}/comment")
+            comments = comments_data.get("comments", [])
+            if not comments:
+                # No comments at all — flag as stale
+                stale.append({
+                    "task_id": task_id,
+                    "days_silent": 999,
+                    "last_comment_date": None,
+                })
+                continue
+
+            # Find the most recent comment date
+            last_ts = max(int(c.get("date", "0")) for c in comments)
+            last_dt = datetime.fromtimestamp(last_ts / 1000, tz=timezone.utc)
+            if last_dt < cutoff:
+                days_silent = (datetime.now(timezone.utc) - last_dt).days
+                stale.append({
+                    "task_id": task_id,
+                    "days_silent": days_silent,
+                    "last_comment_date": last_dt.isoformat(),
+                })
+        except Exception:
+            continue  # Skip tasks we can't check — non-fatal
+
+    return json.dumps(stale, indent=2)
+
+
 @tool("Check Duplicate Task")
 def check_duplicate_task(title_fragment: str, list_id: str = "") -> str:
     """

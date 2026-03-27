@@ -20,7 +20,7 @@ from .clickup_helpers import (
     normalize_backlog_tasks, scan_backlog_for_triage, execute_triage_actions,
     suggest_sprint_candidates, add_to_sprint_candidates,
     list_sprint_candidates, finalize_sprint_from_candidates,
-    get_last_sprint_velocity, scan_sprint_sla,
+    get_last_sprint_velocity, scan_sprint_sla, check_stale_sprint_tasks,
 )
 # Vault tools — used by vault_hooks.py at code level, not by LLM agents
 from .vault import vault_write, vault_read, vault_list
