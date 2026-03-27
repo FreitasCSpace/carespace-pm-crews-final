@@ -5,7 +5,11 @@
       "Bash(done)",
       "Bash(grep -r \"try\\\\|except\\\\|error\\\\|Error\\\\|RETRY\\\\|fallback\" /home/element13/Coding Projects/carespace-pm-crews/shared/tools/*.py)",
       "Bash(gh auth:*)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(grep -n \"runs\\\\|schedule\\\\|every\\\\|hour\\\\|times\" /home/element13/Coding Projects/carespace-pm-crews-final/src/crews/*/crew.py)",
+      "Bash(find /home/element13/Coding Projects/carespace-pm-crews-final -type f \\\\\\(-name README* -o -name *.md -o -name pyproject.toml \\\\\\))",
+      "Bash(find /home/element13/Coding Projects/carespace-pm-crews-final -type f \\\\\\(-name *.yaml -o -name *.yml -o -name *.json \\\\\\))",
+      "Bash(grep -r \"compliance\\\\|exec_report\\\\|sla\" /home/element13/Coding Projects/carespace-pm-crews-final/src/crews --include=*.yaml)"
     ]
   }
 }

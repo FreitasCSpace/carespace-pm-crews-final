@@ -27,18 +27,12 @@ log = logging.getLogger(__name__)
 # ── What each crew reads before running ──────────────────────────────────
 
 CREW_READS: dict[str, list[str]] = {
-    "compliance": [
-        "context/compliance-trend.md",
-    ],
     "intake": [
         # Intake doesn't need prior context — it scans GitHub fresh
     ],
     "daily_pulse": [
         "context/velocity.md",
         # Yesterday's pulse is dynamic — handled in code below
-    ],
-    "sla": [
-        # Previous SLA report is dynamic — handled in code below
     ],
     "triage": [
         "context/backlog-health.md",
@@ -52,11 +46,6 @@ CREW_READS: dict[str, list[str]] = {
         "context/velocity.md",
         # Sprint plan is dynamic — handled in code below
     ],
-    "exec_report": [
-        "context/velocity.md",
-        "context/backlog-health.md",
-        "context/compliance-trend.md",
-    ],
     "huddle_notes": [
         # Previous huddle is dynamic — handled in code below
     ],
@@ -65,16 +54,9 @@ CREW_READS: dict[str, list[str]] = {
 # Dynamic reads: crew → (vault_dir, how many recent files to read)
 CREW_DYNAMIC_READS: dict[str, list[tuple[str, int]]] = {
     "daily_pulse": [("sprints/daily", 1)],
-    "sla": [("sla", 1)],
     "triage": [("triage", 1), ("sprints/retros", 1)],
     "sprint": [("sprints/retros", 1)],
     "retrospective": [("sprints/plans", 1)],
-    "exec_report": [
-        ("sprints/daily", 1),
-        ("sla", 1),
-        ("sprints/retros", 1),
-        ("compliance", 1),
-    ],
     "huddle_notes": [("huddles", 1)],
 }
 
@@ -140,20 +122,16 @@ def vault_before_kickoff(crew_name: str, inputs: dict) -> dict:
 # crew_name → (vault_crew_key, filename_pattern)
 # "date" = YYYY-MM-DD.md, "sprint" = needs sprint number (passed in output)
 CREW_WRITES: dict[str, tuple[str, str]] = {
-    "compliance": ("compliance", "date"),
     "intake": ("intake", "datetime"),
     "daily_pulse": ("daily_pulse", "date"),
-    "sla": ("sla", "datetime"),
     "triage": ("triage", "datetime"),
     "sprint": ("sprint_plan", "sprint"),
     "retrospective": ("sprint_retro", "sprint"),
-    "exec_report": ("exec_report", "date"),
     "huddle_notes": ("huddle_notes", "datetime"),
 }
 
 # crew_name → context file to overwrite with latest state
 CREW_CONTEXT_WRITES: dict[str, str] = {
-    "compliance": "compliance-trend.md",
     "triage": "backlog-health.md",
     "retrospective": "velocity.md",
 }

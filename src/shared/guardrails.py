@@ -110,58 +110,6 @@ def validate_triage_actions(result):
     return (True, raw)
 
 
-# ── Compliance Crew ──────────────────────────────────────────────────────────
-
-def validate_compliance_output(result):
-    """Ensure compliance check includes Vanta health, tasks, and delta."""
-    raw = result.raw if hasattr(result, "raw") else str(result)
-    lower = raw.lower()
-
-    has_vanta = "vanta" in lower or "green" in lower or "red" in lower or "yellow" in lower
-    has_tasks = "task" in lower or "compliance" in lower or "backlog" in lower
-    has_delta = "delta" in lower or "has_previous" in lower or "first run" in lower
-
-    if not has_vanta:
-        return (False, "Compliance output must include Vanta health status. "
-                "Call compliance_health_check.")
-
-    if not has_tasks:
-        return (False, "Compliance output must include open task count. "
-                "Call compliance_health_check.")
-
-    if not has_delta:
-        return (False, "Compliance output must include delta analysis. "
-                "Call compliance_health_check (it computes deltas automatically).")
-
-    return (True, raw)
-
-
-# ── Exec Report Crew ─────────────────────────────────────────────────────────
-
-def validate_exec_report(result):
-    """Ensure gather step collected data across all 5 dimensions.
-
-    This guardrail runs on the GATHER task (before posting) so retries
-    don't cause duplicate Slack posts.
-    """
-    raw = result.raw if hasattr(result, "raw") else str(result)
-    lower = raw.lower()
-
-    dimensions = {
-        "engineering": any(w in lower for w in ["sprint", "engineering", "velocity", "task"]),
-        "compliance": any(w in lower for w in ["compliance", "vanta", "hipaa", "control"]),
-        "bugs": any(w in lower for w in ["bug", "sla", "defect", "backlog"]),
-    }
-
-    missing = [d for d, found in dimensions.items() if not found]
-    if len(missing) >= 2:
-        return (False, f"Gathered data missing dimensions: {missing}. "
-                "Collect data for engineering, compliance, and bug health "
-                "before proceeding to post.")
-
-    return (True, raw)
-
-
 # ── Daily Pulse Crew ─────────────────────────────────────────────────────────
 
 def validate_standup_data(result):
