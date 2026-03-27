@@ -77,15 +77,7 @@ scan_and_gather:
        If a PR doesn't match any sprint task, SKIP it.
        If the sprint is empty, skip stale PR reporting entirely.
 
-    10. Check CI using get_ci_status on repos:
-        {ci_check_repos}.
-        NOTE: Try 'main' first, if 404 try 'master'.
-        IMPORTANT: Only report FAILING CI checks. Do NOT include passing repos.
-        If all repos pass, just note "All CI passing" — don't list them individually.
-        For failures, include the GitHub Actions link:
-        https://github.com/carespace-ai/<repo>/actions
-
-    11. Check for stale GitHub issues using get_stale_issues, BUT only
+    10. Check for stale GitHub issues using get_stale_issues, BUT only
         report issues that match a CURRENT SPRINT task name. Cross-reference
         the issue titles with sprint task names. If an issue doesn't match
         any sprint task, SKIP it. If the sprint is empty, skip entirely.
@@ -170,10 +162,7 @@ compile_and_post:
     If a task has zero issues, do NOT list it here.
     If all tasks are healthy, write: "All tasks healthy ✅"
 
-    Start with CI status on its own line:
-    CI: All passing ✅  (or list failing repos if any)
-
-    Then list each problematic task:
+    List each problematic task:
 
     • <clickup_url|Task name> — @assignee · X SP · status
       - No comments for Xd
@@ -186,8 +175,6 @@ compile_and_post:
     Only include issue lines that apply. Skip lines that don't.
 
     Example:
-    CI: All passing ✅
-
     • <https://app.clickup.com/t/abc|Calendar Program UI> — unassigned · 5 SP · to do
       - No comments for 9d
       - Unassigned — assign during sprint planning
