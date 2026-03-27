@@ -723,6 +723,7 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
 
     oldest = str(_time.time() - lookback_hours * 3600)
     oldest_ts = int(float(oldest))
+    today_str = datetime.now().strftime("%Y-%m-%d")
     seen_ts = set()  # Dedup across both methods
     huddles = []
 
@@ -798,6 +799,10 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
                 meeting_date = dt.strftime("%Y-%m-%d %H:%M")
             except Exception:
                 meeting_date = "unknown"
+
+            # Only keep today's huddles
+            if not meeting_date.startswith(today_str):
+                continue
 
             # Resolve Slack user IDs to real names
             content = _resolve_user_names(content)
@@ -929,6 +934,10 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
             meeting_date = dt.strftime("%Y-%m-%d %H:%M")
         except Exception:
             meeting_date = "unknown"
+
+        # Only keep today's huddles
+        if not meeting_date.startswith(today_str):
+            continue
 
         if ts not in seen_ts:
             seen_ts.add(ts)
