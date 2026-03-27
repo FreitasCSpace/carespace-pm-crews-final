@@ -119,14 +119,9 @@ def post_standup(executive_summary: str, done: str, in_progress: str,
         blocks.append(_sec(f"*⏳ To Do*\n{_trim(pending)}"))
         blocks.append(_div())
 
-    # Needs attention
-    blocks.append(_sec(f"*⚠️ Needs Attention*\n{_trim(attention) or '_All clear ✅_'}"))
+    # Task health (unified attention + risks)
+    blocks.append(_sec(f"*⚠️ Task Health*\n{_trim(attention) or '_All tasks healthy ✅_'}"))
     blocks.append(_div())
-
-    # Sprint risks — only if there are items at risk
-    if blocker_details and blocker_details.strip():
-        blocks.append(_sec(f"*⚡ Sprint Risks*\n{_trim(blocker_details)}"))
-        blocks.append(_div())
 
     blocks.append(_sec(f"*🎯 Meeting Mode*\n{meeting_mode}"))
     blocks.append(_ctx("_Posted by CareSpace PM AI_"))

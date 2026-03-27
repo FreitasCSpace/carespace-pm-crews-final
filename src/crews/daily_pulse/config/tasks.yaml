@@ -160,58 +160,47 @@ compile_and_post:
     - Keep each line short and scannable
 
     ═══════════════════════════════════
-    ⚠️ NEEDS ATTENTION
+    ⚠️ TASK HEALTH
     ═══════════════════════════════════
-    This section is a flat bullet list. ONLY show items that have problems.
-    Do NOT show sub-section headers. Do NOT show "None" for empty categories.
-    If nothing needs attention, just write: "All clear ✅"
+    This replaces both "Needs Attention" and "Sprint Risks".
+    List each sprint task that has ANY issue ONCE, with ALL its
+    problems on indented lines below it. Do NOT repeat the same
+    task in multiple sections.
 
-    Group items by type with a short label, then plain bullets below.
-    Do NOT put emojis on individual bullet items.
-    Do NOT show groups with zero items.
+    If a task has zero issues, do NOT list it here.
+    If all tasks are healthy, write: "All tasks healthy ✅"
 
-    Stale tasks (no activity 3+ days):
-    • <clickup_url|Task name> — @assignee · Xd no activity
+    Start with CI status on its own line:
+    CI: All passing ✅  (or list failing repos if any)
 
-    Missing PR (in progress, no code tracked):
-    • <clickup_url|Task name> — @assignee · in progress, no PR
+    Then list each problematic task:
 
-    Stale PRs (open >{stale_pr_days}d):
-    • <github_pr_url|PR title> — Xd old
+    • <clickup_url|Task name> — @assignee · X SP · status
+      - No comments for Xd
+      - No PR opened (in progress)
+      - Stale PR: <github_pr_url|PR title> — Xd old
+      - Unassigned — needs owner before sprint starts
+      - Blocked — reason
+      - High SP (8+), still pending at day X of sprint
 
-    CI: All passing ✅
-    (or list failing repos as plain bullets if any fail)
-
-    Stale issues (no comments 3+ days):
-    • <clickup_url|Task name> — Xd no comments
-
-    Leave a blank line between each group for readability.
-    Do NOT add lines for groups with zero items.
-
-    RULES:
-    - Stale PRs: only sprint-related PRs. Skip unrelated.
-    - Missing PR: only flag "in progress" tasks. "To do" tasks don't need PRs yet.
-    - Stale issues: only issues matching sprint task names. Use ClickUp URL.
-    - No "Critical Stale PRs" category — sprints are 2 weeks, not applicable.
-
-    ═══════════════════════════════════
-    ⚡ SPRINT RISKS
-    ═══════════════════════════════════
-    Items that may not complete before sprint ends. Include:
-    - High-SP tasks still pending with sprint >50% elapsed
-    - Tasks with external dependencies
-    - Urgent tasks not yet started late in sprint
-    - Unassigned tasks
-
-    For EACH risk:
-    • ⚡ <clickup_url|Task name> — @assignee · X SP
-      → Risk + action on one line
+    Only include issue lines that apply. Skip lines that don't.
 
     Example:
-    • ⚡ <https://app.clickup.com/t/abc|Calendar Program UI> — unassigned · 5 SP
-      → Unassigned, sprint starts in 3 days — assign during sprint planning
+    CI: All passing ✅
 
-    If sprint hasn't started or no risks identified, skip this section.
+    • <https://app.clickup.com/t/abc|Calendar Program UI> — unassigned · 5 SP · to do
+      - No comments for 9d
+      - Unassigned — assign during sprint planning
+
+    • <https://app.clickup.com/t/def|UITabBar fix> — @kishorkumar · 3 SP · in progress
+      - No PR opened
+
+    RULES:
+    - Each task appears ONCE — combine all issues under it.
+    - Stale PRs: only sprint-related. Skip unrelated.
+    - No PR check: only for "in progress" tasks. "to do" don't need PRs yet.
+    - Stale issues: use ClickUp URL, not GitHub URL.
+    - Order tasks by severity: most issues first.
 
     ═══════════════════════════════════
     🎯 MEETING MODE
@@ -233,14 +222,13 @@ compile_and_post:
     - in_progress: active tasks with @assignee (X SP) (or 'None')
     - blocked: ONLY tasks with ClickUp status 'blocked' (or 'None')
     - pending: not-started tasks with @assignee (X SP)
-    - attention: stale sprint tasks (3d+ no activity), PR coverage gaps,
-        sprint-related stale PRs, CI failures, sprint-related stale issues
+    - attention: the unified Task Health section — CI status line +
+        per-task analysis with all issues listed under each task.
+        If all healthy: "All tasks healthy ✅"
     - meeting_mode: just the headline, e.g.:
-        '🔴 STANDUP MODE: 3 risks to discuss. 15-min focused session.'
+        '🔴 STANDUP MODE: 3 task(s) need attention. 15-min focused session.'
         OR '🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion.'
-    - blocker_details: sprint risks breakdown (items at risk of not
-      completing, external deps, unassigned urgent tasks).
-      Empty string if no risks.
+    - blocker_details: empty string (risks are now in Task Health section)
 
     IMPORTANT: Do NOT add separator lines (═══) or section headers.
     The tool adds all formatting automatically. Just pass clean content.
