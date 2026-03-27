@@ -27,36 +27,28 @@ log = logging.getLogger(__name__)
 # ── What each crew reads before running ──────────────────────────────────
 
 CREW_READS: dict[str, list[str]] = {
-    "intake": [
-        # Intake doesn't need prior context — it scans GitHub fresh
-    ],
+    "intake": [],
     "daily_pulse": [
         "context/velocity.md",
-        # Yesterday's pulse is dynamic — handled in code below
     ],
     "triage": [
         "context/backlog-health.md",
-        # Latest retro is dynamic — handled in code below
     ],
     "sprint": [
         "context/velocity.md",
-        # Latest retro is dynamic — handled in code below
     ],
     "retrospective": [
         "context/velocity.md",
-        # Sprint plan is dynamic — handled in code below
     ],
-    "huddle_notes": [
-        # Previous huddle is dynamic — handled in code below
-    ],
+    "huddle_notes": [],
 }
 
 # Dynamic reads: crew → (vault_dir, how many recent files to read)
 CREW_DYNAMIC_READS: dict[str, list[tuple[str, int]]] = {
-    "daily_pulse": [("sprints/daily", 1)],
-    "triage": [("triage", 1), ("sprints/retros", 1)],
-    "sprint": [("sprints/retros", 1)],
-    "retrospective": [("sprints/plans", 1)],
+    "daily_pulse": [("sprint/daily", 1)],
+    "triage": [("backlog", 1), ("sprint/retros", 1)],
+    "sprint": [("sprint/retros", 1)],
+    "retrospective": [("sprint/plans", 1)],
     "huddle_notes": [("huddles", 1)],
 }
 

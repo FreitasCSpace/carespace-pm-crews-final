@@ -150,12 +150,23 @@ context from previous runs. This replaces CrewAI's built-in memory.
 
 ```
 carespace-pm-vault/
-├── sprints/{plans, retros, daily}/   # Sprint lifecycle data
-├── triage/                           # Backlog health reports
-├── intake/                           # Import summaries
-├── huddles/                          # Meeting action items
-└── context/                          # Rolling state (velocity, backlog health)
+├── sprint/
+│   ├── daily/          # Daily pulse digests (task health, progress)
+│   ├── plans/          # Sprint plans (sprint-N.md)
+│   └── retros/         # Sprint retrospectives (sprint-N.md)
+├── backlog/            # Triage reports (backlog health, priorities)
+├── intake/             # GitHub import summaries
+├── huddles/            # Meeting notes from Slack huddles
+└── context/            # Rolling state files (overwritten each run)
+    ├── velocity.md     # Latest velocity data (from retro)
+    └── backlog-health.md  # Latest backlog snapshot (from triage)
 ```
+
+**How it works:**
+- Each crew writes its output after every run (dated markdown files)
+- `context/` files are rolling snapshots — always the latest state
+- Crews read context from previous runs to detect trends and deltas
+- Huddle notes: first run fetches all history, subsequent runs fetch daily
 
 ---
 

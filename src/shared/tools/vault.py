@@ -15,14 +15,11 @@ VAULT_REPO = "FreitasCSpace/carespace-pm-vault"
 
 # Map crew names to vault directories
 CREW_DIRS = {
-    "compliance": "compliance",
     "intake": "intake",
-    "daily_pulse": "sprints/daily",
-    "sla": "sla",
-    "triage": "triage",
-    "sprint_plan": "sprints/plans",
-    "sprint_retro": "sprints/retros",
-    "exec_report": "exec",
+    "daily_pulse": "sprint/daily",
+    "triage": "backlog",
+    "sprint_plan": "sprint/plans",
+    "sprint_retro": "sprint/retros",
     "huddle_notes": "huddles",
     "context": "context",
 }
