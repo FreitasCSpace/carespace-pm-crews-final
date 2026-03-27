@@ -8,6 +8,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 from shared.tools import (
     scan_sprint_sla, create_clickup_task, check_duplicate_task,
     notify_task_assignee, post_sla_breach, post,
+    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 
@@ -34,6 +35,7 @@ class SlaCrew:
             tools=[
                 scan_sprint_sla, create_clickup_task, check_duplicate_task,
                 notify_task_assignee,
+                vault_write, vault_read, vault_list,
             ],
             verbose=True,
         )

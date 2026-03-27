@@ -5,6 +5,7 @@ from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_activity,
     get_tasks_by_list, create_clickup_task, post_retro, post,
     close_sprint,
+    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_retro_metrics
@@ -31,6 +32,7 @@ class RetrospectiveCrew:
                 create_sprint_list, get_stale_prs, get_ci, get_activity,
                 get_tasks_by_list, create_clickup_task, post_retro, post,
                 close_sprint,
+                vault_write, vault_read, vault_list,
             ],
             verbose=True,
             allow_delegation=False,

@@ -5,6 +5,7 @@ from shared.tools import (
     create_sprint_list, get_tasks_by_list, batch_compliance_check,
     check_duplicate_task, create_clickup_task, post_exec,
     vanta_health_summary, scan_backlog_for_sprint,
+    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_exec_report
@@ -32,6 +33,7 @@ class ExecReportCrew:
                 create_sprint_list, get_tasks_by_list, batch_compliance_check,
                 check_duplicate_task, create_clickup_task, post_exec,
                 vanta_health_summary, scan_backlog_for_sprint,
+                vault_write, vault_read, vault_list,
             ],
             verbose=True,
         )

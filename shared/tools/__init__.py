@@ -22,3 +22,5 @@ from .clickup_helpers import (
     list_sprint_candidates, finalize_sprint_from_candidates,
     get_last_sprint_velocity, scan_sprint_sla,
 )
+# Vault — shared .md knowledge base across crew runs
+from .vault import vault_write, vault_read, vault_list

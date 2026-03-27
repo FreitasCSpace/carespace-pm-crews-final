@@ -3,6 +3,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, post_sprint_plan, get_last_sprint_velocity,
+    vault_write, vault_read, vault_list,
 )
 from shared.tools.clickup_helpers import (
     list_sprint_candidates, finalize_sprint_from_candidates,
@@ -35,6 +36,7 @@ class SprintCrew:
             tools=[
                 create_sprint_list, get_last_sprint_velocity,
                 list_sprint_candidates, finalize_sprint_from_candidates,
+                vault_write, vault_read, vault_list,
             ],
             verbose=True,
         )

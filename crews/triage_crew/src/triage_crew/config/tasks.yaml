@@ -43,8 +43,8 @@ estimate_sp_task:
 
 scan_task:
   description: >
-    Call scan_backlog_for_triage to get a health report of remaining
-    issues: wrong priorities, SLA breaches, patterns the AI should analyze.
+    Call scan_backlog_for_triage to get a health report of the backlog:
+    wrong priorities, missing SP, unassigned tasks, tag/priority distribution.
   expected_output: >
     The scan results JSON for analysis.
   agent: triage_agent
@@ -53,28 +53,26 @@ scan_task:
 
 decide_and_execute_task:
   description: >
-    Based on the scan results, make INTELLIGENT decisions about:
+    Based on the scan results, make INTELLIGENT decisions about BACKLOG
+    HYGIENE ONLY. SLA enforcement is handled by the SLA crew — not here.
+
+    Your scope:
     1. Priority adjustments — which tasks need escalation based on context
-    2. SLA alerts — ONLY for tasks in the active sprint (marked in_sprint=True).
-       Backlog items are inventory, not committed work — do NOT create SLA alerts
-       for backlog items. Group related sprint breaches, don't spam one per task.
-    3. Patterns — identify systemic issues (e.g., "20 HIPAA evidence gaps
+       (security tags, HIPAA keywords, crash/data loss in title)
+    2. Patterns — identify systemic issues (e.g., "20 HIPAA evidence gaps
        all overdue" is one alert, not 20)
-    4. AGING BACKLOG: flag backlog tasks older than 21 days with no updates
-       as "aging". For urgent/high priority aging tasks, escalate them into the
-       Needs Attention section of the triage summary.
-    5. ENGINEER NOTIFICATIONS: For each SLA breach task (in_sprint=True,
-       breached=True), call notify_task_assignee(task_id, message) with
-       a clear, direct message. Example message:
-       "⏰ SLA breach on your sprint task. Please update the task status
-       or flag a blocker immediately."
-       Skip if the task has no assignee.
+    3. AGING BACKLOG: flag backlog tasks older than 21 days with no updates
+       as "aging". For urgent/high priority aging tasks, create a grouped alert.
+
+    NOT your scope (SLA crew handles these):
+    - Sprint SLA breaches
+    - Engineer DM notifications
+    - Sprint-specific alerts
 
     IMPORTANT: Do NOT assign tasks. Do NOT post to Slack channels.
-    Call execute_triage_actions first, then notify_task_assignee for each breach.
+    Call execute_triage_actions with your decisions.
   expected_output: >
-    JSON summary of actions taken with reasoning, including which engineers
-    were notified.
+    JSON summary of actions taken with reasoning.
   agent: triage_agent
   context:
     - scan_task
@@ -88,7 +86,7 @@ post_triage_task:
     - story_points: EXACT numbers from estimate task (e.g. "4 tasks
       estimated (318 already had SP)"). Use the real sp_set and
       already_has_sp counts. Do NOT fabricate numbers.
-    - alerts: bullet list of alerts created
+    - alerts: bullet list of alerts created (backlog hygiene only)
     - reasoning: why decisions were made. Include how many design tasks
       were normalized if any were found.
 

@@ -9,6 +9,7 @@ from shared.tools import (
     batch_import_engineering,
     sync_closed_issues,
     post,
+    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 
@@ -33,6 +34,7 @@ class IntakeCrewCrew:
                 batch_import_engineering,
                 sync_closed_issues,
                 post,
+                vault_write, vault_read, vault_list,
             ],
             verbose=True,
             allow_delegation=False,

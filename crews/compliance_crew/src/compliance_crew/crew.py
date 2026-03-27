@@ -4,6 +4,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 from shared.tools import (
     batch_compliance_check,
     post_compliance,
+    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_compliance_output
@@ -27,7 +28,7 @@ class ComplianceCrew:
         """Data-only agent for gather step — no Slack tools to prevent early posting."""
         return Agent(
             config=interpolate_config(self.agents_config["gather_agent"]),
-            tools=[batch_compliance_check],
+            tools=[batch_compliance_check, vault_write, vault_read, vault_list],
             verbose=True,
             allow_delegation=False,
         )

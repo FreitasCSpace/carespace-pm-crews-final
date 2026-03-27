@@ -10,6 +10,7 @@ from shared.tools import (
     create_clickup_task,
     check_duplicate_task,
     post_huddle_actions,
+    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 
@@ -37,6 +38,7 @@ class HuddleNotesCrewCrew:
                 create_clickup_task,
                 check_duplicate_task,
                 post_huddle_actions,
+                vault_write, vault_read, vault_list,
             ],
             verbose=True,
             allow_delegation=False,
