@@ -17,7 +17,7 @@ from .clickup_helpers import (
     move_task_to_list, create_sprint_list, close_sprint,
     scan_backlog_for_sprint, execute_sprint_selection,
     bulk_assign_and_estimate, batch_compliance_check, dedup_backlog_cleanup,
-    scan_backlog_for_triage, execute_triage_actions,
+    normalize_backlog_tasks, scan_backlog_for_triage, execute_triage_actions,
     suggest_sprint_candidates, add_to_sprint_candidates,
     list_sprint_candidates, finalize_sprint_from_candidates,
     get_last_sprint_velocity, scan_sprint_sla,

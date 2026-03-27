@@ -6,6 +6,25 @@ dedup_task:
     JSON with duplicates_found and tasks_deleted counts.
   agent: triage_agent
 
+normalize_task:
+  description: >
+    Call normalize_backlog_tasks to find and fix tasks created directly
+    in ClickUp (not from GitHub). These are design tasks from the Buena team.
+
+    Detection: if the task description has NO github.com link, it's a design task.
+
+    The tool automatically:
+    - Adds 'design' source tag (instead of 'github')
+    - Renames to [TYPE] prefix format matching our nomenclature
+    - Adds domain tag if it can infer one from the title
+
+    Tasks that already have a GitHub link in the description are left untouched.
+  expected_output: >
+    JSON: {tasks_scanned, tasks_normalized, skipped_has_github, details}
+  agent: triage_agent
+  context:
+    - dedup_task
+
 estimate_sp_task:
   description: >
     Call bulk_assign_and_estimate to set story points on ALL backlog
@@ -20,7 +39,7 @@ estimate_sp_task:
     paraphrase or summarize the numbers.
   agent: triage_agent
   context:
-    - dedup_task
+    - normalize_task
 
 scan_task:
   description: >
@@ -70,7 +89,8 @@ post_triage_task:
       estimated (318 already had SP)"). Use the real sp_set and
       already_has_sp counts. Do NOT fabricate numbers.
     - alerts: bullet list of alerts created
-    - reasoning: why decisions were made
+    - reasoning: why decisions were made. Include how many design tasks
+      were normalized if any were found.
 
     Post ONE message only. Do NOT post multiple times.
   expected_output: >

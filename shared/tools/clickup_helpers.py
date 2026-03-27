@@ -346,6 +346,135 @@ def _assign_task(task_id: str, user_id: str) -> bool:
         return False
 
 
+@tool("Normalize Backlog Tasks")
+def normalize_backlog_tasks() -> str:
+    """
+    Finds backlog tasks whose description does NOT contain a GitHub issue
+    link. These are design tasks created directly in ClickUp by the Buena
+    team (not imported from GitHub by intake).
+
+    For each such task:
+    1. Adds 'design' source tag (instead of 'github')
+    2. Renames to standard format: [TYPE] Original Title
+       TYPE is inferred from title keywords (FEATURE, BUG, TASK, etc.)
+    3. Infers and adds a domain tag if missing (frontend, backend, etc.)
+
+    Detection: no 'github.com' URL in the task description = design task.
+    Already-normalized tasks (have 'design' tag + [TYPE] prefix) are skipped.
+
+    Returns: {tasks_scanned, tasks_normalized, details: [...]}
+    """
+    import re
+    from shared.config.context import DOMAIN_TAGS, DOMAIN_KEYWORDS
+
+    _GITHUB_URL_RE = re.compile(r"github\.com/", re.IGNORECASE)
+
+    stats = {"tasks_scanned": 0, "tasks_normalized": 0, "already_normalized": 0,
+             "skipped_has_github": 0, "details": []}
+
+    try:
+        all_tasks = []
+        page = 0
+        while True:
+            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}&page_size=100")
+            tasks = data.get("tasks", [])
+            if not tasks:
+                break
+            all_tasks.extend(tasks)
+            if len(tasks) < 100:
+                break
+            page += 1
+
+        stats["tasks_scanned"] = len(all_tasks)
+
+        for t in all_tasks:
+            tags = [tag["name"] for tag in t.get("tags", [])]
+            name = t["name"]
+            desc = t.get("description", "") or ""
+            task_id = t["id"]
+
+            # If description contains a GitHub URL, this is a GitHub-sourced task — skip
+            if _GITHUB_URL_RE.search(desc):
+                stats["skipped_has_github"] += 1
+                continue
+
+            # Already normalized: has 'design' tag and [TYPE] prefix
+            has_design_tag = "design" in tags
+            has_prefix = name.startswith("[")
+            has_domain = any(tag in DOMAIN_TAGS for tag in tags)
+
+            if has_design_tag and has_prefix and has_domain:
+                stats["already_normalized"] += 1
+                continue
+
+            # This is a design task that needs normalization
+            updates_made = []
+            tags_to_add = []
+
+            # 1. Add 'design' source tag
+            if not has_design_tag:
+                tags_to_add.append("design")
+                updates_made.append("added 'design' source tag")
+
+            # 2. Rename to [TYPE] prefix if missing
+            if not has_prefix:
+                nl = name.lower()
+                if any(w in nl for w in ["bug", "fix", "broken", "error", "crash", "not working"]):
+                    itype = "BUG"
+                elif any(w in nl for w in ["feature", "add", "implement", "new", "create", "build", "enable"]):
+                    itype = "FEATURE"
+                elif any(w in nl for w in ["security", "vulnerability", "cve", "rbac"]):
+                    itype = "SECURITY"
+                elif any(w in nl for w in ["compliance", "hipaa", "soc2", "vanta", "audit"]):
+                    itype = "COMPLIANCE"
+                else:
+                    itype = "TASK"
+                new_name = f"[{itype}] {name}"
+                try:
+                    _clickup_api(f"task/{task_id}", method="PUT", payload={"name": new_name})
+                    updates_made.append(f"renamed to [{itype}]")
+                except Exception:
+                    updates_made.append("rename failed")
+
+            # 3. Infer domain tag if missing
+            if not has_domain:
+                nl = name.lower()
+                matched_domain = None
+                for domain, keywords in DOMAIN_KEYWORDS.items():
+                    if any(kw in nl for kw in keywords):
+                        matched_domain = domain
+                        break
+                if matched_domain:
+                    tags_to_add.append(matched_domain)
+                    updates_made.append(f"added '{matched_domain}' domain tag")
+
+            # Apply tags
+            for tag in tags_to_add:
+                try:
+                    from urllib.parse import quote
+                    _clickup_api(f"task/{task_id}/tag/{quote(tag)}", method="POST")
+                except Exception:
+                    pass
+
+            if updates_made:
+                stats["tasks_normalized"] += 1
+                stats["details"].append({
+                    "id": task_id,
+                    "original_name": name[:80],
+                    "updates": updates_made,
+                })
+
+        # Truncate details for LLM context
+        if len(stats["details"]) > 20:
+            stats["details_total"] = len(stats["details"])
+            stats["details"] = stats["details"][:20]
+
+    except Exception as e:
+        stats["error"] = str(e)
+
+    return json.dumps(stats, indent=2)
+
+
 @tool("Scan Backlog For Triage")
 def scan_backlog_for_triage() -> str:
     """

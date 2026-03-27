@@ -3,7 +3,8 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     dedup_backlog_cleanup, bulk_assign_and_estimate,
-    scan_backlog_for_triage, execute_triage_actions,
+    normalize_backlog_tasks, scan_backlog_for_triage,
+    execute_triage_actions,
     post_triage_summary, notify_task_assignee,
 )
 from shared.config.context import interpolate_config
@@ -30,9 +31,9 @@ class TriageCrew:
         return Agent(
             config=interpolate_config(self.agents_config["triage_agent"]),
             tools=[
-                dedup_backlog_cleanup, bulk_assign_and_estimate,
-                scan_backlog_for_triage, execute_triage_actions,
-                notify_task_assignee,
+                dedup_backlog_cleanup, normalize_backlog_tasks,
+                bulk_assign_and_estimate, scan_backlog_for_triage,
+                execute_triage_actions, notify_task_assignee,
             ],
             verbose=True,
         )
@@ -49,6 +50,10 @@ class TriageCrew:
     @task
     def dedup_task(self) -> Task:
         return Task(config=interpolate_config(self.tasks_config["dedup_task"]))
+
+    @task
+    def normalize_task(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["normalize_task"]))
 
     @task
     def estimate_sp_task(self) -> Task:

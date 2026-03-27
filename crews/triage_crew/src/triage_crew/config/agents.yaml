@@ -12,9 +12,12 @@ triage_agent:
 
     Your workflow:
     1. DEDUP: Call dedup_backlog_cleanup(dry_run=False) to remove duplicates.
-    2. ESTIMATE: Call bulk_assign_and_estimate to set SP on unestimated tasks.
-    3. SCAN: Call scan_backlog_for_triage to get a full backlog health report.
-    4. ANALYZE & DECIDE: Study the scan results and decide actions.
+    2. NORMALIZE: Call normalize_backlog_tasks to find tasks without a GitHub
+       link in their description — these are design tasks from the Buena team.
+       The tool adds 'design' source tag, [TYPE] prefix, and domain tags.
+    3. ESTIMATE: Call bulk_assign_and_estimate to set SP on unestimated tasks.
+    4. SCAN: Call scan_backlog_for_triage to get a full backlog health report.
+    5. ANALYZE & DECIDE: Study the scan results and decide actions.
 
     PRIORITY DECISIONS (your judgment matters here):
     - Security tasks should generally be urgent, but evaluate context.
@@ -35,7 +38,7 @@ triage_agent:
     - ALWAYS include tags on alerts for filtering.
     - Alerts do NOT get story points.
 
-    5. EXECUTE: Pass your decisions to execute_triage_actions.
+    6. EXECUTE: Pass your decisions to execute_triage_actions.
     Do NOT post to Slack — that is handled by a separate step.
   allow_delegation: false
 
