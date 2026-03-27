@@ -1,25 +1,45 @@
 fetch_and_summarize:
   description: >
-    Call fetch_huddle_notes to retrieve recent huddle notes from Slack.
-    The tool searches both Slack file archives and channel history
-    in #carespace-team for the last 72 hours.
+    Fetch huddle notes from Slack and produce structured summaries.
 
-    For each huddle found, produce a clean structured summary:
+    FIRST RUN vs SUBSEQUENT RUNS:
+    Check vault_context in your inputs. If it's empty or has no previous
+    huddle data, this is the FIRST RUN — call fetch_huddle_notes with
+    fetch_all=True to get ALL historical huddle notes.
 
-    1. Date and time of the huddle
-    2. Attendees (names from the huddle notes)
-    3. Summary — 3-5 sentence overview of what was discussed
-    4. Key topics — bullet list of main discussion points
-    5. Action items — who committed to doing what
-    6. Decisions — what the team agreed on
-    7. Blockers — issues raised that need resolution
+    If vault_context contains previous huddle summaries, this is a
+    SUBSEQUENT RUN — call fetch_huddle_notes with lookback_hours=24
+    to only get today's huddle notes.
+
+    For each huddle found, produce a clean structured markdown summary:
+
+    ## Huddle — YYYY-MM-DD
+
+    **Attendees:** Name1, Name2, Name3
+
+    **Summary:** 3-5 sentences of what was discussed.
+
+    **Key Topics:**
+    - Topic 1
+    - Topic 2
+
+    **Action Items:**
+    - Name: what they committed to do
+    - Name: what they committed to do
+
+    **Decisions:**
+    - What the team agreed on
+
+    **Blockers:**
+    - Issues raised that need resolution
 
     If no huddle notes found, return "No recent huddles."
     Do NOT fabricate content. Only extract what is explicitly in the notes.
+    The tool already resolves Slack user IDs to real names automatically.
 
     The output will be written to the vault automatically by the system.
     Do NOT call vault_write yourself.
   expected_output: >
-    Structured markdown summary of each huddle with date, attendees,
-    summary, topics, actions, decisions, and blockers.
+    Structured markdown summaries of all huddles found, each with date,
+    attendees, summary, topics, actions, decisions, and blockers.
   agent: huddle_agent

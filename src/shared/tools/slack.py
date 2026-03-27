@@ -638,6 +638,37 @@ def post_compliance(health_headline: str, changes_section: str,
 
 # ── Huddle Notes ─────────────────────────────────────────────────────────────
 
+_user_name_cache: dict[str, str] = {}
+
+
+def _resolve_user_names(text: str) -> str:
+    """Replace Slack user IDs (@U0497770PL2) with real names."""
+    import re
+    headers = {"Authorization": f"Bearer {os.environ.get('SLACK_BOT_TOKEN', '')}"}
+    user_ids = set(re.findall(r'@(U[A-Z0-9]{8,})', text))
+    for uid in user_ids:
+        if uid in _user_name_cache:
+            text = text.replace(f'@{uid}', _user_name_cache[uid])
+            continue
+        try:
+            resp = requests.get(
+                "https://slack.com/api/users.info",
+                headers=headers,
+                params={"user": uid},
+                timeout=5,
+            )
+            data = resp.json()
+            if data.get("ok"):
+                user = data["user"]
+                name = (user.get("real_name") or user.get("profile", {}).get("real_name")
+                        or user.get("name") or uid)
+                _user_name_cache[uid] = name
+                text = text.replace(f'@{uid}', name)
+        except Exception:
+            pass
+    return text
+
+
 def _resolve_channel_id(channel_name: str) -> str | None:
     """Resolve a channel name (#foo or foo) to a Slack channel ID."""
     import logging
@@ -668,14 +699,13 @@ def _resolve_channel_id(channel_name: str) -> str | None:
 
 
 @tool("fetch_huddle_notes")
-def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 72) -> str:
+def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 24, fetch_all: bool = False) -> str:
     """
-    Fetches recent Slack huddle notes using two methods:
-    1. Search Slack files for huddle canvases (files.list API)
-    2. Scan channel history for 🎧 huddle note messages
+    Fetches Slack huddle notes and resolves user IDs to real names.
 
     channel: Slack channel name (default #carespace-team)
-    lookback_hours: how far back to search (default 72h)
+    lookback_hours: how far back to search (default 24h for daily runs)
+    fetch_all: if True, fetches ALL huddle notes (no time limit). Use for first run.
     """
     import time as _time
     from datetime import datetime
@@ -691,8 +721,12 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 7
     if not channel_id:
         return json.dumps({"error": f"Could not find channel {channel}"})
 
-    oldest = str(_time.time() - lookback_hours * 3600)
-    oldest_ts = int(float(oldest))
+    if fetch_all:
+        oldest = "0"
+        oldest_ts = 0
+    else:
+        oldest = str(_time.time() - lookback_hours * 3600)
+        oldest_ts = int(float(oldest))
     seen_ts = set()  # Dedup across both methods
     huddles = []
 
@@ -703,9 +737,9 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 7
             headers=headers,
             params={
                 "channel": channel_id,
-                "ts_from": oldest_ts,
+                **({"ts_from": oldest_ts} if oldest_ts > 0 else {}),
                 "types": "canvas,quip",
-                "count": 50,
+                "count": 100 if fetch_all else 50,
             },
             timeout=15,
         )
@@ -768,6 +802,9 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 7
                 meeting_date = dt.strftime("%Y-%m-%d %H:%M")
             except Exception:
                 meeting_date = "unknown"
+
+            # Resolve Slack user IDs to real names
+            content = _resolve_user_names(content)
 
             ts_key = str(created)
             if ts_key not in seen_ts:
