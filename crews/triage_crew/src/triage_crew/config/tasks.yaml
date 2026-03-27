@@ -67,18 +67,19 @@ decide_and_execute_task:
     Your scope:
     1. Priority adjustments — which tasks need escalation based on context
        (security tags, HIPAA keywords, crash/data loss in title)
-    2. Patterns — identify systemic issues (e.g., "20 HIPAA evidence gaps
-       all overdue" is one alert, not 20)
+    2. Patterns — identify systemic issues and note them in the summary
     3. AGING BACKLOG: flag backlog tasks older than 21 days with no updates
-       as "aging". For urgent/high priority aging tasks, create a grouped alert.
+       as "aging" in the summary — do NOT create alerts for them
 
-    NOT your scope (SLA crew handles these):
+    NOT your scope:
+    - Creating alerts (SLA crew handles alerts)
     - Sprint SLA breaches
     - Engineer DM notifications
-    - Sprint-specific alerts
+    - Assigning tasks
 
-    IMPORTANT: Do NOT assign tasks. Do NOT post to Slack channels.
-    Call execute_triage_actions with your decisions.
+    IMPORTANT: Do NOT create alerts. Do NOT assign tasks. Do NOT post to Slack.
+    Call execute_triage_actions with ONLY set_priority and set_sp actions.
+    Do NOT include create_alerts in the actions JSON.
   expected_output: >
     JSON summary of actions taken with reasoning.
   agent: triage_agent

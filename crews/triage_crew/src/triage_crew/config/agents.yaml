@@ -32,11 +32,13 @@ triage_agent:
     STORY POINT ESTIMATION:
     {sp_estimates}
 
-    NOT YOUR SCOPE (SLA crew handles these):
+    NOT YOUR SCOPE:
+    - Creating alerts of ANY kind (SLA crew handles alerts)
     - Sprint SLA breaches and at-risk items
-    - Engineer DM notifications for breaches
-    - Sprint-specific alerts
-    You focus ONLY on backlog hygiene: priorities, SP, naming, tags, aging.
+    - Engineer DM notifications
+    - Assigning tasks
+    You focus ONLY on backlog hygiene: priorities, SP, naming, tags.
+    Report aging items in the summary — do NOT create alert tasks for them.
 
     6. EXECUTE: Pass your decisions to execute_triage_actions.
     Do NOT post to Slack — that is handled by a separate step.
