@@ -8,11 +8,9 @@ find_sprint_task:
 
 scan_and_gather:
   description: >
-    VAULT READ: Before gathering data, call vault_read('context/velocity.md')
-    to get historical velocity context, and vault_list('sprints/daily') to
-    find yesterday's pulse. If yesterday's file exists, call vault_read on it
-    to calculate deltas ("3 tasks moved to done since yesterday").
-    If files not found, proceed without — this may be early in the sprint.
+    NOTE: Vault context from previous daily pulses and velocity history
+    is available in your inputs as vault_context. Use it to calculate
+    deltas vs yesterday if available.
 
     Gather ALL data needed for the daily sprint digest:
 
@@ -193,29 +191,9 @@ compile_and_post:
     IMPORTANT: Post ONLY to #pm-standup using post_standup.
     Do NOT post to any other channel.
 
-    VAULT WRITE: After posting to Slack, call vault_write with:
-    - crew: 'daily_pulse'
-    - content: markdown with frontmatter containing sprint progress snapshot:
-      ---
-      date: YYYY-MM-DD
-      crew: daily_pulse
-      type: daily
-      sprint_name: Sprint N
-      done_sp: N
-      total_sp: N
-      completion_pct: N
-      status: on_track|at_risk|behind
-      ---
-      ## Daily Pulse — YYYY-MM-DD
-      - Done: N tasks (N SP)
-      - In Progress: N tasks
-      - Blocked: N tasks
-      - To Do: N tasks
-      - Stale PRs: N (N critical)
-      - CI: passing|failing
-      - Stale Issues: N
+    Do NOT call vault_write — vault is handled automatically by the system.
   expected_output: >
-    Confirmation of standup posted to {slack_standup} and written to vault.
+    Confirmation of standup posted to {slack_standup}.
   agent: daily_pulse_agent
   context:
     - scan_and_gather

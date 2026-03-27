@@ -9,12 +9,11 @@ create_sprint_task:
 
 check_candidates_task:
   description: >
-    VAULT READ: Call vault_read('context/velocity.md') to get historical
-    velocity trend. Also call vault_list('sprints/retros') and read the
-    latest retro for recommended velocity and carryover context.
-    Use this to validate the velocity budget recommendation.
+    NOTE: Vault context with velocity history and retro findings is
+    available in your inputs as vault_context. Use it to validate the
+    velocity budget recommendation.
 
-    Then call get_last_sprint_velocity to get the recommended SP budget
+    Call get_last_sprint_velocity to get the recommended SP budget
     based on the team's actual last-sprint delivery. Use the returned
     recommended_budget_sp as the target for this sprint.
 
@@ -24,8 +23,7 @@ check_candidates_task:
     over/under budget delta, unassigned tasks.
 
     If Sprint Candidates is EMPTY, report that the team needs to populate
-    it before the sprint can be finalized. Do NOT scan the backlog or
-    pick tasks — that is the team's job via /sprint-plan.
+    it before the sprint can be finalized.
   expected_output: >
     Sprint Candidates summary: recommended budget, current SP total,
     over/under delta, task list, and assignment status.
@@ -65,26 +63,9 @@ post_sprint_plan_task:
 
     If candidates were empty or finalize errored, post a warning instead.
     Post ONE message only. Do NOT post to other channels.
-
-    VAULT WRITE: After posting, call vault_write with:
-    - crew: 'sprint_plan'
-    - filename: 'sprint-N.md' (use the sprint number)
-    - content: markdown with frontmatter:
-      ---
-      date: YYYY-MM-DD
-      crew: sprint
-      type: sprint
-      sprint_number: N
-      total_sp: N
-      tasks_committed: N
-      velocity_budget: N
-      ---
-      ## Sprint N Plan — YYYY-MM-DD
-      - Tasks: list with assignee and SP
-      - Total SP: N committed vs N budget
-      - Capacity: over/under analysis
+    Do NOT call vault_write — vault is handled automatically by the system.
   expected_output: >
-    Confirmation of Slack post and vault written.
+    Confirmation of Slack post to #pm-sprint-board.
   agent: sprint_post_agent
   context:
     - create_sprint_task

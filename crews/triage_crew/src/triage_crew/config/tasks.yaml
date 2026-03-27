@@ -43,16 +43,13 @@ estimate_sp_task:
 
 scan_task:
   description: >
-    VAULT READ: Call vault_list('sprints/retros') and read the most recent
-    retro file. Look for patterns like "carried over auth tasks" or
-    "high-SP items always slip" — use these to inform priority decisions
-    in the next step. If no retro files exist, proceed without.
+    Call scan_backlog_for_triage to get a health report of the backlog:
+    wrong priorities, missing SP, unassigned tasks, aging items (>21d
+    no update), tag/priority distribution.
 
-    Also call vault_list('triage') and read yesterday's triage report to
-    track backlog growth trends (is total_tasks growing or shrinking?).
-
-    Then call scan_backlog_for_triage to get a health report of the backlog:
-    wrong priorities, missing SP, unassigned tasks, tag/priority distribution.
+    NOTE: Vault context from previous triage runs and retro findings
+    is available in your inputs as vault_context. Use it to compare
+    backlog growth trends if available.
   expected_output: >
     The scan results JSON for analysis.
   agent: triage_agent
@@ -106,40 +103,17 @@ post_triage_task:
       '• 3 design tasks normalized ([TYPE] prefix + design tag added)'
       If tasks_normalized == 0: 'None found'
 
-    aging_items: from scan_task sla_at_risk or aging analysis, list backlog
-      tasks older than 21 days with no updates. Include name, priority, age.
+    aging_items: from scan_task aging list, show backlog tasks older than
+      21 days with no updates. Include name, priority, days since update.
       If none: 'None — all items fresh'
 
     priority_distribution: from scan_task by_priority counts, e.g.:
       'Urgent: 3 | High: 12 | Normal: 280 | Low: 47'
 
     Post ONE message only. Do NOT post multiple times.
-
-    VAULT WRITE: After posting, call vault_write with:
-    - crew: 'triage'
-    - content: markdown with frontmatter:
-      ---
-      date: YYYY-MM-DD
-      crew: triage
-      type: daily
-      total_tasks: N
-      duplicates_removed: N
-      design_tasks_normalized: N
-      sp_estimated: N
-      priorities_changed: N
-      ---
-      ## Backlog Health — YYYY-MM-DD
-      - Total: N tasks
-      - Distribution: Urgent N | High N | Normal N | Low N
-      - Hygiene: what changed
-      - Design: N normalized
-      - Aging: N items >21d
-
-    Also call vault_write with crew='context', filename='backlog-health.md'
-    to overwrite with current backlog snapshot (total tasks, distribution,
-    aging count, growth trend vs yesterday).
+    Do NOT call vault_write — vault is handled automatically by the system.
   expected_output: >
-    Confirmation of report posted to Slack and written to vault.
+    Confirmation of report posted to Slack.
   agent: triage_post_agent
   context:
     - decide_and_execute_task
