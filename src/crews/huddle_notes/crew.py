@@ -3,9 +3,6 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     fetch_huddle_notes,
-    create_clickup_task,
-    check_duplicate_task,
-    post_huddle_actions,
 )
 from shared.config.context import interpolate_config
 
@@ -30,9 +27,6 @@ class HuddleNotesCrew:
             config=interpolate_config(self.agents_config["huddle_agent"]),
             tools=[
                 fetch_huddle_notes,
-                create_clickup_task,
-                check_duplicate_task,
-                post_huddle_actions,
             ],
             verbose=True,
             allow_delegation=False,
@@ -41,12 +35,8 @@ class HuddleNotesCrew:
         )
 
     @task
-    def extract_actions_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["extract_actions_task"]))
-
-    @task
-    def create_tasks_and_post(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["create_tasks_and_post"]))
+    def fetch_and_summarize(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["fetch_and_summarize"]))
 
     @crew
     def crew(self) -> Crew:

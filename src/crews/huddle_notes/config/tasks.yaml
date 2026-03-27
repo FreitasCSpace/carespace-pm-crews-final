@@ -1,60 +1,25 @@
-extract_actions_task:
+fetch_and_summarize:
   description: >
-    NOTE: Vault context from previous huddle runs is available in your
-    inputs as vault_context. Check if today's huddle was already processed
-    to avoid duplicates.
-
     Call fetch_huddle_notes to retrieve recent huddle notes from Slack.
-    For each huddle found, carefully analyze the content and extract:
+    The tool searches both Slack file archives and channel history
+    in #carespace-team for the last 72 hours.
 
-    1. ACTION ITEMS — concrete commitments someone made
-       Format: who | what | urgency (high/normal/low)
-       Example: "Andre | fix cover image rendering in content library | high"
+    For each huddle found, produce a clean structured summary:
 
-    2. DECISIONS — agreements the team reached
-       Format: decision text
-       Example: "Team agreed to freeze PRs after Thursday for mobile release"
+    1. Date and time of the huddle
+    2. Attendees (names from the huddle notes)
+    3. Summary — 3-5 sentence overview of what was discussed
+    4. Key topics — bullet list of main discussion points
+    5. Action items — who committed to doing what
+    6. Decisions — what the team agreed on
+    7. Blockers — issues raised that need resolution
 
-    3. BLOCKERS — issues raised that need resolution
-       Format: blocker text | who raised it
-       Example: "Vanta API returning 401 | Sandeep"
+    If no huddle notes found, return "No recent huddles."
+    Do NOT fabricate content. Only extract what is explicitly in the notes.
 
-    If no huddle notes found in the last 24 hours, return "No recent huddles."
-    Do NOT fabricate action items. Only extract what is explicitly stated.
+    The output will be written to the vault automatically by the system.
+    Do NOT call vault_write yourself.
   expected_output: >
-    Structured list of action items, decisions, and blockers from each huddle,
-    with attendee names and meeting date.
+    Structured markdown summary of each huddle with date, attendees,
+    summary, topics, actions, decisions, and blockers.
   agent: huddle_agent
-
-create_tasks_and_post:
-  description: >
-    For each ACTION ITEM extracted from the huddle notes:
-
-    1. Call check_duplicate_task with the action item description to avoid
-       creating duplicates of existing backlog items
-    2. If no duplicate, call create_clickup_task with:
-       - list_id: {master_backlog_id}
-       - name: "[TASK] action description (from huddle)"
-       - description: "From huddle on DATE. Attendees: X, Y, Z.\n\nContext: relevant discussion summary"
-       - priority: based on urgency (1=urgent, 2=high, 3=normal, 4=low)
-       - tags: ["meeting"] plus domain tags if relevant (e.g. "frontend", "backend", "compliance")
-       - assignees: ClickUp user ID if a specific person was named
-
-    3. After creating all tasks, call post_huddle_actions with:
-       - meeting_date: the huddle date
-       - attendees: comma-separated list of attendees
-       - summary: 2-3 sentence meeting summary
-       - action_items_json: JSON array of created tasks with name, assignee, url
-       - decisions: bullet list of decisions made
-
-    If no action items were found, still post a brief summary noting
-    the huddle happened but no action items were identified.
-
-    IMPORTANT: Call post_huddle_actions EXACTLY ONCE. Stop after ok:true.
-
-    Do NOT call vault_write — vault is handled automatically by the system.
-  expected_output: >
-    Confirmation that tasks were created and summary posted to Slack.
-  agent: huddle_agent
-  context:
-    - extract_actions_task

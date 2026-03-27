@@ -710,6 +710,8 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 7
             timeout=15,
         )
         files_data = files_resp.json()
+        if not files_data.get("ok"):
+            log.debug("files.list failed: %s — falling back to channel history", files_data.get("error"))
         for f in files_data.get("files", []):
             title = f.get("title", "")
             if "huddle" not in title.lower():
