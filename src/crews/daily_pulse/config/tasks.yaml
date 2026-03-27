@@ -70,9 +70,11 @@ scan_and_gather:
        For failures, include the GitHub Actions link:
        https://github.com/carespace-ai/<repo>/actions
 
-    10. SKIP stale issues reporting. The daily pulse focuses on SPRINT
-        items only, not the entire backlog. Stale backlog issues are
-        handled by the triage crew.
+    10. Check for stale GitHub issues using get_stale_issues, BUT only
+        report issues that match a CURRENT SPRINT task name. Cross-reference
+        the issue titles with sprint task names. If an issue doesn't match
+        any sprint task, SKIP it. If the sprint is empty, skip entirely.
+        These are sprint-related issues with no comments for >{stale_task_days}d.
 
     If no active sprint: scan Master Backlog ({master_backlog_id}) instead
     and report on backlog health.
@@ -142,6 +144,10 @@ compile_and_post:
     • [repo] — FAILING — https://github.com/carespace-ai/repo/actions
     If all CI is passing, just write: "All CI checks passing ✅"
 
+    Stale Issues matching sprint tasks (no comments >{stale_task_days}d):
+    • repo #N — [title] — Xd no comments
+    Only include issues that match a current sprint task. Skip backlog issues.
+
     ═══════════════════════════════════
     ⚡ SPRINT RISKS
     ═══════════════════════════════════
@@ -178,7 +184,7 @@ compile_and_post:
     - in_progress: active tasks with @assignee (X SP) (or 'None')
     - blocked: ONLY tasks with ClickUp status 'blocked' (or 'None')
     - pending: not-started tasks with @assignee (X SP)
-    - attention: stale sprint tasks, sprint-related stale PRs, CI failures
+    - attention: stale sprint tasks, sprint-related stale PRs, CI failures, sprint-related stale issues
     - meeting_mode: just the headline, e.g.:
         '🔴 STANDUP MODE: 3 risks to discuss. 15-min focused session.'
         OR '🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion.'
