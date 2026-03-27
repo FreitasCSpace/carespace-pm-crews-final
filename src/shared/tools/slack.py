@@ -638,31 +638,72 @@ def post_compliance(health_headline: str, changes_section: str,
 
 # ── Huddle Notes ─────────────────────────────────────────────────────────────
 
+def _resolve_channel_id(channel_name: str) -> str | None:
+    """Resolve a channel name (#foo or foo) to a Slack channel ID."""
+    import logging
+    log = logging.getLogger(__name__)
+    name = channel_name.lstrip("#")
+    headers = {"Authorization": f"Bearer {os.environ.get('SLACK_BOT_TOKEN', '')}"}
+    cursor = ""
+    while True:
+        params = {"types": "public_channel,private_channel", "limit": 200}
+        if cursor:
+            params["cursor"] = cursor
+        try:
+            resp = requests.get(
+                "https://slack.com/api/conversations.list",
+                headers=headers, params=params, timeout=15,
+            )
+            data = resp.json()
+            for ch in data.get("channels", []):
+                if ch.get("name") == name:
+                    return ch["id"]
+            cursor = data.get("response_metadata", {}).get("next_cursor", "")
+            if not cursor:
+                break
+        except Exception as e:
+            log.warning("Channel resolve failed: %s", e)
+            break
+    return None
+
+
 @tool("fetch_huddle_notes")
-def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 24) -> str:
+def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 72) -> str:
     """
     Fetches recent Slack huddle notes from a channel.
-    Scans conversation history for huddle note messages (Canvas attachments
-    posted by Slack AI after a huddle ends).
-    Returns structured data: date, attendees, summary, key topics.
+    Detects huddle note messages by: Canvas files, 🎧 emoji, "huddle notes"
+    text, or huddle-related attachments.
 
-    channel: Slack channel to scan (default #carespace-team)
-    lookback_hours: how far back to search (default 24h)
+    channel: Slack channel name (default #carespace-team)
+    lookback_hours: how far back to search (default 72h)
     """
     import time as _time
+    from datetime import datetime
+    import logging
+    log = logging.getLogger(__name__)
+
     headers = {
         "Authorization": f"Bearer {os.environ.get('SLACK_BOT_TOKEN', '')}",
     }
+
+    # Resolve channel name to ID
+    channel_id = _resolve_channel_id(channel)
+    if not channel_id:
+        return json.dumps({"error": f"Could not find channel {channel}"})
+
     oldest = str(_time.time() - lookback_hours * 3600)
 
     try:
         resp = requests.get(
             "https://slack.com/api/conversations.history",
             headers=headers,
-            params={"channel": channel, "oldest": oldest, "limit": 50},
+            params={"channel": channel_id, "oldest": oldest, "limit": 200},
             timeout=15,
         )
-        messages = resp.json().get("messages", [])
+        data = resp.json()
+        if not data.get("ok"):
+            return json.dumps({"error": f"Slack API: {data.get('error', 'unknown')}"})
+        messages = data.get("messages", [])
     except Exception as e:
         return json.dumps({"error": f"Failed to fetch channel history: {e}"})
 
@@ -670,13 +711,21 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
     for msg in messages:
         msg_text = msg.get("text", "")
         files = msg.get("files", [])
+        msg_lower = msg_text.lower()
 
         is_huddle = False
         canvas_content = ""
 
-        # Check for Canvas files (huddle notes)
+        # Detection 1: 🎧 emoji or "huddle notes" in message text
+        if "\U0001f3a7" in msg_text or "huddle notes" in msg_lower or "huddle note" in msg_lower:
+            is_huddle = True
+            canvas_content = msg_text
+
+        # Detection 2: Canvas/quip files (Slack AI huddle summaries)
         for f in files:
-            if f.get("filetype") in ("quip", "canvas") or "huddle" in f.get("title", "").lower():
+            ftype = f.get("filetype", "")
+            ftitle = f.get("title", "").lower()
+            if ftype in ("quip", "canvas") or "huddle" in ftitle:
                 is_huddle = True
                 file_id = f.get("id")
                 if file_id:
@@ -698,15 +747,11 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
                         canvas_content = f.get("title", "")
                 break
 
-        # Check message text for huddle indicators
-        if not is_huddle and "huddle notes" in msg_text.lower():
-            is_huddle = True
-            canvas_content = msg_text
-
-        # Check attachments (older format)
+        # Detection 3: Attachments with huddle references
         if not is_huddle:
             for att in msg.get("attachments", []):
-                if "huddle" in att.get("title", "").lower() or "huddle" in att.get("text", "").lower():
+                att_text = (att.get("title", "") + att.get("text", "")).lower()
+                if "huddle" in att_text:
                     is_huddle = True
                     canvas_content = att.get("text", "") or att.get("fallback", "")
                     break
@@ -714,8 +759,43 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
         if not is_huddle:
             continue
 
+        # Also fetch thread replies — huddle content may be in the thread
         ts = msg.get("ts", "")
-        from datetime import datetime
+        if not canvas_content or len(canvas_content.strip()) < 50:
+            try:
+                thread_resp = requests.get(
+                    "https://slack.com/api/conversations.replies",
+                    headers=headers,
+                    params={"channel": channel_id, "ts": ts, "limit": 20},
+                    timeout=10,
+                )
+                replies = thread_resp.json().get("messages", [])
+                thread_texts = []
+                for r in replies[1:]:  # Skip parent message
+                    r_text = r.get("text", "")
+                    if r_text:
+                        thread_texts.append(r_text)
+                    for f in r.get("files", []):
+                        file_id = f.get("id")
+                        if file_id:
+                            try:
+                                fr = requests.get(
+                                    "https://slack.com/api/files.info",
+                                    headers=headers,
+                                    params={"file": file_id},
+                                    timeout=10,
+                                )
+                                fd = fr.json().get("file", {})
+                                fc = fd.get("plain_text", "") or fd.get("preview", "")
+                                if fc:
+                                    thread_texts.append(fc)
+                            except Exception:
+                                pass
+                if thread_texts:
+                    canvas_content = (canvas_content + "\n\n" + "\n".join(thread_texts)).strip()
+            except Exception:
+                pass
+
         try:
             dt = datetime.fromtimestamp(float(ts))
             meeting_date = dt.strftime("%Y-%m-%d %H:%M")
@@ -727,7 +807,7 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
             "channel": channel,
             "poster": msg.get("user", ""),
             "text": msg_text[:500] if msg_text else "",
-            "canvas_content": canvas_content[:3000] if canvas_content else "",
+            "canvas_content": canvas_content[:5000] if canvas_content else "",
             "ts": ts,
         })
 
