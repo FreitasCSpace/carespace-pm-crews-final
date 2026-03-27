@@ -198,6 +198,12 @@ def vault_after_kickoff(crew_name: str, result, sprint_number: int = None):
     vault_key, pattern = write_config
     output_text = _extract_output_text(result)
 
+    # Skip vault write if crew output indicates nothing to save
+    skip_phrases = ["no recent huddles", "no huddle notes", "no huddles found"]
+    if any(phrase in output_text.lower() for phrase in skip_phrases):
+        log.info("vault: %s skipped — no content to save", crew_name)
+        return
+
     # Determine filename
     now = datetime.now()
     if pattern == "datetime":
