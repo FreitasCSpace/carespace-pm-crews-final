@@ -1,147 +1,152 @@
 gather:
   description: >
-    NOTE: Vault context with velocity trends, backlog health, compliance
-    trajectory, latest pulse, SLA status, and retro findings is available
-    in your inputs as vault_context. Use it to add trend context to the
-    report ("velocity improving 3 sprints", "backlog grew 15% this week",
-    "compliance RED for 5 consecutive days").
+    NOTE: Vault context is in your inputs as vault_context. Use it for trends
+    ("compliance has been red for 5 straight days", "backlog grew 15% this week").
 
-    Collect and ANALYSE live data across all dimensions. This report is
-    read by the CEO and CTO — every number must have context, every risk
-    must have business impact.
+    Collect data across all business areas. Remember: the CEO reading this
+    report is NOT technical. Translate everything into business language.
 
-    1. SPRINT ANALYSIS
-       Call create_or_get_sprint_list to find the active sprint list_id.
-       Pull all sprint tasks via get_tasks_by_list.
-       Calculate:
-       - Sprint day X of Y, SP delivered vs total, % complete
-       - Task breakdown: done / in progress / to do / blocked counts
-       - Per-engineer breakdown: who has what, SP load, status
-       - Velocity vs budget (46 SP committed, 48 SP budget)
-       - Flag any unassigned tasks or tasks with no SP
+    1. ENGINEERING PROGRESS
+       Call create_or_get_sprint_list then get_tasks_by_list.
+       Report: what % of this sprint's work is done, what's in progress,
+       what's blocked. Show each engineer's workload in plain terms:
+       "Fabiano is working on fixing a security access control issue (high priority)."
+       NOT: "Fabiano: RBAC Guards (8 SP, urgent) + Auth middleware (5 SP) = 13 SP"
 
-    2. COMPLIANCE ANALYSIS
-       Call batch_compliance_check for open task count.
-       Call get_vanta_compliance_health_summary (MCP) for Vanta health.
-       Analyse:
-       - Test pass rate % (flag if below 95%)
-       - Critical failing controls with business impact
-       - BAA gaps (Azure, Google Workspace) → PHI processing legality
-       - HIPAA evidence gaps → breach notification / audit risk
-       - Overdue tests with entity failure counts
-       Frame every finding in business risk terms, not just technical terms.
+    2. COMPLIANCE & SECURITY HEALTH
+       Call batch_compliance_check for the full picture.
+       Translate into business impact:
+       - Instead of "45% pass rate" say "we're passing less than half our
+         security checks (45 out of 100) — target is 95 out of 100"
+       - Instead of "BAA missing" say "we still need privacy agreements with
+         Azure and Google before we can legally handle patient data"
+       - Instead of "SOC 2 failing" say "our security certification is not
+         ready, which blocks us from closing enterprise deals"
+       - Explain what "critical controls" means: "these are the security
+         requirements we MUST pass"
 
-    3. GTM ANALYSIS
+    3. SALES PIPELINE
        Pull Active Deals ({active_deals_id}) and At-Risk ({at_risk_deals_id}).
-       Calculate pipeline value, at-risk count, stale deals.
+       Report: how many deals, total value, any at risk and why.
 
-    4. BACKLOG & BUG HEALTH
-       Call scan_backlog_for_sprint to get a full breakdown of the backlog by type.
-       Report total tasks and counts for each category:
-       - Features (features_total)
-       - Bugs (bugs_total) — flag by priority, urgent >4h / high >24h = SLA breach
-       - Compliance (compliance_total)
-       - Tasks (tasks_total) — general tasks not tagged as feature/bug/compliance
-       - Carryovers from last sprint (carryovers_total)
-       Total = features + bugs + compliance + tasks + carryovers.
+    4. BACKLOG HEALTH
+       Call scan_backlog_for_sprint for a breakdown.
+       Report totals in plain language: "398 items in our to-do list:
+       25 new features, 13 bugs to fix, 294 compliance items, 66 other tasks."
+       For bugs: flag how many are urgent or overdue.
 
-    5. ALERTS & CREW HEALTH
-       Pull Alerts list ({alerts_id}). Count open, stale >{ticket_stale_hours}h.
-       Flag if no alerts in 7d (crews not running).
+    5. SYSTEM HEALTH
+       Pull Alerts list ({alerts_id}). If no alerts in 7 days, flag that
+       our automated monitoring may not be running.
 
-    6. WINS & RISKS
-       Wins: concrete, business-relevant (not "sprint populated" but "sprint fully
-       staffed and on budget — team is execution-ready").
-       Risks: ranked by business impact. Each risk must have:
-       - What: specific technical fact
-       - Impact: business consequence (revenue, compliance, legal, security)
-       - Owner: named person
-       - Action: specific next step with urgency
+    6. WINS — things going well, framed as business outcomes.
+       NOT "sprint populated" but "team is fully assigned and ready to deliver."
 
-    7. DECISIONS NEEDED
-       Identify anything that requires CEO or CTO action this week.
-       Examples: vendor escalations, resourcing decisions, policy approvals.
+    7. RISKS — ranked by business impact. For each risk, answer:
+       - What's happening? (plain English)
+       - So what? (business consequence: revenue, legal, customer impact)
+       - Who's responsible?
+       - What should we do about it? (specific action)
+
+    8. DECISIONS THE CEO NEEDS TO MAKE THIS WEEK
+       Vendor escalations, hiring/resourcing, policy approvals, strategic calls.
   expected_output: >
-    Complete analysis with all data, per-engineer breakdown, business-framed risks,
-    and decisions needed for CEO/CTO.
+    Complete business-friendly analysis with plain-language risks, wins,
+    and clear decisions needed from the CEO. No engineering jargon.
   agent: exec_reporter_agent
 
 write_and_post:
   description: >
     Post the executive report using post_executive_report (NOT the generic post tool).
-    This report is read by CEO and CTO — be specific, analytical, business-focused.
+    The CEO reads this report. Write in PLAIN BUSINESS ENGLISH — no code references,
+    no ticket IDs, no engineering abbreviations.
+
+    LANGUAGE RULES:
+    - Say "story points (our sprint work units)" on first mention, then just "points" after.
+    - Never write ticket IDs like "admin#80" or "carespace-ui#159".
+    - Never use abbreviations without explanation: SP, SLA, RBAC, BAA, SOC 2, PR, venv.
+    - Write risks as: "What's the problem → What does it mean for the business → Who → Next step"
+    - Use conversational professional tone, not a database dump.
 
     Pass ALL 8 parameters:
 
-    health_dashboard: one-line traffic light per dimension with key number, e.g.:
-    "🔴 Engineering: 0% (0/46 SP) | 🟢 GTM: 0 deals at risk | 🔴 Compliance: 51% pass rate | 🟡 CS: no data | 🟢 Bugs: 0 open"
+    health_dashboard: one-line traffic light per area, e.g.:
+    "🔴 Engineering: not started yet | 🟢 Sales: pipeline healthy | 🔴 Compliance: only 45% of security checks passing | 🟡 Support: no data | 🟢 Bugs: under control"
 
-    key_metrics: 4-5 bullet KPIs, quantified, with trend or target context, e.g.:
-    "• Sprint 1: 0/46 SP delivered (0%) — Day 1 of 14, team fully assigned
-     • Backlog: 350 total — 45 features | 12 bugs (2 high, 1 urgent) | 282 compliance | 11 tasks
-     • Compliance: 51% pass rate vs 95% target — 13 critical controls failing
-     • GTM: 0 deals at risk | pipeline healthy
-     • Crew health: intake + triage + standup running autonomously"
+    key_metrics: 4-5 headline numbers in context, e.g.:
+    "• Sprint work: 0 of 46 points delivered — sprint starts Monday
+     • To-do list: 350 items (25 features, 12 bugs, 282 compliance fixes, 11 other)
+     • Security & compliance: passing 45% of checks, need 95% — 13 critical items failing
+     • Sales pipeline: no deals at risk
+     • Automated systems: intake, triage, and daily standup running on their own"
 
-    sprint_analysis: full sprint breakdown with per-engineer status, e.g.:
-    "Sprint 1 — Mar 23 to Apr 05 (Day 0 of 14)
-     Status: 0 done | 0 in progress | 8 to do | 0 blocked
-     Delivered: 0/46 SP (0%) — sprint begins tomorrow
+    sprint_analysis: what the team is working on in plain language, e.g.:
+    "Sprint 1 runs Mar 30 to Apr 12 (starts Monday)
+     Nothing delivered yet — sprint hasn't started.
 
-     Engineer workload:
-     — Fabiano Fiorentin: RBAC Guards (8 SP, urgent) + Auth middleware (5 SP) = 13 SP
-     — Bharath: Production Readiness Check (8 SP, high)
-     — Andre C Dutra: Cover Images ×2 + Pre-Existing Conditions = 15 SP
-     — Sandeep Pulichinthala: Vanta API integration (5 SP, high)
-     — Luis Freitas: Employee exit evidence (5 SP, high — compliance owner)
+     Team assignments:
+     — Fabiano: fixing a security access control issue (high priority, 8 points)
+     — Bharath: production readiness review (8 points)
+     — Andre: building cover image features and pre-existing conditions form (15 points)
+     — Sandeep: connecting our compliance monitoring tool (5 points)
+     — Luis: gathering employee exit compliance evidence (5 points)
 
-     Risk flags: RBAC Guards is urgent security — must not slip."
+     Watch out: the security fix is urgent and can't slip past this sprint."
 
-    compliance: compliance analysis with business impact framing, e.g.:
-    "Vanta: 🔴 RED — 51% test pass rate (target: 95%)
-     Critical issues:
-     • 13 failing controls → SOC 2 Type II audit readiness at risk
-     • BAA missing: Azure + Google Workspace → PHI processing legally blocked (HIPAA)
-     • 20+ HIPAA evidence items overdue → breach notification exposure
-     • 282 open compliance tasks in backlog (highest volume area)
-     Business impact: enterprise sales blocked until SOC 2 clean; PHI handling at legal risk"
+    compliance: plain-English compliance status, e.g.:
+    "Security health: RED — we're only passing 45% of our security checks (target: 95%)
 
-    gtm: GTM pipeline with deal-level analysis, e.g.:
-    "• Active pipeline: [N deals | $X value if available]
-     • At risk: 0 deals — pipeline healthy
-     • No product launches within 14 days
-     • [Any stale deals or coverage gaps]"
+     What this means:
+     • 13 critical security requirements are failing — until these are fixed,
+       we cannot pass our security certification (needed for enterprise sales)
+     • We're missing required privacy agreements with Azure and Google — without
+       these, we cannot legally handle patient health data
+     • Over 20 privacy evidence items are overdue — this creates legal exposure
+       if there's ever a data breach investigation
+     • 282 compliance fixes are waiting in our backlog (our biggest category)
 
-    risks: top 3-5 risks ranked by business impact, e.g.:
-    "1. 🔴 HIPAA BAA gap — Azure + Google Workspace
-        Impact: PHI processing legally blocked → HIPAA violation liability
-        Owner: Luis Freitas | Urgency: This week
-        Action: Executive escalation to Azure + Google account teams
+     Bottom line: enterprise sales are blocked until our security audit is clean,
+     and patient data handling has legal risk until vendor agreements are signed."
 
-     2. 🔴 SOC 2 — 13 critical controls failing (51% pass rate)
-        Impact: Enterprise sales blocked; audit readiness at risk
-        Owner: Luis + Sandeep | Urgency: Ongoing sprint
-        Action: Vanta remediation — Sandeep on Vanta API this sprint
+    gtm: sales pipeline in plain terms, e.g.:
+    "• No active deals at risk — pipeline is healthy
+     • No product launches in the next 2 weeks"
 
-     3. 🔴 RBAC Guards bypassed (carespace-admin#80)
-        Impact: Authorization returning true unconditionally — active security vuln in prod
-        Owner: Fabiano Fiorentin | Urgency: P0 — this sprint
-        Action: Patch RolesGuard and RelationshipValidatorGuard"
+    risks: top risks in plain language, e.g.:
+    "1. 🔴 Missing vendor privacy agreements (Azure + Google)
+        We can't legally process patient data through these vendors without signed
+        agreements. This creates HIPAA violation exposure.
+        Owner: Luis Freitas
+        Next step: You (CEO) need to escalate to our Azure and Google account reps this week.
 
-    wins: concrete wins with business relevance (not just operational facts), e.g.:
-    "• Sprint 1 fully staffed: 8 tasks, 46 SP, all assigned and SP-estimated (100%)
-     • AI PM system running autonomously: intake, triage, standup, exec report — 0 manual ops
-     • No GTM deals at risk — pipeline clean heading into sprint"
+     2. 🔴 Security certification not ready (only 45% of checks passing)
+        We need this certification to close enterprise deals. 13 critical requirements
+        are failing, and 12 of them don't have anyone assigned to fix them.
+        Owner: Luis + Sandeep
+        Next step: Dedicate engineering time to compliance fixes this sprint.
 
-    decisions_needed: items needing CEO/CTO action (omit param if none this week), e.g.:
-    "• BAA escalation: Azure + Google — needs CEO to contact account executives
-     • Compliance resourcing: Sandeep carrying Vanta API + compliance load — assess capacity"
+     3. 🔴 Access controls not working correctly
+        There's a security issue where the system grants access to everyone regardless
+        of their role. This is a vulnerability that needs immediate patching.
+        Owner: Fabiano
+        Next step: Must be fixed this sprint — it's the #1 priority."
+
+    wins: good news in business terms, e.g.:
+    "• Engineering team is fully assigned and ready to start the sprint Monday
+     • Our AI project management system is running daily without manual intervention
+     • No sales deals are at risk — clean pipeline heading into the sprint"
+
+    decisions_needed: what the CEO needs to act on, e.g.:
+    "• Privacy agreements: you need to contact our Azure and Google account reps
+       to get vendor privacy agreements signed — this is blocking patient data work
+     • Compliance staffing: Sandeep is overloaded with both infrastructure and
+       compliance work — consider whether we need additional help"
 
     IMPORTANT:
-    - Call post_executive_report EXACTLY ONCE with all 8 parameters in a single call.
-    - When it returns ok:true, your task is complete. Do NOT call it again.
-    - Do NOT call the generic 'post' tool. Do NOT post to any other channel.
-    - Every risk must have owner + action. Every metric must have a number.
+    - Call post_executive_report EXACTLY ONCE with all 8 parameters.
+    - When it returns ok:true, stop. Do NOT call it again.
+    - Do NOT use the generic 'post' tool.
+    - Write for a non-technical CEO. If your grandmother wouldn't understand it, rewrite it.
 
     Do NOT call vault_write — vault is handled automatically by the system.
   expected_output: >
