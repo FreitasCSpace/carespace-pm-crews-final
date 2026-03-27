@@ -670,9 +670,9 @@ def _resolve_channel_id(channel_name: str) -> str | None:
 @tool("fetch_huddle_notes")
 def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 72) -> str:
     """
-    Fetches recent Slack huddle notes from a channel.
-    Detects huddle note messages by: Canvas files, 🎧 emoji, "huddle notes"
-    text, or huddle-related attachments.
+    Fetches recent Slack huddle notes using two methods:
+    1. Search Slack files for huddle canvases (files.list API)
+    2. Scan channel history for 🎧 huddle note messages
 
     channel: Slack channel name (default #carespace-team)
     lookback_hours: how far back to search (default 72h)
@@ -692,7 +692,71 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 7
         return json.dumps({"error": f"Could not find channel {channel}"})
 
     oldest = str(_time.time() - lookback_hours * 3600)
+    oldest_ts = int(float(oldest))
+    seen_ts = set()  # Dedup across both methods
+    huddles = []
 
+    # ── Method 1: Search Slack files for huddle canvases ──
+    try:
+        files_resp = requests.get(
+            "https://slack.com/api/files.list",
+            headers=headers,
+            params={
+                "channel": channel_id,
+                "ts_from": oldest_ts,
+                "types": "canvas,quip",
+                "count": 50,
+            },
+            timeout=15,
+        )
+        files_data = files_resp.json()
+        for f in files_data.get("files", []):
+            title = f.get("title", "")
+            if "huddle" not in title.lower():
+                continue
+            file_id = f.get("id", "")
+            # Get full content
+            content = ""
+            try:
+                fi_resp = requests.get(
+                    "https://slack.com/api/files.info",
+                    headers=headers,
+                    params={"file": file_id},
+                    timeout=10,
+                )
+                fi_data = fi_resp.json().get("file", {})
+                content = (
+                    fi_data.get("plain_text", "")
+                    or fi_data.get("preview", "")
+                    or fi_data.get("content", "")
+                    or title
+                )
+            except Exception:
+                content = title
+
+            created = f.get("created", 0)
+            try:
+                dt = datetime.fromtimestamp(created)
+                meeting_date = dt.strftime("%Y-%m-%d %H:%M")
+            except Exception:
+                meeting_date = "unknown"
+
+            ts_key = str(created)
+            if ts_key not in seen_ts:
+                seen_ts.add(ts_key)
+                huddles.append({
+                    "date": meeting_date,
+                    "channel": channel,
+                    "poster": f.get("user", ""),
+                    "text": title,
+                    "canvas_content": content[:5000],
+                    "ts": ts_key,
+                    "source": "files_api",
+                })
+    except Exception as e:
+        log.debug("files.list search failed: %s", e)
+
+    # ── Method 2: Scan channel history for huddle messages ──
     try:
         resp = requests.get(
             "https://slack.com/api/conversations.history",
@@ -702,12 +766,15 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 7
         )
         data = resp.json()
         if not data.get("ok"):
-            return json.dumps({"error": f"Slack API: {data.get('error', 'unknown')}"})
+            if not huddles:
+                return json.dumps({"error": f"Slack API: {data.get('error', 'unknown')}"})
+            # If we already found huddles via files API, continue with those
+            return json.dumps({"huddles_found": len(huddles), "huddles": huddles})
         messages = data.get("messages", [])
     except Exception as e:
-        return json.dumps({"error": f"Failed to fetch channel history: {e}"})
-
-    huddles = []
+        if not huddles:
+            return json.dumps({"error": f"Failed to fetch channel history: {e}"})
+        return json.dumps({"huddles_found": len(huddles), "huddles": huddles})
     for msg in messages:
         msg_text = msg.get("text", "")
         files = msg.get("files", [])
@@ -802,14 +869,17 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 7
         except Exception:
             meeting_date = "unknown"
 
-        huddles.append({
-            "date": meeting_date,
-            "channel": channel,
-            "poster": msg.get("user", ""),
-            "text": msg_text[:500] if msg_text else "",
-            "canvas_content": canvas_content[:5000] if canvas_content else "",
-            "ts": ts,
-        })
+        if ts not in seen_ts:
+            seen_ts.add(ts)
+            huddles.append({
+                "date": meeting_date,
+                "channel": channel,
+                "poster": msg.get("user", ""),
+                "text": msg_text[:500] if msg_text else "",
+                "canvas_content": canvas_content[:5000] if canvas_content else "",
+                "ts": ts,
+                "source": "channel_history",
+            })
 
     if not huddles:
         return json.dumps({"huddles_found": 0, "message": f"No huddle notes in {channel} in last {lookback_hours}h"})
