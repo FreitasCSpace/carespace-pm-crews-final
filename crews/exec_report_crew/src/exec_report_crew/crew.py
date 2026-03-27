@@ -5,10 +5,10 @@ from shared.tools import (
     create_sprint_list, get_tasks_by_list, batch_compliance_check,
     check_duplicate_task, create_clickup_task, post_exec,
     vanta_health_summary, scan_backlog_for_sprint,
-    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_exec_report
+from shared.vault_hooks import vault_before_kickoff
 
 
 @CrewBase
@@ -23,7 +23,7 @@ class ExecReportCrew:
         from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
-        return ctx
+        return vault_before_kickoff("exec_report", ctx)
 
     @agent
     def exec_reporter_agent(self) -> Agent:
@@ -33,7 +33,6 @@ class ExecReportCrew:
                 create_sprint_list, get_tasks_by_list, batch_compliance_check,
                 check_duplicate_task, create_clickup_task, post_exec,
                 vanta_health_summary, scan_backlog_for_sprint,
-                vault_write, vault_read, vault_list,
             ],
             verbose=True,
         )
@@ -56,5 +55,4 @@ class ExecReportCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
-            memory=True,
         )

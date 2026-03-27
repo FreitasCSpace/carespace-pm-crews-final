@@ -9,9 +9,9 @@ from shared.tools import (
     batch_import_engineering,
     sync_closed_issues,
     post,
-    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
+from shared.vault_hooks import vault_before_kickoff
 
 
 @CrewBase
@@ -24,7 +24,7 @@ class IntakeCrewCrew:
         from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update(inputs or {})
-        return ctx
+        return vault_before_kickoff("intake", ctx)
 
     @agent
     def intake_agent(self) -> Agent:
@@ -34,7 +34,6 @@ class IntakeCrewCrew:
                 batch_import_engineering,
                 sync_closed_issues,
                 post,
-                vault_write, vault_read, vault_list,
             ],
             verbose=True,
             allow_delegation=False,

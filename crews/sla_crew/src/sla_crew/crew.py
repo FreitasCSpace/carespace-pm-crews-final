@@ -8,9 +8,9 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 from shared.tools import (
     scan_sprint_sla, create_clickup_task, check_duplicate_task,
     notify_task_assignee, post_sla_breach, post,
-    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
+from shared.vault_hooks import vault_before_kickoff
 
 
 @CrewBase
@@ -25,7 +25,7 @@ class SlaCrew:
         from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update(inputs or {})
-        return ctx
+        return vault_before_kickoff("sla", ctx)
 
     @agent
     def sla_monitor_agent(self) -> Agent:
@@ -35,7 +35,6 @@ class SlaCrew:
             tools=[
                 scan_sprint_sla, create_clickup_task, check_duplicate_task,
                 notify_task_assignee,
-                vault_write, vault_read, vault_list,
             ],
             verbose=True,
         )

@@ -5,10 +5,10 @@ from shared.tools import (
     dedup_backlog_cleanup, bulk_assign_and_estimate,
     normalize_backlog_tasks, scan_backlog_for_triage,
     execute_triage_actions, post_triage_summary,
-    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_triage_actions
+from shared.vault_hooks import vault_before_kickoff
 
 
 @CrewBase
@@ -23,7 +23,7 @@ class TriageCrew:
         from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
-        return ctx
+        return vault_before_kickoff("triage", ctx)
 
     @agent
     def triage_agent(self) -> Agent:
@@ -34,7 +34,6 @@ class TriageCrew:
                 dedup_backlog_cleanup, normalize_backlog_tasks,
                 bulk_assign_and_estimate, scan_backlog_for_triage,
                 execute_triage_actions,
-                vault_write, vault_read, vault_list,
             ],
             verbose=True,
         )
@@ -82,5 +81,4 @@ class TriageCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
-            memory=True,
         )

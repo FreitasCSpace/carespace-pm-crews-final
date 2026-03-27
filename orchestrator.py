@@ -186,7 +186,12 @@ def _resolve_active_sprint() -> str:
 # ── Parallel execution ────────────────────────────────────────────────────────
 
 async def _run_crew_async(crew_name: str, crew_info: dict) -> CrewResult:
-    """Run a single crew asynchronously using akickoff()."""
+    """Run a single crew asynchronously using akickoff().
+    Vault reads happen in @before_kickoff (per crew).
+    Vault writes happen here after successful kickoff.
+    """
+    from shared.vault_hooks import vault_after_kickoff
+
     print(f"  >> Starting {crew_name}...")
     t0 = time.perf_counter()
     try:
@@ -196,6 +201,15 @@ async def _run_crew_async(crew_name: str, crew_info: dict) -> CrewResult:
         result = await crew_instance.akickoff(inputs=inputs)
         duration = time.perf_counter() - t0
         print(f"  [OK]   {crew_name} ({duration:.1f}s)")
+
+        # Vault write — always runs after successful crew completion
+        try:
+            sprint_num = inputs.get("sprint_number")
+            vault_after_kickoff(crew_name, result, sprint_number=sprint_num)
+            print(f"  [VAULT] {crew_name} output saved")
+        except Exception as ve:
+            print(f"  [VAULT] {crew_name} write failed: {ve}")
+
         return CrewResult(crew_name=crew_name, success=True, duration_s=duration, output=result)
     except Exception as e:
         duration = time.perf_counter() - t0

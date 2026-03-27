@@ -5,10 +5,10 @@ from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_activity,
     get_tasks_by_list, create_clickup_task, post_retro, post,
     close_sprint,
-    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_retro_metrics
+from shared.vault_hooks import vault_before_kickoff
 
 
 @CrewBase
@@ -22,7 +22,7 @@ class RetrospectiveCrew:
         from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
-        return ctx
+        return vault_before_kickoff("retrospective", ctx)
 
     @agent
     def retrospective_agent(self) -> Agent:
@@ -32,7 +32,6 @@ class RetrospectiveCrew:
                 create_sprint_list, get_stale_prs, get_ci, get_activity,
                 get_tasks_by_list, create_clickup_task, post_retro, post,
                 close_sprint,
-                vault_write, vault_read, vault_list,
             ],
             verbose=True,
             allow_delegation=False,
@@ -64,5 +63,4 @@ class RetrospectiveCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
-            memory=True,
         )

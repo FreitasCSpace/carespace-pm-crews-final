@@ -5,10 +5,10 @@ from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_tasks_by_list,
     get_prs, get_contributors, get_stale_issues,
     post_standup,
-    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_standup_data
+from shared.vault_hooks import vault_before_kickoff
 
 
 @CrewBase
@@ -23,7 +23,7 @@ class DailyPulseCrew:
         from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update(inputs or {})
-        return ctx
+        return vault_before_kickoff("daily_pulse", ctx)
 
     @agent
     def daily_pulse_agent(self) -> Agent:
@@ -33,7 +33,6 @@ class DailyPulseCrew:
                 create_sprint_list, get_stale_prs, get_ci, get_tasks_by_list,
                 get_prs, get_contributors, get_stale_issues,
                 post_standup,
-                vault_write, vault_read, vault_list,
             ],
             verbose=True,
         )
@@ -60,5 +59,4 @@ class DailyPulseCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
-            memory=True,
         )

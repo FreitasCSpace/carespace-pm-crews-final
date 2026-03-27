@@ -4,10 +4,10 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 from shared.tools import (
     batch_compliance_check,
     post_compliance,
-    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_compliance_output
+from shared.vault_hooks import vault_before_kickoff
 
 
 @CrewBase
@@ -21,14 +21,14 @@ class ComplianceCrew:
         from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
-        return ctx
+        return vault_before_kickoff("compliance", ctx)
 
     @agent
     def gather_agent(self) -> Agent:
         """Data-only agent for gather step — no Slack tools to prevent early posting."""
         return Agent(
             config=interpolate_config(self.agents_config["gather_agent"]),
-            tools=[batch_compliance_check, vault_write, vault_read, vault_list],
+            tools=[batch_compliance_check],
             verbose=True,
             allow_delegation=False,
         )

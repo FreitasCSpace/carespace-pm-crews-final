@@ -3,13 +3,13 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, post_sprint_plan, get_last_sprint_velocity,
-    vault_write, vault_read, vault_list,
 )
 from shared.tools.clickup_helpers import (
     list_sprint_candidates, finalize_sprint_from_candidates,
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_sprint_plan
+from shared.vault_hooks import vault_before_kickoff
 
 
 @CrewBase
@@ -23,10 +23,8 @@ class SprintCrew:
     def inject_context(self, inputs):
         from shared.config.context import crew_context
         ctx = crew_context()
-        # Only override with non-empty input values — CrewHub sends empty strings
-        # for unset variables which would otherwise clobber crew_context() defaults.
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
-        return ctx
+        return vault_before_kickoff("sprint", ctx)
 
     @agent
     def sprint_agent(self) -> Agent:
@@ -36,7 +34,6 @@ class SprintCrew:
             tools=[
                 create_sprint_list, get_last_sprint_velocity,
                 list_sprint_candidates, finalize_sprint_from_candidates,
-                vault_write, vault_read, vault_list,
             ],
             verbose=True,
         )
@@ -76,5 +73,4 @@ class SprintCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
-            memory=True,
         )

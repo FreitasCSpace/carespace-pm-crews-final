@@ -10,9 +10,9 @@ from shared.tools import (
     create_clickup_task,
     check_duplicate_task,
     post_huddle_actions,
-    vault_write, vault_read, vault_list,
 )
 from shared.config.context import interpolate_config
+from shared.vault_hooks import vault_before_kickoff
 
 
 @CrewBase
@@ -27,7 +27,7 @@ class HuddleNotesCrewCrew:
         from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
-        return ctx
+        return vault_before_kickoff("huddle_notes", ctx)
 
     @agent
     def huddle_agent(self) -> Agent:
@@ -38,7 +38,6 @@ class HuddleNotesCrewCrew:
                 create_clickup_task,
                 check_duplicate_task,
                 post_huddle_actions,
-                vault_write, vault_read, vault_list,
             ],
             verbose=True,
             allow_delegation=False,
