@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Any, List, Optional
 
 
 class VantaHealth(BaseModel):
@@ -7,6 +7,13 @@ class VantaHealth(BaseModel):
     pass_rate: float = Field(description="Test pass rate as percentage")
     critical_failing: int = Field(description="Number of critical tests failing")
     total_tests: int = 0
+
+    @field_validator("pass_rate", mode="before")
+    @classmethod
+    def strip_percent(cls, v):
+        if isinstance(v, str):
+            return float(v.replace("%", "").strip())
+        return v
 
 
 class ComplianceDelta(BaseModel):
@@ -20,6 +27,6 @@ class ComplianceHealth(BaseModel):
     """Output model for compliance crew gather_health task."""
     vanta: VantaHealth
     delta: ComplianceDelta
-    needs_action: List[str] = Field(default_factory=list, description="Critical items without owners")
+    needs_action: List[Any] = Field(default_factory=list, description="Critical items without owners")
     open_compliance_tasks: int = 0
     sprint_compliance_tasks: int = 0
