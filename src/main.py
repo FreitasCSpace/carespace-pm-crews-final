@@ -72,6 +72,8 @@ CREW_REGISTRY = {
 class PMCrewsFlow(Flow[PMFlowState]):
     """Orchestrates all 9 CareSpace PM crews with typed state and persistence.
 
+    CrewHub Input: {crew_name}
+
     Steps:
         1. load_inputs  — parse CrewHub env, validate crew_name
         2. read_vault   — load context from previous crew runs into state
