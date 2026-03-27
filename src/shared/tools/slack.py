@@ -465,12 +465,13 @@ def post_exec(health_dashboard: str, key_metrics: str, sprint_analysis: str,
         _div(),
         _sec(f"*🔒 Compliance*\n{compliance}"),
         _div(),
-        _sec(f"*💰 GTM Pipeline*\n{gtm}"),
-        _div(),
         _sec(f"*⚡ Top Risks*\n{risks}"),
         _div(),
         _sec(f"*🏆 Wins This Week*\n{wins}"),
     ]
+    if gtm and gtm.strip():
+        blocks.append(_div())
+        blocks.append(_sec(f"*💰 Sales Pipeline*\n{gtm}"))
     if decisions_needed and decisions_needed.strip():
         blocks.append(_div())
         blocks.append(_sec(f"*🔴 Decisions Needed*\n{decisions_needed}"))

@@ -25,30 +25,26 @@ gather:
        - Explain what "critical controls" means: "these are the security
          requirements we MUST pass"
 
-    3. SALES PIPELINE
-       Pull Active Deals ({active_deals_id}) and At-Risk ({at_risk_deals_id}).
-       Report: how many deals, total value, any at risk and why.
-
-    4. BACKLOG HEALTH
+    3. BACKLOG HEALTH
        Call scan_backlog_for_sprint for a breakdown.
        Report totals in plain language: "398 items in our to-do list:
        25 new features, 13 bugs to fix, 294 compliance items, 66 other tasks."
        For bugs: flag how many are urgent or overdue.
 
-    5. SYSTEM HEALTH
+    4. SYSTEM HEALTH
        Pull Alerts list ({alerts_id}). If no alerts in 7 days, flag that
        our automated monitoring may not be running.
 
-    6. WINS — things going well, framed as business outcomes.
+    5. WINS — things going well, framed as business outcomes.
        NOT "sprint populated" but "team is fully assigned and ready to deliver."
 
-    7. RISKS — ranked by business impact. For each risk, answer:
+    6. RISKS — ranked by business impact. For each risk, answer:
        - What's happening? (plain English)
        - So what? (business consequence: revenue, legal, customer impact)
        - Who's responsible?
        - What should we do about it? (specific action)
 
-    8. DECISIONS THE CEO NEEDS TO MAKE THIS WEEK
+    7. DECISIONS THE CEO NEEDS TO MAKE THIS WEEK
        Vendor escalations, hiring/resourcing, policy approvals, strategic calls.
   expected_output: >
     Complete business-friendly analysis with plain-language risks, wins,
@@ -69,13 +65,12 @@ write_and_post:
     Pass ALL 8 parameters:
 
     health_dashboard: short traffic lights, e.g.:
-    "🔴 Engineering: 0% done | 🟢 Sales: healthy | 🔴 Compliance: 51% (need 95%) | 🟡 Bugs: 13 open"
+    "🔴 Engineering: 0% done | 🔴 Compliance: 51% (need 95%) | 🟡 Bugs: 13 open"
 
     key_metrics: 3-4 one-liners, e.g.:
     "• Sprint starts Monday — team assigned, 46 points planned
      • 398 backlog items (294 are compliance fixes)
-     • Security checks: 51% passing, need 95%
-     • Sales pipeline clean — no deals at risk"
+     • Security checks: 51% passing, need 95%"
 
     sprint_analysis: short team summary, e.g.:
     "Sprint 1: Mar 30–Apr 12 (starts Monday)
@@ -90,8 +85,7 @@ write_and_post:
      • 13 critical items failing — blocks security audit and enterprise sales
      • Missing privacy agreements with Azure + Google — blocks patient data handling"
 
-    gtm: 1-2 lines, e.g.:
-    "Pipeline healthy — no deals at risk."
+    gtm: pass empty string "" (sales pipeline not active yet)
 
     risks: top 3, one line each + action, e.g.:
     "1. 🔴 Privacy agreements missing (Azure + Google) — blocks patient data legally
@@ -103,8 +97,7 @@ write_and_post:
 
     wins: 2-3 short bullets, e.g.:
     "• Sprint planned and fully assigned — ready for Monday
-     • AI ops running daily (intake, triage, standups)
-     • Sales pipeline clean"
+     • AI ops running daily (intake, triage, standups)"
 
     decisions_needed: specific asks, one line each, e.g.:
     "• Call Azure + Google reps to sign privacy agreements (blocks patient data)

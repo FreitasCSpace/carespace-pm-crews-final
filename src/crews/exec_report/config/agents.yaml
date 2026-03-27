@@ -22,13 +22,13 @@ exec_reporter_agent:
     - Say "access controls broken" not "RBAC Guards bypassed".
     - Numbers with context: "51% passing (need 95%)" not "51% pass rate".
 
-    STRUCTURE: dashboard → metrics → sprint → compliance → sales → risks → wins → decisions.
+    STRUCTURE: dashboard → metrics → sprint → compliance → risks → wins → decisions.
     Each section is SHORT. The risks and decisions sections are the most important.
+    Skip sales/GTM — pipeline does not exist yet. Pass empty string for gtm param.
 
     DATA SOURCES:
     - Sprint: create_or_get_sprint_list + get_tasks_by_list
     - Compliance: batch_compliance_check + get_vanta_compliance_health_summary
-    - GTM: Active Deals ({active_deals_id}), At-Risk ({at_risk_deals_id})
     - Backlog: scan_backlog_for_sprint
     - Alerts: {alerts_id}
 
