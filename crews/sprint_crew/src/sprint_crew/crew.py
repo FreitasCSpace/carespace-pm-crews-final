@@ -1,5 +1,5 @@
 from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, before_kickoff, crew, task
+from crewai.project import CrewBase, agent, before_kickoff, after_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, post_sprint_plan, get_last_sprint_velocity,
@@ -9,7 +9,7 @@ from shared.tools.clickup_helpers import (
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_sprint_plan
-from shared.vault_hooks import vault_before_kickoff
+from shared.vault_hooks import vault_before_kickoff, vault_after_kickoff
 
 
 @CrewBase
@@ -26,9 +26,13 @@ class SprintCrew:
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return vault_before_kickoff("sprint", ctx)
 
+    @after_kickoff
+    def save_to_vault(self, output):
+        vault_after_kickoff("sprint", output)
+        return output
+
     @agent
     def sprint_agent(self) -> Agent:
-        """Data agent — create sprint, check candidates, finalize. No Slack."""
         return Agent(
             config=interpolate_config(self.agents_config["sprint_agent"]),
             tools=[
@@ -40,7 +44,6 @@ class SprintCrew:
 
     @agent
     def sprint_post_agent(self) -> Agent:
-        """Post agent — Slack only, runs once after finalization."""
         return Agent(
             config=interpolate_config(self.agents_config["sprint_post_agent"]),
             tools=[post_sprint_plan],

@@ -1,5 +1,5 @@
 from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, before_kickoff, crew, task
+from crewai.project import CrewBase, agent, before_kickoff, after_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_activity,
@@ -8,7 +8,7 @@ from shared.tools import (
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_retro_metrics
-from shared.vault_hooks import vault_before_kickoff
+from shared.vault_hooks import vault_before_kickoff, vault_after_kickoff
 
 
 @CrewBase
@@ -23,6 +23,11 @@ class RetrospectiveCrew:
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return vault_before_kickoff("retrospective", ctx)
+
+    @after_kickoff
+    def save_to_vault(self, output):
+        vault_after_kickoff("retrospective", output)
+        return output
 
     @agent
     def retrospective_agent(self) -> Agent:

@@ -1,5 +1,5 @@
 from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, before_kickoff, crew, task
+from crewai.project import CrewBase, agent, before_kickoff, after_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, get_tasks_by_list, batch_compliance_check,
@@ -8,7 +8,7 @@ from shared.tools import (
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_exec_report
-from shared.vault_hooks import vault_before_kickoff
+from shared.vault_hooks import vault_before_kickoff, vault_after_kickoff
 
 
 @CrewBase
@@ -24,6 +24,11 @@ class ExecReportCrew:
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return vault_before_kickoff("exec_report", ctx)
+
+    @after_kickoff
+    def save_to_vault(self, output):
+        vault_after_kickoff("exec_report", output)
+        return output
 
     @agent
     def exec_reporter_agent(self) -> Agent:

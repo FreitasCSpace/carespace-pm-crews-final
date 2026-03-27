@@ -3,14 +3,14 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
 
 from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, before_kickoff, crew, task
+from crewai.project import CrewBase, agent, before_kickoff, after_kickoff, crew, task
 
 from shared.tools import (
     scan_sprint_sla, create_clickup_task, check_duplicate_task,
     notify_task_assignee, post_sla_breach, post,
 )
 from shared.config.context import interpolate_config
-from shared.vault_hooks import vault_before_kickoff
+from shared.vault_hooks import vault_before_kickoff, vault_after_kickoff
 
 
 @CrewBase
@@ -27,9 +27,13 @@ class SlaCrew:
         ctx.update(inputs or {})
         return vault_before_kickoff("sla", ctx)
 
+    @after_kickoff
+    def save_to_vault(self, output):
+        vault_after_kickoff("sla", output)
+        return output
+
     @agent
     def sla_monitor_agent(self) -> Agent:
-        """Data agent — scans sprint, creates alerts, DMs assignees."""
         return Agent(
             config=interpolate_config(self.agents_config["sla_monitor_agent"]),
             tools=[
@@ -41,7 +45,6 @@ class SlaCrew:
 
     @agent
     def sla_post_agent(self) -> Agent:
-        """Post agent — Slack only, no data collection."""
         return Agent(
             config=interpolate_config(self.agents_config["sla_post_agent"]),
             tools=[post_sla_breach, post],

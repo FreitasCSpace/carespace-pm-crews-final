@@ -1,5 +1,5 @@
 from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, before_kickoff, crew, task
+from crewai.project import CrewBase, agent, before_kickoff, after_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_tasks_by_list,
@@ -8,7 +8,7 @@ from shared.tools import (
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_standup_data
-from shared.vault_hooks import vault_before_kickoff
+from shared.vault_hooks import vault_before_kickoff, vault_after_kickoff
 
 
 @CrewBase
@@ -24,6 +24,11 @@ class DailyPulseCrew:
         ctx = crew_context()
         ctx.update(inputs or {})
         return vault_before_kickoff("daily_pulse", ctx)
+
+    @after_kickoff
+    def save_to_vault(self, output):
+        vault_after_kickoff("daily_pulse", output)
+        return output
 
     @agent
     def daily_pulse_agent(self) -> Agent:

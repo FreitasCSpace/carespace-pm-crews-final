@@ -1,5 +1,5 @@
 from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, before_kickoff, crew, task
+from crewai.project import CrewBase, agent, before_kickoff, after_kickoff, crew, task
 
 from shared.tools import (
     batch_compliance_check,
@@ -7,7 +7,7 @@ from shared.tools import (
 )
 from shared.config.context import interpolate_config
 from shared.guardrails import validate_compliance_output
-from shared.vault_hooks import vault_before_kickoff
+from shared.vault_hooks import vault_before_kickoff, vault_after_kickoff
 
 
 @CrewBase
@@ -23,9 +23,13 @@ class ComplianceCrew:
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
         return vault_before_kickoff("compliance", ctx)
 
+    @after_kickoff
+    def save_to_vault(self, output):
+        vault_after_kickoff("compliance", output)
+        return output
+
     @agent
     def gather_agent(self) -> Agent:
-        """Data-only agent for gather step — no Slack tools to prevent early posting."""
         return Agent(
             config=interpolate_config(self.agents_config["gather_agent"]),
             tools=[batch_compliance_check],
@@ -35,7 +39,6 @@ class ComplianceCrew:
 
     @agent
     def post_agent(self) -> Agent:
-        """Post agent — has Slack + alert tools, runs only after gather completes."""
         return Agent(
             config=interpolate_config(self.agents_config["post_agent"]),
             tools=[post_compliance],
