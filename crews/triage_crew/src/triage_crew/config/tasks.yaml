@@ -88,16 +88,30 @@ decide_and_execute_task:
 
 post_triage_task:
   description: >
-    Post ONE triage summary to {slack_alerts} using post_triage_summary.
-    Pass these sections from the previous step's results:
-    - priorities_set: bullet list of priority changes
-    - assignments: "None — backlog items stay unassigned"
-    - story_points: EXACT numbers from estimate task (e.g. "4 tasks
-      estimated (318 already had SP)"). Use the real sp_set and
-      already_has_sp counts. Do NOT fabricate numbers.
-    - alerts: bullet list of alerts created (backlog hygiene only)
-    - reasoning: why decisions were made. Include how many design tasks
-      were normalized if any were found.
+    Post ONE backlog health report to #pm-engineering using post_triage_summary.
+    Build the 5 parameters from ALL previous task results:
+
+    backlog_snapshot: one-line totals from scan_task, e.g.:
+      '342 tasks | 12 bugs | 45 features | 280 compliance | 5 other'
+      Use the EXACT counts from scan results — do NOT estimate.
+
+    hygiene_actions: combine results from dedup, normalize, estimate, and
+      decide tasks into a bullet list of what changed, e.g.:
+      '• 2 duplicates removed
+       • 5 tasks got SP estimates
+       • 1 priority adjusted (normal → high: security keyword)'
+      If nothing changed across all steps: 'Backlog clean — no actions needed'
+
+    design_tasks: from normalize_task results, e.g.:
+      '• 3 design tasks normalized ([TYPE] prefix + design tag added)'
+      If tasks_normalized == 0: 'None found'
+
+    aging_items: from scan_task sla_at_risk or aging analysis, list backlog
+      tasks older than 21 days with no updates. Include name, priority, age.
+      If none: 'None — all items fresh'
+
+    priority_distribution: from scan_task by_priority counts, e.g.:
+      'Urgent: 3 | High: 12 | Normal: 280 | Low: 47'
 
     Post ONE message only. Do NOT post multiple times.
 
@@ -114,10 +128,12 @@ post_triage_task:
       sp_estimated: N
       priorities_changed: N
       ---
-      ## Triage Report — YYYY-MM-DD
-      - Backlog: N total tasks
-      - Distribution: by_priority, by_tag summary
-      - Actions: priorities changed, SP estimated, aging flagged
+      ## Backlog Health — YYYY-MM-DD
+      - Total: N tasks
+      - Distribution: Urgent N | High N | Normal N | Low N
+      - Hygiene: what changed
+      - Design: N normalized
+      - Aging: N items >21d
 
     Also call vault_write with crew='context', filename='backlog-health.md'
     to overwrite with current backlog snapshot (total tasks, distribution,

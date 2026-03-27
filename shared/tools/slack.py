@@ -193,31 +193,45 @@ def _trunc(text: str, max_chars: int = 2800) -> str:
 
 
 @tool("Post Triage Summary to Slack")
-def post_triage_summary(priorities_set: str, assignments: str,
-                        story_points: str, alerts: str, reasoning: str) -> str:
+def post_triage_summary(backlog_snapshot: str, hygiene_actions: str,
+                        design_tasks: str, aging_items: str,
+                        priority_distribution: str) -> str:
     """
-    Posts a structured triage summary to #pm-engineering. Template enforced.
-    USE THIS for triage results — not the generic 'post' tool.
-    Do NOT add separators or headers — the tool handles formatting.
+    Posts a structured backlog health report to #pm-engineering.
+    Template enforced — do NOT use the generic 'post' tool.
 
-    priorities_set: bullet list of priority changes (or 'None')
-    assignments: bullet list of assignments made (or 'None')
-    story_points: summary of SP set (or 'None')
-    alerts: bullet list of alerts created (or 'None')
-    reasoning: why these decisions were made
+    backlog_snapshot: one-line totals, e.g.:
+      '342 tasks | 12 bugs | 45 features | 280 compliance | 5 other'
+    hygiene_actions: bullet list of what triage did this run, e.g.:
+      '• 3 duplicates removed
+       • 5 tasks estimated (SP set)
+       • 2 priorities adjusted (normal → high)'
+      Or 'Backlog clean — no actions needed' if nothing changed.
+    design_tasks: summary of Buena design tasks normalized, e.g.:
+      '• 4 design tasks normalized ([TASK] prefix + design tag added)'
+      Or 'None found' if no new design tasks.
+    aging_items: bullet list of backlog items >21d with no updates, e.g.:
+      '• [BUG] Login crash — urgent — 28d old
+       • [FEATURE] Export PDF — normal — 35d old'
+      Or 'None — all items fresh' if no aging items.
+    priority_distribution: compact breakdown, e.g.:
+      'Urgent: 3 | High: 12 | Normal: 280 | Low: 47'
     """
     today = date.today().strftime("%B %d, %Y")
     blocks = [
-        _hdr(f"🔍 Triage Report — {today}"),
-        _sec(_trunc(f"*Priorities Changed*\n{priorities_set or '_None_'}")),
-        _sec(_trunc(f"*Story Points Set*\n{story_points or '_None_'}")),
+        _hdr(f"📋 Backlog Health — {today}"),
+        _sec(f"*{backlog_snapshot}*"),
         _div(),
-        _sec(_trunc(f"*Alerts Created*\n{alerts or '_None_'}")),
+        _sec(_trunc(f"*🔧 Hygiene Actions*\n{hygiene_actions or '_No actions needed_'}")),
         _div(),
-        _sec(_trunc(f"*Reasoning*\n{reasoning}")),
-        _ctx("_Triage by CareSpace PM AI_"),
+        _sec(_trunc(f"*🎨 Design Tasks (Buena)*\n{design_tasks or '_None found_'}")),
+        _div(),
+        _sec(_trunc(f"*⏳ Aging Items (>21d)*\n{aging_items or '_All items fresh_'}")),
+        _div(),
+        _sec(f"*📊 Priority Distribution*\n{priority_distribution}"),
+        _ctx("_Backlog health by CareSpace PM AI_"),
     ]
-    r = _api(SLACK["engineering"], f"Triage Report {today}", blocks)
+    r = _api(SLACK["engineering"], f"Backlog Health {today}", blocks)
     return json.dumps({"ok": r.get("ok")})
 
 
