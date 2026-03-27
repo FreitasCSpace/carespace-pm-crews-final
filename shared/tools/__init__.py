@@ -1,5 +1,5 @@
 from .github import (
-    get_issues, get_prs, get_ci, get_stale_prs,
+    get_issues, get_prs, get_ci, get_stale_prs, get_stale_issues,
     get_contributors, get_activity, comment_issue,
     batch_import_engineering, batch_import_compliance, sync_closed_issues,
 )
@@ -20,5 +20,5 @@ from .clickup_helpers import (
     scan_backlog_for_triage, execute_triage_actions,
     suggest_sprint_candidates, add_to_sprint_candidates,
     list_sprint_candidates, finalize_sprint_from_candidates,
-    get_last_sprint_velocity,
+    get_last_sprint_velocity, scan_sprint_sla,
 )

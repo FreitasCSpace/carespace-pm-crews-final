@@ -7,7 +7,6 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     batch_import_engineering,
-    batch_import_compliance,
     sync_closed_issues,
     post,
 )
@@ -32,7 +31,6 @@ class IntakeCrewCrew:
             config=interpolate_config(self.agents_config["intake_agent"]),
             tools=[
                 batch_import_engineering,
-                batch_import_compliance,
                 sync_closed_issues,
                 post,
             ],

@@ -621,6 +621,77 @@ def _set_sp(task_id: str, points: int) -> bool:
         return False
 
 
+@tool("Scan Sprint SLA")
+def scan_sprint_sla() -> str:
+    """
+    Scans ONLY the active sprint for SLA breaches. Returns tasks that are
+    at risk (80%+ of SLA elapsed) or breached (100%+ of SLA elapsed).
+
+    This tool checks sprint-committed work only. Backlog items are NOT
+    subject to SLA — they are inventory, not commitments.
+
+    Returns: {sprint_name, sprint_tasks_checked, at_risk: [...], breached: [...]}
+    Each item includes: id, name, priority, assignees, age_hours, sla_hours.
+    """
+    from shared.config.context import BUG_SLA
+    from datetime import datetime
+
+    now_ms = int(datetime.utcnow().timestamp() * 1000)
+    result = {
+        "sprint_name": "",
+        "sprint_tasks_checked": 0,
+        "at_risk": [],
+        "breached": [],
+    }
+
+    try:
+        # Find active sprint
+        folder_data = _clickup_api(f"folder/{SPRINT_FOLDER_ID}/list")
+        active_list = None
+        for lst in folder_data.get("lists", []):
+            if "sprint" in lst["name"].lower():
+                active_list = lst
+        if not active_list:
+            result["error"] = "No active sprint found"
+            return json.dumps(result, indent=2)
+
+        result["sprint_name"] = active_list["name"]
+
+        # Load sprint tasks
+        sprint_data = _clickup_api(
+            f"list/{active_list['id']}/task?archived=false&include_closed=false"
+        )
+        tasks = sprint_data.get("tasks", [])
+        result["sprint_tasks_checked"] = len(tasks)
+
+        for t in tasks:
+            pri = t.get("priority", {}).get("priority", "normal") if t.get("priority") else "normal"
+            created_ms = int(t.get("date_created", "0"))
+            age_hours = round((now_ms - created_ms) / (1000 * 3600), 1) if created_ms else 0
+            sla_hours = BUG_SLA.get(pri, 168)
+            assignees = [a.get("username", "") for a in t.get("assignees", [])]
+
+            task_info = {
+                "id": t["id"],
+                "name": t["name"][:100],
+                "priority": pri,
+                "assignees": assignees,
+                "age_hours": age_hours,
+                "sla_hours": sla_hours,
+                "url": t.get("url", ""),
+            }
+
+            if age_hours > sla_hours:
+                result["breached"].append(task_info)
+            elif age_hours > sla_hours * 0.8:
+                result["at_risk"].append(task_info)
+
+    except Exception as e:
+        result["error"] = str(e)
+
+    return json.dumps(result, indent=2)
+
+
 @tool("Scan Backlog For Sprint Planning")
 def scan_backlog_for_sprint() -> str:
     """

@@ -313,7 +313,7 @@ CREW_SCHEDULE = {
     "intake_crew":            "Daily 07:00 PDT (cron: 0 14 * * *)",
     "daily_pulse_crew":       "Mon-Fri 07:45 PDT (cron: 45 14 * * 1-5)",
     "customer_success_crew":  "Daily 08:30 PDT (cron: 30 15 * * *)",
-    "pr_radar_crew":          "Daily 10:00 PDT (cron: 0 17 * * *)",
+    "sla_crew":               "Every 6 hours (cron: 0 */6 * * *)",
     "triage_crew":            "Every 6 hours (cron: 0 */6 * * *)",
     "deal_intel_crew":        "Monday 07:00 PDT (cron: 0 14 * * 1)",
     "exec_report_crew":       "Friday 17:00 PDT (cron: 0 0 * * 6)",

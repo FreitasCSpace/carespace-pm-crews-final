@@ -3,6 +3,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_tasks_by_list,
+    get_prs, get_contributors, get_stale_issues,
     post_standup,
 )
 from shared.config.context import interpolate_config
@@ -29,6 +30,7 @@ class DailyPulseCrew:
             config=interpolate_config(self.agents_config["daily_pulse_agent"]),
             tools=[
                 create_sprint_list, get_stale_prs, get_ci, get_tasks_by_list,
+                get_prs, get_contributors, get_stale_issues,
                 post_standup,
             ],
             verbose=True,

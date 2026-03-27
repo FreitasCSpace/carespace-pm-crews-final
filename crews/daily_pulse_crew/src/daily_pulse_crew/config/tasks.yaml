@@ -52,6 +52,7 @@ scan_and_gather:
     7. Find stale tasks: in progress but date_updated >{stale_task_days} days ago.
 
     8. Check GitHub: stale PRs (>{stale_pr_days}d) using get_stale_pull_requests.
+       Also identify CRITICAL stale PRs (>{critical_stale_pr_days}d) separately.
 
     9. Check CI using get_ci_status on repos:
        {ci_check_repos}.
@@ -60,6 +61,10 @@ scan_and_gather:
        If all repos pass, just note "All CI passing" — don't list them individually.
        For failures, include the GitHub Actions link:
        https://github.com/carespace-ai/<repo>/actions
+
+    10. Check for STALE ISSUES using get_stale_issues.
+        These are GitHub issues with no comments for >{stale_task_days} days.
+        Flag them in the Needs Attention section so the team follows up.
 
     If no active sprint: scan Master Backlog ({master_backlog_id}) instead
     and report on backlog health.
@@ -118,12 +123,19 @@ compile_and_post:
     Stale (>{stale_task_days}d no update):
     • [Task name] — @assignee — last updated X days ago
 
-    Stale PRs:
+    Stale PRs (>{stale_pr_days}d):
+    • repo PR #N — Xd old — https://github.com/carespace-ai/repo/pull/N
+
+    Critical Stale PRs (>{critical_stale_pr_days}d) — URGENT:
     • repo PR #N — Xd old — https://github.com/carespace-ai/repo/pull/N
 
     CI Failures (ONLY if failing — skip if all passing):
     • [repo] — FAILING — https://github.com/carespace-ai/repo/actions
     If all CI is passing, just write: "All CI checks passing ✅"
+
+    Stale Issues (no comments >{stale_task_days}d):
+    • repo #N — [title] — Xd no comments — https://github.com/carespace-ai/repo/issues/N
+    If none found, write: "All issues have recent activity ✅"
 
     ═══════════════════════════════════
     ⚡ SPRINT RISKS
@@ -161,7 +173,7 @@ compile_and_post:
     - in_progress: active tasks with @assignee (X SP) (or 'None')
     - blocked: ONLY tasks with ClickUp status 'blocked' (or 'None')
     - pending: not-started tasks with @assignee (X SP)
-    - attention: stale tasks, stale PRs, CI failures
+    - attention: stale tasks, stale PRs, critical stale PRs, CI failures, stale issues
     - meeting_mode: just the headline, e.g.:
         '🔴 STANDUP MODE: 3 risks to discuss. 15-min focused session.'
         OR '🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion.'

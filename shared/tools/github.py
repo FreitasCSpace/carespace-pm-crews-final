@@ -685,6 +685,46 @@ def get_activity(repo: str, days: int = 14) -> str:
         return json.dumps({"error": str(e)})
 
 
+@tool("get_stale_github_issues")
+def get_stale_issues(days: int = 3) -> str:
+    """
+    Returns GitHub issues with no comments for N+ days across all repos.
+    Flags issues that may need follow-up — nobody has responded or updated.
+    """
+    now = datetime.utcnow()
+    cutoff = now - timedelta(days=days)
+    out = []
+    for rname in REPO_DOMAIN.keys():
+        try:
+            r = _repo(rname)
+            for issue in r.get_issues(state="open", sort="updated", direction="asc"):
+                if issue.pull_request:
+                    continue
+                # Check last comment date
+                comments = list(issue.get_comments())
+                if comments:
+                    last_comment = max(c.created_at.replace(tzinfo=None) for c in comments)
+                else:
+                    last_comment = issue.created_at.replace(tzinfo=None)
+                if last_comment < cutoff:
+                    days_silent = (now - last_comment).days
+                    out.append({
+                        "repo": rname,
+                        "number": issue.number,
+                        "title": issue.title,
+                        "days_no_comments": days_silent,
+                        "last_activity": last_comment.isoformat(),
+                        "url": issue.html_url,
+                    })
+                if len(out) >= 30:
+                    break
+        except Exception:
+            pass
+        if len(out) >= 30:
+            break
+    return json.dumps(out, indent=2)
+
+
 @tool("Comment on GitHub Issue")
 def comment_issue(repo: str, issue_number: int, comment: str) -> str:
     """

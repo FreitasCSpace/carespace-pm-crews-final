@@ -110,33 +110,6 @@ def validate_triage_actions(result):
     return (True, raw)
 
 
-# ── PR Radar Crew ────────────────────────────────────────────────────────────
-
-def validate_pr_radar_output(result):
-    """Ensure PR radar scan collected PR and CI data.
-
-    This guardrail runs on the SCAN task (before posting) so retries
-    don't cause duplicate Slack posts.
-    """
-    raw = result.raw if hasattr(result, "raw") else str(result)
-    lower = raw.lower()
-
-    has_pr_data = any(w in lower for w in ["stale", "pr", "pull request",
-                                            "total_prs", "stale_prs"])
-    has_ci_data = any(w in lower for w in ["ci", "passing", "failing",
-                                            "ci_failures", "actions"])
-
-    if not has_pr_data:
-        return (False, "Scan must include PR data. "
-                "Call get_stale_pull_requests to find stale PRs.")
-
-    if not has_ci_data:
-        return (False, "Scan must include CI status. "
-                "Call get_ci_status on key repos.")
-
-    return (True, raw)
-
-
 # ── Compliance Crew ──────────────────────────────────────────────────────────
 
 def validate_compliance_output(result):

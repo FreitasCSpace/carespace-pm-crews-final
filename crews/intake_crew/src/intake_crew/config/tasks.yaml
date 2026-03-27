@@ -1,22 +1,17 @@
 intake_scan:
   description: >
-    Import GitHub issues into the ClickUp Master Backlog. Three steps:
+    Import GitHub issues into the ClickUp Master Backlog.
 
     1. Call batch_import_engineering — imports all open issues from
        carespace-ai repos. Returns JSON with tasks_created, duplicates_skipped.
 
-    2. Call batch_import_compliance — imports all open issues from
-       the VantaCrews compliance repo. Returns JSON with tasks_created,
-       duplicates_skipped, alerts_created.
-
-    3. If total tasks_created > 0, post summary to {slack_engineering}:
-       'Intake complete. Engineering: X new (Y skipped). Compliance: Z new (W skipped).'
+    2. If tasks_created > 0, post summary to {slack_engineering}:
+       'Intake complete. Engineering: X new (Y skipped).'
 
     Each batch tool handles dedup, creation, tagging, and cross-linking
     internally. You do NOT need to process individual issues.
   expected_output: >
-    JSON summary combining both results: {engineering: {tasks_created, duplicates_skipped},
-    compliance: {tasks_created, duplicates_skipped, alerts_created},
+    JSON summary: {engineering: {tasks_created, duplicates_skipped},
     total_new: N, slack_posted: bool}
   agent: intake_agent
 

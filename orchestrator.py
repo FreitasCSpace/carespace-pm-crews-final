@@ -2,7 +2,7 @@
 """Parallel Orchestrator — run CareSpace PM crews concurrently.
 
 Usage:
-    python orchestrator.py                          # run all 10 crews
+    python orchestrator.py                          # run all crews
     python orchestrator.py --crews intake,triage    # run specific crews
     python orchestrator.py --daily                  # run daily schedule only
     python orchestrator.py --sprint                 # run sprint cycle crews
@@ -58,12 +58,12 @@ PM_CREWS: dict[str, dict[str, Any]] = {
         "description": "Onboarding SLA + churn risk",
         "inputs": {},
     },
-    "pr_radar": {
-        "module": "pr_radar_crew.crew",
-        "class": "PrRadarCrew",
-        "schedule": "daily",
-        "cron": "0 10 * * *",
-        "description": "Stale PRs + CI failures",
+    "sla": {
+        "module": "sla_crew.crew",
+        "class": "SlaCrew",
+        "schedule": "6h",
+        "cron": "0 */6 * * *",
+        "description": "Sprint SLA enforcement + alerts",
         "inputs": {},
     },
     "triage": {
@@ -116,7 +116,7 @@ PM_CREWS: dict[str, dict[str, Any]] = {
 
 # Schedule groups
 SCHEDULE_GROUPS = {
-    "daily": ["compliance", "intake", "daily_pulse", "customer_success", "pr_radar", "triage"],
+    "daily": ["compliance", "intake", "daily_pulse", "customer_success", "sla", "triage"],
     "weekly": ["deal_intel", "exec_report"],
     "sprint": ["sprint", "retrospective"],
     "all": list(PM_CREWS.keys()),

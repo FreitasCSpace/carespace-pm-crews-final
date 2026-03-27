@@ -1,0 +1,39 @@
+scan_sprint_sla_task:
+  description: >
+    Scan the active sprint for SLA breaches.
+
+    1. Call scan_sprint_sla to get all sprint tasks with SLA status.
+       This returns tasks that are at risk (80%+ of SLA) or breached (100%+).
+
+    2. For each breached or at-risk task:
+       a. Call check_duplicate_task to see if an alert already exists.
+       b. If no alert exists, call create_clickup_task in the alerts list
+          ({alerts_id}) with:
+          - Name: "[SLA BREACH] {task_name}" or "[SLA AT RISK] {task_name}"
+          - Priority: 1 (urgent) for breaches, 2 (high) for at-risk
+          - Tags: ["sla", "sprint"]
+       c. Call notify_task_assignee to DM the assignee about the SLA status.
+
+    3. Collect results for the post agent.
+  expected_output: >
+    JSON: {sprint_tasks_checked: N, at_risk: [{task_name, assignee, sla_hours, age_hours}],
+    breached: [{task_name, assignee, sla_hours, age_hours}],
+    alerts_created: N, dms_sent: N}
+  agent: sla_monitor_agent
+
+post_sla_report_task:
+  description: >
+    Post the SLA monitoring results to Slack.
+
+    If there are breaches or at-risk items:
+    Post to #pm-alerts using post_sla_breach for each breached task,
+    then post a summary using the generic post tool to {slack_alerts}:
+    'SLA Monitor: X breaches, Y at risk out of Z sprint tasks.'
+
+    If no SLA issues found:
+    Do NOT post anything — silence means healthy.
+  expected_output: >
+    Confirmation of posts sent, or 'No SLA issues — no post needed.'
+  agent: sla_post_agent
+  context:
+    - scan_sprint_sla_task
