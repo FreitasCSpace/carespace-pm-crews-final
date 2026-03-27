@@ -69,8 +69,8 @@ scan_and_gather:
        Report this as a "PR Coverage" sub-section in Needs Attention.
 
     9. Check GitHub: stale PRs (>{stale_pr_days}d) using get_stale_pull_requests.
-       Also identify CRITICAL stale PRs (>{critical_stale_pr_days}d) separately.
        IMPORTANT: Only include PRs that are RELATED to sprint tasks.
+       No "critical stale PRs" category — sprints are 2 weeks.
        Cross-reference PR titles/branches with sprint task names.
        If a PR doesn't match any sprint task, SKIP it.
        If the sprint is empty, skip stale PR reporting entirely.
@@ -134,14 +134,17 @@ compile_and_post:
 
     ✅ Done:
     • <clickup_url|Task name> — @assignee · X SP
+    If no tasks are done, SKIP this sub-section entirely.
 
     🔄 In Progress:
     • <clickup_url|Task name> — @assignee · X SP
+    If no tasks in progress, SKIP this sub-section entirely.
 
     🚫 Blocked:
     • <clickup_url|Task name> — @assignee · Reason
     ONLY tasks whose ClickUp STATUS field is literally 'blocked'.
-    If no tasks have blocked status, show "None".
+    If no tasks have blocked status, SKIP this entire sub-section.
+    Do NOT show "Blocked: None".
 
     ⏳ To Do:
     • <clickup_url|Task name> — @assignee · X SP
@@ -157,35 +160,32 @@ compile_and_post:
     ═══════════════════════════════════
     ⚠️ NEEDS ATTENTION
     ═══════════════════════════════════
-    Stale sprint tasks (no activity for 3+ days):
-    • <clickup_url|Task name> — @assignee · Xd no activity
-    These are sprint tasks with no ClickUp updates for 3+ days.
+    This section is a flat bullet list. ONLY show items that have problems.
+    Do NOT show sub-section headers. Do NOT show "None" for empty categories.
+    If nothing needs attention, just write: "All clear ✅"
 
-    PR Coverage (sprint tasks missing a PR):
-    • <clickup_url|Task name> — @assignee · in progress, no PR found
-    Only flag "in progress" tasks with no matching open PR.
-    If all in-progress tasks have PRs, write: "All in-progress tasks have PRs ✅"
+    Each item gets a single emoji prefix to indicate type:
+    • 😴 = stale task (no activity 3+ days)
+    • 🔀 = missing PR (in progress but no code tracked)
+    • 🐌 = stale PR (open >{stale_pr_days}d)
+    • 🔴 = CI failing
+    • 💬 = stale issue (no comments 3+ days)
 
-    Stale PRs related to sprint tasks (>{stale_pr_days}d):
-    • <github_pr_url|PR title> — Xd old
-    ONLY include PRs that match sprint task names/branches. Skip unrelated PRs.
+    Examples:
+    • 😴 <clickup_url|Task name> — @assignee · 5d no activity
+    • 🔀 <clickup_url|Task name> — @kishorkumar · in progress, no PR
+    • 🐌 <github_pr_url|PR title> — 9d old
+    • 🔴 <github_actions_url|carespace-admin> — CI failing
+    • 💬 <clickup_url|Task name> — 9d no comments
 
-    Critical Stale PRs (>{critical_stale_pr_days}d) — URGENT:
-    • <github_pr_url|PR title> — Xd old
+    If ALL CI is passing, add one line: ✅ All CI passing
+    Do NOT add lines for categories with zero items.
 
-    CI Failures (ONLY if failing — skip if all passing):
-    • <github_actions_url|repo> — FAILING
-    If all CI is passing, just write: "All CI checks passing ✅"
-
-    Stale Issues matching sprint tasks (no comments >{stale_task_days}d):
-    • <clickup_url|Task name> — Xd no comments
-    Use the ClickUp URL from the matching sprint task, not the GitHub issue URL.
-    Only include issues that match a current sprint task. Skip backlog issues.
-
-    FORMAT RULES for Needs Attention:
-    - All items must be clickable Slack links: <url|display text>
-    - Use ClickUp URLs for tasks/issues, GitHub URLs for PRs and CI
-    - Keep each line to one short line — no multi-line items
+    RULES:
+    - Stale PRs: only sprint-related PRs. Skip unrelated.
+    - Missing PR: only flag "in progress" tasks. "To do" tasks don't need PRs yet.
+    - Stale issues: only issues matching sprint task names. Use ClickUp URL.
+    - No "Critical Stale PRs" category — sprints are 2 weeks, not applicable.
 
     ═══════════════════════════════════
     ⚡ SPRINT RISKS
