@@ -717,7 +717,7 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 7
             if "huddle" not in title.lower():
                 continue
             file_id = f.get("id", "")
-            # Get full content
+            # Get full content — quip canvases need url_private download
             content = ""
             try:
                 fi_resp = requests.get(
@@ -727,12 +727,38 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 7
                     timeout=10,
                 )
                 fi_data = fi_resp.json().get("file", {})
-                content = (
-                    fi_data.get("plain_text", "")
-                    or fi_data.get("preview", "")
-                    or fi_data.get("content", "")
-                    or title
-                )
+                content = fi_data.get("plain_text", "") or fi_data.get("preview", "")
+                # Quip canvases have empty plain_text — download via url_private
+                if not content and fi_data.get("url_private"):
+                    try:
+                        dl_resp = requests.get(
+                            fi_data["url_private"],
+                            headers=headers,
+                            timeout=15,
+                        )
+                        if dl_resp.status_code == 200:
+                            # Strip HTML tags for clean text
+                            import re
+                            html = dl_resp.text
+                            # Remove img tags, scripts, styles
+                            html = re.sub(r'<(img|script|style)[^>]*>.*?</\1>', '', html, flags=re.DOTALL)
+                            html = re.sub(r'<img[^>]*/?>', '', html)
+                            # Convert common elements to readable text
+                            html = re.sub(r'<br\s*/?>', '\n', html)
+                            html = re.sub(r'<hr[^>]*/?>', '\n---\n', html)
+                            html = re.sub(r'<li[^>]*>', '• ', html)
+                            html = re.sub(r'<h[12][^>]*>', '\n## ', html)
+                            html = re.sub(r'</h[12]>', '\n', html)
+                            html = re.sub(r'<h[3-6][^>]*>', '\n### ', html)
+                            html = re.sub(r'</h[3-6]>', '\n', html)
+                            # Remove remaining tags
+                            html = re.sub(r'<[^>]+>', '', html)
+                            # Clean up whitespace
+                            content = re.sub(r'\n{3,}', '\n\n', html).strip()
+                    except Exception:
+                        pass
+                if not content:
+                    content = title
             except Exception:
                 content = title
 
