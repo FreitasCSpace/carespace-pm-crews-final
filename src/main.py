@@ -68,7 +68,7 @@ CREW_REGISTRY = {
 
 # ── Flow ─────────────────────────────────────────────────────────────────────
 
-@persist
+@persist()
 class PMCrewsFlow(Flow[PMFlowState]):
     """Orchestrates all 9 CareSpace PM crews with typed state and persistence.
 
