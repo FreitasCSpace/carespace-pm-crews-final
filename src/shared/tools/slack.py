@@ -103,20 +103,31 @@ def post_standup(executive_summary: str, done: str, in_progress: str,
         _hdr(f"📊 Sprint Digest — {today}"),
         _sec(f"*Executive Summary*\n{_trim(executive_summary)}"),
         _div(),
-        _sec(_trim(
-            f"*✅ Done*\n{done or '_None_'}\n\n"
-            f"*🔄 In Progress*\n{in_progress or '_None_'}\n\n"
-            f"*🚫 Blocked*\n{blocked or '_None_'}\n\n"
-            f"*⏳ To Do*\n{pending or '_None_'}"
-        )),
-        _div(),
-        _sec(f"*⚠️ Needs Attention*\n{_trim(attention) or '_All clear_'}"),
-        _div(),
     ]
-    # Add sprint risks section if there are items at risk
-    if blocker_details and blocker_details.strip():
-        blocks.append(_sec(f"*⚡ Sprint Risks*\n{blocker_details}"))
+
+    # Sprint status — only add sections that have content
+    if done and done.strip() and done.strip().lower() != "none":
+        blocks.append(_sec(f"*✅ Done*\n{_trim(done)}"))
         blocks.append(_div())
+    if in_progress and in_progress.strip() and in_progress.strip().lower() != "none":
+        blocks.append(_sec(f"*🔄 In Progress*\n{_trim(in_progress)}"))
+        blocks.append(_div())
+    if blocked and blocked.strip() and blocked.strip().lower() != "none":
+        blocks.append(_sec(f"*🚫 Blocked*\n{_trim(blocked)}"))
+        blocks.append(_div())
+    if pending and pending.strip() and pending.strip().lower() != "none":
+        blocks.append(_sec(f"*⏳ To Do*\n{_trim(pending)}"))
+        blocks.append(_div())
+
+    # Needs attention
+    blocks.append(_sec(f"*⚠️ Needs Attention*\n{_trim(attention) or '_All clear ✅_'}"))
+    blocks.append(_div())
+
+    # Sprint risks — only if there are items at risk
+    if blocker_details and blocker_details.strip():
+        blocks.append(_sec(f"*⚡ Sprint Risks*\n{_trim(blocker_details)}"))
+        blocks.append(_div())
+
     blocks.append(_sec(f"*🎯 Meeting Mode*\n{meeting_mode}"))
     blocks.append(_ctx("_Posted by CareSpace PM AI_"))
 
