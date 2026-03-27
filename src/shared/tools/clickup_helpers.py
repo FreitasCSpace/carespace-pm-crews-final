@@ -111,12 +111,21 @@ def check_stale_sprint_tasks(task_ids_json: str, days: int = 3) -> str:
             comments_data = _clickup_api(f"task/{task_id}/comment")
             comments = comments_data.get("comments", [])
             if not comments:
-                # No comments at all — flag as stale
-                stale.append({
-                    "task_id": task_id,
-                    "days_silent": 999,
-                    "last_comment_date": None,
-                })
+                # No comments ever — use task creation date from the task itself
+                try:
+                    task_data = _clickup_api(f"task/{task_id}")
+                    created_ts = int(task_data.get("date_created", "0"))
+                    created_dt = datetime.fromtimestamp(created_ts / 1000, tz=timezone.utc)
+                    days_since = (datetime.now(timezone.utc) - created_dt).days
+                except Exception:
+                    days_since = 0
+                if days_since >= days:
+                    stale.append({
+                        "task_id": task_id,
+                        "days_silent": days_since,
+                        "last_comment_date": None,
+                        "note": "no comments ever",
+                    })
                 continue
 
             # Find the most recent comment date
