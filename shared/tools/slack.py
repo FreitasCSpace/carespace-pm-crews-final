@@ -355,26 +355,6 @@ def post_retro(sprint_name: str, completion_pct: float,
     return json.dumps({"ok": r.get("ok")})
 
 
-# ── GTM Pipeline ──────────────────────────────────────────────────────────────
-
-@tool("Post GTM Intelligence to Slack")
-def post_gtm(headline: str, deals_at_risk: int, pipeline_value: str,
-             gaps: str, actions: str) -> str:
-    """Posts the weekly GTM pipeline intelligence report to #pm-gtm."""
-    today = date.today().strftime("%B %d, %Y")
-    r = _api(SLACK["gtm"], "GTM Pipeline Update", [
-        _hdr(f"💰 GTM Pipeline — {today}"),
-        _sec(headline),
-        _sec(f"• *Deals at risk:* {deals_at_risk}\n• *Pipeline value:* {pipeline_value}"),
-        _div(),
-        _sec(f"*Coverage gaps:*\n{gaps or '_None detected_'}"),
-        _div(),
-        _sec(f"*Recommended actions:*\n{actions}"),
-        _ctx("_GTM report by CareSpace PM AI_"),
-    ])
-    return json.dumps({"ok": r.get("ok")})
-
-
 # ── Executive Report ──────────────────────────────────────────────────────────
 
 @tool("post_executive_report")
@@ -621,51 +601,6 @@ def post_compliance(health_headline: str, changes_section: str,
     ])
 
     r = _api(SLACK["compliance"], f"Compliance Health {today}", blocks)
-    return json.dumps({"ok": r.get("ok")})
-
-
-# ── Customer Success ──────────────────────────────────────────────────────────
-
-@tool("Post Customer Success Alert to Slack")
-def post_cs_alert(account_name: str, risk_type: str, detail: str) -> str:
-    """Posts a customer success risk alert to #pm-customer-success."""
-    today = date.today().strftime("%B %d, %Y")
-    r = _api(SLACK["cs"], f"CS Alert: {account_name}", [
-        _hdr(f"🧑‍💼 Customer Success — {today}"),
-        _sec(
-            f"*Account:* {account_name}\n"
-            f"*Risk:* {risk_type}\n"
-            f"*Detail:* {detail}"
-        ),
-        _ctx("_CS alert by CareSpace PM AI_"),
-    ])
-    return json.dumps({"ok": r.get("ok")})
-
-
-@tool("post_cs_summary")
-def post_cs_summary(onboarding_health: str, support_health: str,
-                    churn_risks: str, actions_taken: str) -> str:
-    """
-    Posts a daily customer success summary to #pm-customer-success.
-    Only call this if there are actual issues to report — skip if healthy.
-
-    onboarding_health: e.g. '5 active, 1 stale (>7d), 0 unowned'
-    support_health: e.g. '3 open tickets, 1 unresponsive (>24h), 0 stale'
-    churn_risks: details of flagged accounts, or 'None detected'
-    actions_taken: alerts created, feedback routed, etc.
-    """
-    today = date.today().strftime("%B %d, %Y")
-    r = _api(SLACK["cs"], f"CS Summary {today}", [
-        _hdr(f"🧑‍💼 Customer Success Summary — {today}"),
-        _sec(
-            f"*Onboarding Health*\n{onboarding_health}\n\n"
-            f"*Support Health*\n{support_health}\n\n"
-            f"*Churn Risks*\n{churn_risks}"
-        ),
-        _div(),
-        _sec(f"*Actions Taken*\n{actions_taken}"),
-        _ctx("_CS summary by CareSpace PM AI_"),
-    ])
     return json.dumps({"ok": r.get("ok")})
 
 

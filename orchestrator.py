@@ -50,14 +50,6 @@ PM_CREWS: dict[str, dict[str, Any]] = {
         "description": "Standup + blocker detection",
         "inputs": {"sprint_list_id": ""},  # set by active sprint lookup
     },
-    "customer_success": {
-        "module": "customer_success_crew.crew",
-        "class": "CustomerSuccessCrew",
-        "schedule": "daily",
-        "cron": "30 8 * * *",
-        "description": "Onboarding SLA + churn risk",
-        "inputs": {},
-    },
     "sla": {
         "module": "sla_crew.crew",
         "class": "SlaCrew",
@@ -73,14 +65,6 @@ PM_CREWS: dict[str, dict[str, Any]] = {
         "cron": "0 */6 * * *",
         "description": "SLA enforcement + rules + auto-assign",
         "inputs": {"sprint_list_id": ""},
-    },
-    "deal_intel": {
-        "module": "deal_intel_crew.crew",
-        "class": "DealIntelCrew",
-        "schedule": "weekly",
-        "cron": "0 7 * * 1",
-        "description": "GTM pipeline health",
-        "inputs": {},
     },
     "sprint": {
         "module": "sprint_crew.crew",
@@ -116,8 +100,8 @@ PM_CREWS: dict[str, dict[str, Any]] = {
 
 # Schedule groups
 SCHEDULE_GROUPS = {
-    "daily": ["compliance", "intake", "daily_pulse", "customer_success", "sla", "triage"],
-    "weekly": ["deal_intel", "exec_report"],
+    "daily": ["compliance", "intake", "daily_pulse", "sla", "triage"],
+    "weekly": ["exec_report"],
     "sprint": ["sprint", "retrospective"],
     "all": list(PM_CREWS.keys()),
 }

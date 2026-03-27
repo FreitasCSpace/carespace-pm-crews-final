@@ -5,8 +5,8 @@ from .github import (
 )
 from .slack import (
     post, post_standup, post_sprint_plan, post_blocker, post_blocker_summary,
-    post_sla_breach, post_retro, post_gtm, post_exec, post_compliance,
-    post_cs_alert, post_cs_summary, post_triage_summary, post_pr_radar,
+    post_sla_breach, post_retro, post_exec, post_compliance,
+    post_triage_summary, post_pr_radar,
     notify_task_assignee, fetch_huddle_notes, post_huddle_actions,
 )
 # Vanta health check via direct API (no MCP needed).

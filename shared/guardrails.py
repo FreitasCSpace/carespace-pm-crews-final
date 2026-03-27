@@ -136,23 +136,6 @@ def validate_compliance_output(result):
     return (True, raw)
 
 
-# ── Customer Success Crew ────────────────────────────────────────────────────
-
-def validate_cs_output(result):
-    """Ensure CS monitoring checked both lists."""
-    raw = result.raw if hasattr(result, "raw") else str(result)
-    lower = raw.lower()
-
-    has_onboarding = "onboarding" in lower or "account" in lower
-    has_support = "support" in lower or "ticket" in lower or "escalation" in lower
-
-    if not has_onboarding and not has_support:
-        return (False, "CS output must cover both Onboarding & Accounts "
-                "and Support Escalations lists.")
-
-    return (True, raw)
-
-
 # ── Exec Report Crew ─────────────────────────────────────────────────────────
 
 def validate_exec_report(result):
@@ -166,16 +149,14 @@ def validate_exec_report(result):
 
     dimensions = {
         "engineering": any(w in lower for w in ["sprint", "engineering", "velocity", "task"]),
-        "gtm": any(w in lower for w in ["gtm", "deal", "pipeline", "active_deals"]),
         "compliance": any(w in lower for w in ["compliance", "vanta", "hipaa", "control"]),
-        "customer_success": any(w in lower for w in ["customer", "onboarding", "churn", "support"]),
         "bugs": any(w in lower for w in ["bug", "sla", "defect", "backlog"]),
     }
 
     missing = [d for d, found in dimensions.items() if not found]
-    if len(missing) >= 3:
+    if len(missing) >= 2:
         return (False, f"Gathered data missing dimensions: {missing}. "
-                "Collect data for engineering, GTM, compliance, CS, and bug health "
+                "Collect data for engineering, compliance, and bug health "
                 "before proceeding to post.")
 
     return (True, raw)
@@ -202,24 +183,6 @@ def validate_standup_data(result):
     if not has_attention:
         return (False, "Scan data must include attention items. "
                 "Check stale PRs, CI status, and alerts.")
-
-    return (True, raw)
-
-
-# ── Deal Intel Crew ──────────────────────────────────────────────────────────
-
-def validate_deal_intel(result):
-    """Ensure pipeline analysis includes vertical breakdown.
-
-    This guardrail runs on the ANALYZE task (before posting) so retries
-    don't cause duplicate Slack posts.
-    """
-    raw = result.raw if hasattr(result, "raw") else str(result)
-    lower = raw.lower()
-
-    if "vertical" not in lower and "healthcare" not in lower and "pipeline" not in lower:
-        return (False, "Deal intel must include pipeline analysis by vertical. "
-                "Group deals by vertical tags and identify coverage gaps.")
 
     return (True, raw)
 

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/element13/**)",
+      "Bash(done)",
+      "Bash(grep -r \"try\\\\|except\\\\|error\\\\|Error\\\\|RETRY\\\\|fallback\" /home/element13/Coding Projects/carespace-pm-crews/shared/tools/*.py)",
+      "Bash(gh auth:*)",
+      "Bash(gh api:*)"
+    ]
+  }
+}
