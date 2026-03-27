@@ -16,7 +16,7 @@ scan_and_gather:
 
     1. Pull sprint tasks using get_tasks_by_list (include_closed=True).
        For each task note: name, STATUS (exact ClickUp status), assignee,
-       SP, last updated, tags.
+       SP, last updated, tags, and URL (clickup link for each task).
 
     2. Sprint timing:
        The sprint tool returns a pre-calculated "timing" object.
@@ -120,18 +120,26 @@ compile_and_post:
     ═══════════════════════════════════
 
     ✅ Done:
-    • [Task name] — @assignee (X SP)
+    • <clickup_url|Task name> — @assignee · X SP
 
     🔄 In Progress:
-    • [Task name] — @assignee (X SP)
+    • <clickup_url|Task name> — @assignee · X SP
 
     🚫 Blocked:
-    • [Task name] — @assignee — Reason: [why it's blocked]
+    • <clickup_url|Task name> — @assignee · Reason
     ONLY tasks whose ClickUp STATUS field is literally 'blocked'.
     If no tasks have blocked status, show "None".
 
     ⏳ To Do:
-    • [Task name] — @assignee (X SP)
+    • <clickup_url|Task name> — @assignee · X SP
+
+    FORMAT RULES for task lines:
+    - Use Slack link format: <https://app.clickup.com/t/TASKID|Task Name>
+    - Use the task URL from get_tasks_by_list output
+    - Drop the [TYPE] prefix — just use the clean task name
+    - Drop the GitHub issue reference (carespace-repo#N) — not useful here
+    - Use · (middle dot) to separate assignee and SP, not parentheses
+    - Keep each line short and scannable
 
     ═══════════════════════════════════
     ⚠️ NEEDS ATTENTION
