@@ -46,6 +46,7 @@ carespace-pm-crews-final/
 - **GitHub is source of truth** — ClickUp tasks sync status from GitHub issues
 - **Backlog stays unassigned** — assignees are set during sprint planning only
 - **Sprint-scoped reporting** — daily pulse only covers current sprint, never backlog
+- **3 task sources** — GitHub (engineering), Vanta (compliance, `[Vanta]` prefix), Design (Buena team, `design` tag)
 - **Single pipeline** — all work enters via GitHub → backlog crew → ClickUp backlog
 - **Sprint Candidates** — staging area where team curates what goes into the sprint
 - **No noise** — empty sections hidden, no "None" lines, no backlog dumps
@@ -61,6 +62,7 @@ carespace-pm-crews-final/
                                    • before_kickoff: Dedup → Normalize → SP
                                    • Agent 1: Import + sync
                                    • Agent 2: Backlog health + priorities
+                                   • Agent 3: Post combined report
                                                         │
                           ┌─────────────────────────────┘
                           ▼
@@ -91,9 +93,10 @@ GitHub↔ClickUp Sync: GitHub closed → ClickUp complete (and vice versa)
 **Schedule:** Every 3 hours | **Posts to:** `#pm-engineering`
 
 Full backlog pipeline in one run:
-- **before_kickoff** (deterministic, no LLM): dedup, normalize design tasks, estimate SP
-- **Agent 1** — GitHub import + two-way sync (GitHub closed = ClickUp complete)
-- **Agent 2** — scan backlog health, make priority decisions, post report
+- **before_kickoff** (deterministic, no LLM): dedup across all 3 lists (Master Backlog, Sprint lists, Sprint Candidates), normalize design tasks (skips Vanta), estimate SP
+- **Agent 1** — GitHub import + two-way sync across all 3 lists (GitHub closed = ClickUp complete)
+- **Agent 2** — scan backlog health (include_closed=true for accurate counts), make priority decisions
+- **Agent 3** — post ONE combined report to `#pm-engineering` (total items, bugs, features, compliance, design, tasks — every action item has clickable ClickUp + GitHub links)
 
 ### 2. Daily Pulse Crew
 **Schedule:** Mon-Fri 07:45 PDT | **Posts to:** `#pm-standup`

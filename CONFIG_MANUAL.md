@@ -88,6 +88,8 @@ SP_ESTIMATE = {
 
 ### Repo-to-Domain Map (`REPO_DOMAIN`)
 
+The backlog crew handles 3 task sources: **GitHub** (engineering issues), **Vanta** (compliance tasks created directly in ClickUp with `[Vanta]` prefix), and **Design** (Buena team tasks tagged `design`). Vanta tasks are skipped during normalization.
+
 When the backlog crew imports a GitHub issue, it tags by repo:
 
 ```python
