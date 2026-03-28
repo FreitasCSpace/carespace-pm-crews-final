@@ -54,12 +54,11 @@ class PMFlowState(BaseModel):
 # ── Crew Registry ────────────────────────────────────────────────────────────
 
 CREW_REGISTRY = {
-    "intake":        ("crews.intake.crew",        "IntakeCrew"),
-    "daily_pulse":   ("crews.daily_pulse.crew",   "DailyPulseCrew"),
-    "triage":        ("crews.triage.crew",        "TriageCrew"),
-    "sprint":        ("crews.sprint.crew",        "SprintCrew"),
-    "retrospective": ("crews.retrospective.crew", "RetrospectiveCrew"),
-    "huddle_notes":  ("crews.huddle_notes.crew",  "HuddleNotesCrew"),
+    "backlog":       ("crews.backlog.crew",        "BacklogCrew"),
+    "daily_pulse":   ("crews.daily_pulse.crew",    "DailyPulseCrew"),
+    "sprint":        ("crews.sprint.crew",         "SprintCrew"),
+    "retrospective": ("crews.retrospective.crew",  "RetrospectiveCrew"),
+    "huddle_notes":  ("crews.huddle_notes.crew",   "HuddleNotesCrew"),
 }
 
 
@@ -67,7 +66,7 @@ CREW_REGISTRY = {
 
 @persist()
 class PMCrewsFlow(Flow[PMFlowState]):
-    """Orchestrates all 6 CareSpace PM crews with typed state and persistence.
+    """Orchestrates all 5 CareSpace PM crews with typed state and persistence.
 
     CrewHub Input: {crew_name}
 

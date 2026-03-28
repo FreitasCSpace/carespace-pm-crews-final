@@ -27,12 +27,11 @@ log = logging.getLogger(__name__)
 # ── What each crew reads before running ──────────────────────────────────
 
 CREW_READS: dict[str, list[str]] = {
-    "intake": [],
+    "backlog": [
+        "context/backlog-health.md",
+    ],
     "daily_pulse": [
         "context/velocity.md",
-    ],
-    "triage": [
-        "context/backlog-health.md",
     ],
     "sprint": [
         "context/velocity.md",
@@ -45,8 +44,8 @@ CREW_READS: dict[str, list[str]] = {
 
 # Dynamic reads: crew → (vault_dir, how many recent files to read)
 CREW_DYNAMIC_READS: dict[str, list[tuple[str, int]]] = {
+    "backlog": [("backlog", 1), ("sprint/retros", 1)],
     "daily_pulse": [("sprint/daily", 1)],
-    "triage": [("backlog", 1), ("sprint/retros", 1)],
     "sprint": [("sprint/retros", 1)],
     "retrospective": [("sprint/plans", 1)],
     "huddle_notes": [("huddles", 1)],
@@ -114,9 +113,8 @@ def vault_before_kickoff(crew_name: str, inputs: dict) -> dict:
 # crew_name → (vault_crew_key, filename_pattern)
 # "date" = YYYY-MM-DD.md, "sprint" = needs sprint number (passed in output)
 CREW_WRITES: dict[str, tuple[str, str]] = {
-    "intake": ("intake", "datetime"),
+    "backlog": ("backlog", "datetime"),
     "daily_pulse": ("daily_pulse", "date"),
-    "triage": ("triage", "datetime"),
     "sprint": ("sprint_plan", "sprint"),
     "retrospective": ("sprint_retro", "sprint"),
     "huddle_notes": ("huddle_notes", "datetime"),
@@ -124,7 +122,7 @@ CREW_WRITES: dict[str, tuple[str, str]] = {
 
 # crew_name → context file to overwrite with latest state
 CREW_CONTEXT_WRITES: dict[str, str] = {
-    "triage": "backlog-health.md",
+    "backlog": "backlog-health.md",
     "retrospective": "velocity.md",
 }
 

@@ -15,9 +15,8 @@ VAULT_REPO = "FreitasCSpace/carespace-pm-vault"
 
 # Map crew names to vault directories
 CREW_DIRS = {
-    "intake": "intake",
+    "backlog": "backlog",
     "daily_pulse": "sprint/daily",
-    "triage": "backlog",
     "sprint_plan": "sprint/plans",
     "sprint_retro": "sprint/retros",
     "huddle_notes": "huddles",
@@ -60,8 +59,8 @@ def vault_write(crew: str, content: str, filename: str = "") -> str:
     Each crew run should write its output here for cross-crew context.
 
     crew: which crew is writing. One of:
-      compliance, intake, daily_pulse, sla, triage,
-      sprint_plan, sprint_retro, exec_report, huddle_notes, context
+      backlog, daily_pulse, sprint_plan, sprint_retro,
+      huddle_notes, context
     content: markdown content to write (include frontmatter)
     filename: optional override. Default: YYYY-MM-DD.md for daily crews,
       or must be provided for sprint-scoped files (e.g. 'sprint-1.md')
