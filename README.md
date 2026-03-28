@@ -1,6 +1,6 @@
 # CareSpace AI PM Crews
 
-Six AI-driven CrewAI crews orchestrated as a production Flow — managing project delivery for CareSpace, a healthcare SaaS with 18 engineers across 6 countries.
+Five AI-driven CrewAI crews orchestrated as a production Flow — managing project delivery for CareSpace, a healthcare SaaS with 18 engineers across 6 countries.
 
 **The contract:** Team curates Sprint Candidates. AI handles everything else.
 
@@ -13,10 +13,9 @@ carespace-pm-crews-final/
 ├── pyproject.toml                       # type = "flow" (CrewHub)
 ├── src/
 │   ├── main.py                          # PMCrewsFlow — single Flow dispatcher
-│   ├── crews/                           # 6 AI-driven crews
-│   │   ├── intake/                      # GitHub → ClickUp backlog sync
+│   ├── crews/                           # 5 AI-driven crews
+│   │   ├── backlog/                     # GitHub import + sync + backlog hygiene
 │   │   ├── daily_pulse/                 # Sprint digest + task health → #pm-standup
-│   │   ├── triage/                      # Backlog hygiene (dedup, SP, priorities)
 │   │   ├── sprint/                      # Finalize sprint from candidates
 │   │   ├── retrospective/              # Sprint close, carryovers, velocity
 │   │   └── huddle_notes/               # Slack huddle → vault summary
@@ -86,53 +85,41 @@ GitHub↔ClickUp Sync: GitHub closed → ClickUp complete (and vice versa)
 
 ## Crew Reference
 
-### 1. Intake Crew
+### 1. Backlog Crew (intake + triage merged)
 **Schedule:** Every 3 hours | **Posts to:** `#pm-engineering`
 
-Scans all carespace-ai GitHub repos, creates ClickUp tasks with tags.
-Two-way sync: GitHub closed = ClickUp complete, GitHub reopened = ClickUp "to do".
+Full backlog pipeline in one run:
+- **before_kickoff** (deterministic, no LLM): dedup, normalize design tasks, estimate SP
+- **Agent 1** — GitHub import + two-way sync (GitHub closed = ClickUp complete)
+- **Agent 2** — scan backlog health, make priority decisions, post report
 
 ### 2. Daily Pulse Crew
 **Schedule:** Mon-Fri 07:45 PDT | **Posts to:** `#pm-standup`
 
 Sprint-only digest with per-task health analysis:
-- **Sprint status** — done/in-progress/blocked/to-do (empty sections hidden)
-- **Task health** — each problematic task listed once with all issues:
-  stale (no comments 3d+), missing PR, unassigned, stale PR
+- **before_kickoff** (no LLM): gathers sprint tasks, stale checks, PR coverage
+- **Agent** — analyzes pre-gathered data, writes digest, posts via `post_standup`
+- **Task health** — each problematic task listed once with all issues
 - **Meeting mode** — standup or open slot based on risk count
 
-All tasks link to ClickUp. Clean format: `Task Name — @assignee · 3 SP`
-
-### 3. Triage Crew
-**Schedule:** Every 3 hours (15min after intake) | **Posts to:** `#pm-engineering`
-
-Backlog hygiene pipeline:
-1. Dedup (remove duplicate tasks)
-2. Normalize design tasks (Buena team)
-3. Estimate SP on unestimated tasks
-4. Scan health (priorities, aging >21d)
-5. Execute priority adjustments
-6. Post backlog health report
-
-### 4. Sprint Crew
-**Schedule:** Bi-weekly Sunday 18:00 PDT | **Posts to:** `#pm-sprint-board`
+### 3. Sprint Crew
+**Schedule:** Bi-weekly Sun 18:00 PDT | **Posts to:** `#pm-sprint-board`
 
 Executor, not decision-maker. Checks Sprint Candidates → validates → finalizes.
 If empty, warns team (does NOT auto-plan from backlog).
 
-### 5. Retrospective Crew
+### 4. Retrospective Crew
 **Schedule:** Bi-weekly Friday 16:00 PDT | **Posts to:** `#pm-sprint-board`
 
 Closes sprint: completed → archived, incomplete → backlog with "carryover" tag.
 Calculates velocity, per-engineer breakdown, recommends next sprint capacity.
 
-### 6. Huddle Notes Crew
+### 5. Huddle Notes Crew
 **Schedule:** Daily 11:00 PDT | **Writes to:** vault only
 
-Fetches today's huddle notes from Slack (`#carespace-team`), resolves user IDs
-to real names, produces structured summary (attendees, topics, actions, decisions,
-blockers). Saves to vault. No ClickUp tasks, no Slack posting.
-If no huddle today, writes nothing.
+- **before_kickoff** (no LLM): fetches today's huddle from Slack, resolves user IDs to names
+- **Agent** — summarizes pre-fetched content into structured markdown (zero tools)
+- If no huddle today, writes nothing to vault
 
 ---
 
@@ -141,8 +128,7 @@ If no huddle today, writes nothing.
 All times PDT (America/Los_Angeles).
 
 ```
-*/3h   intake             GitHub import + sync → #pm-engineering
-*/3h   triage             Backlog health → #pm-engineering (+15min after intake)
+*/3h   backlog            Import + sync + hygiene + health → #pm-engineering
 07:45  daily_pulse        Sprint Digest → #pm-standup
 11:00  huddle_notes       Slack huddle → vault (if huddle occurred)
 
@@ -186,7 +172,7 @@ carespace-pm-vault/
 |---------|------|---------|
 | `#pm-standup` | Daily Pulse | Sprint digest + task health (Mon-Fri) |
 | `#pm-sprint-board` | Sprint, Retro | Sprint plan, retrospective summary |
-| `#pm-engineering` | Intake, Triage | Import results, backlog health |
+| `#pm-engineering` | Backlog | Import results, backlog health |
 
 Huddle Notes crew does not post to Slack — vault only.
 
