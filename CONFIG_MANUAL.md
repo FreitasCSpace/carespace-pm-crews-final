@@ -162,12 +162,16 @@ Huddle Notes does not post to Slack — vault only.
 
 | Crew | Schedule | Cron (UTC) |
 |------|----------|-----------|
+All crons are in PDT (America/Los_Angeles) timezone.
+
+| Crew | Schedule | Cron (PDT) |
+|------|----------|-----------|
 | Intake | Every 3 hours | `0 */3 * * *` |
-| Triage | Every 3 hours (15min after intake) | `15 */3 * * *` |
-| Daily Pulse | Mon-Fri 07:45 PDT | `45 14 * * 1-5` |
-| Huddle Notes | Daily 08:00 PDT | `0 15 * * *` |
-| Retrospective | Bi-weekly Fri 16:00 PDT | `0 23 * * 5` |
-| Sprint | Bi-weekly Sun 18:00 PDT | `0 1 * * 1` |
+| Triage | Every 3 hours (+15min) | `15 */3 * * *` |
+| Daily Pulse | Mon-Fri 07:45 | `45 7 * * 1-5` |
+| Huddle Notes | Daily 08:00 | `0 8 * * *` |
+| Retrospective | Bi-weekly Fri 16:00 | `0 16 * * 5` |
+| Sprint | Bi-weekly Sun 18:00 | `0 18 * * 0` |
 
 ---
 

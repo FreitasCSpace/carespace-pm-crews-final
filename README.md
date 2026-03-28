@@ -138,14 +138,16 @@ If no huddle today, writes nothing.
 
 ## Daily Schedule (Oregon/PDT)
 
+All times PDT (America/Los_Angeles).
+
 ```
 */3h   intake             GitHub import + sync → #pm-engineering
-*/3h   triage             Backlog health → #pm-engineering (15min after intake)
+*/3h   triage             Backlog health → #pm-engineering (+15min after intake)
 07:45  daily_pulse        Sprint Digest → #pm-standup
 08:00  huddle_notes       Slack huddle → vault (if huddle occurred)
 
-Fri    retrospective      Sprint retro → #pm-sprint-board (bi-weekly)
-Sun    sprint             Finalize sprint → #pm-sprint-board (bi-weekly)
+Fri 16:00  retrospective  Sprint retro → #pm-sprint-board (bi-weekly)
+Sun 18:00  sprint         Finalize sprint → #pm-sprint-board (bi-weekly)
 ```
 
 ---
