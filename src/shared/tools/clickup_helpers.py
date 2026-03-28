@@ -404,20 +404,21 @@ def _assign_task(task_id: str, user_id: str) -> bool:
 @tool("Normalize Backlog Tasks")
 def normalize_backlog_tasks() -> str:
     """
-    Finds backlog tasks whose description does NOT contain a GitHub issue
-    link. These are design tasks created directly in ClickUp by the Buena
-    team (not imported from GitHub by intake).
+    Finds backlog tasks created directly in ClickUp (not from GitHub).
+    Differentiates between two sources:
 
-    For each such task:
-    1. Adds 'design' source tag (instead of 'github')
-    2. Renames to standard format: [TYPE] Original Title
-       TYPE is inferred from title keywords (FEATURE, BUG, TASK, etc.)
-    3. Infers and adds a domain tag if missing (frontend, backend, etc.)
+    1. Vanta/Compliance tasks — have 'compliance' tag or start with '[Vanta]'.
+       These are SKIPPED — they're already properly tagged and named.
 
-    Detection: no 'github.com' URL in the task description = design task.
-    Already-normalized tasks (have 'design' tag + [TYPE] prefix) are skipped.
+    2. Design tasks (Buena team) — no GitHub link, no compliance tag.
+       These get normalized: 'design' source tag + [TYPE] prefix + domain tag.
 
-    Returns: {tasks_scanned, tasks_normalized, details: [...]}
+    Detection logic:
+    - Has github.com URL in description → GitHub task, skip
+    - Has 'compliance' tag or starts with '[Vanta]' → Vanta task, skip
+    - Everything else without GitHub link → design task, normalize
+
+    Returns: {tasks_scanned, tasks_normalized, vanta_skipped, details: [...]}
     """
     import re
     from shared.config.context import DOMAIN_TAGS, DOMAIN_KEYWORDS
@@ -425,7 +426,7 @@ def normalize_backlog_tasks() -> str:
     _GITHUB_URL_RE = re.compile(r"github\.com/", re.IGNORECASE)
 
     stats = {"tasks_scanned": 0, "tasks_normalized": 0, "already_normalized": 0,
-             "skipped_has_github": 0, "details": []}
+             "skipped_has_github": 0, "vanta_skipped": 0, "details": []}
 
     try:
         all_tasks = []
@@ -451,6 +452,11 @@ def normalize_backlog_tasks() -> str:
             # If description contains a GitHub URL, this is a GitHub-sourced task — skip
             if _GITHUB_URL_RE.search(desc):
                 stats["skipped_has_github"] += 1
+                continue
+
+            # Vanta/compliance tasks — already properly tagged, skip
+            if "compliance" in tags or name.startswith("[Vanta]") or name.startswith("[COMPLIANCE]"):
+                stats["vanta_skipped"] += 1
                 continue
 
             # Already normalized: has 'design' tag and [TYPE] prefix
