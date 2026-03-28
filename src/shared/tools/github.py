@@ -351,6 +351,18 @@ def sync_closed_issues() -> str:
     except Exception as sprint_e:
         stats["sprint_scan_error"] = str(sprint_e)
 
+    # Also scan Sprint Candidates
+    try:
+        from shared.config.context import L
+        candidates_data = _clickup_api(
+            f"list/{L['sprint_candidates']}/task?archived=false&include_closed=true"
+        )
+        candidate_tasks = candidates_data.get("tasks", [])
+        all_tasks.extend(candidate_tasks)
+        stats["candidates_scanned"] = len(candidate_tasks)
+    except Exception:
+        pass
+
     # Extract GitHub refs from all tasks
     github_tasks = []
     for t in all_tasks:
