@@ -3,34 +3,59 @@ intake_scan:
     Import GitHub issues into the ClickUp Master Backlog.
 
     1. Call batch_import_engineering — imports all open issues from
-       carespace-ai repos. Returns JSON with tasks_created, duplicates_skipped.
+       carespace-ai repos. Returns JSON with detailed stats.
 
-    2. If tasks_created > 0, post summary to {slack_engineering}:
-       'Intake complete. Engineering: X new (Y skipped).'
+    2. Post a DETAILED report to {slack_engineering} using the post tool.
+       The report must be fully transparent — list every change made.
 
-    Each batch tool handles dedup, creation, tagging, and cross-linking
-    internally. You do NOT need to process individual issues.
+    Format the Slack message like this:
+
+    *Intake Report — [today's date]*
+
+    *New tasks created:* N
+    [For each new task, one line:]
+    • [REPO] Issue title — priority
+
+    *Duplicates skipped:* N (already in backlog)
+
+    *Repos scanned:* N
+    *Total issues found:* N
+    *Errors:* N (or "none")
+
+    If tasks_created == 0:
+    "No new issues found across N repos (Y duplicates skipped)."
+
+    ALWAYS post — even when nothing new. Transparency matters.
   expected_output: >
-    JSON summary: {engineering: {tasks_created, duplicates_skipped},
-    total_new: N, slack_posted: bool}
+    JSON summary with all stats from the import.
   agent: intake_agent
 
 close_sync:
   description: >
     Two-way sync between GitHub and ClickUp. Call sync_closed_issues ONCE.
-    GitHub is the source of truth:
+    GitHub is the source of truth.
 
-    - GitHub closed + ClickUp open → closes ClickUp task
-    - GitHub open + ClickUp closed → reopens ClickUp task to "to do"
+    Post a DETAILED sync report to {slack_engineering} using the post tool.
+    List every task that changed status:
 
-    Post to {slack_engineering} if ANY changes were made (closed or reopened):
-    'Backlog sync: X closed, Y reopened (GitHub source of truth).'
+    *Sync Report*
 
-    If clickup_closed == 0 AND clickup_reopened == 0, do NOT post.
+    *Closed (GitHub closed → ClickUp complete):* N
+    [For each closed task, one line:]
+    • Task name — github-repo#issue
+
+    *Reopened (GitHub open → ClickUp was closed):* N
+    [For each reopened task, one line:]
+    • Task name — github-repo#issue
+
+    *Backlog scanned:* N tasks | *GitHub refs found:* N
+
+    If NOTHING changed (closed == 0 AND reopened == 0):
+    "Sync complete — all N tasks in sync with GitHub. No changes."
+
+    ALWAYS post — even when nothing changed. Transparency matters.
   expected_output: >
-    JSON: {backlog_scanned: N, github_tasks_found: N, closed_on_github: N,
-    clickup_closed: N, reopened_from_github: N, clickup_reopened: N,
-    slack_posted: bool}
+    JSON with all sync stats.
   agent: intake_agent
   context:
     - intake_scan
