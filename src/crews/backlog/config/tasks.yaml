@@ -60,51 +60,6 @@ close_sync:
   context:
     - intake_scan
 
-dedup_task:
-  description: >
-    Call dedup_backlog_cleanup with dry_run=False to remove duplicate
-    tasks from the Master Backlog. Keep the oldest copy of each task.
-  expected_output: >
-    JSON with duplicates_found and tasks_deleted counts.
-  agent: backlog_analyst_agent
-  context:
-    - close_sync
-
-normalize_task:
-  description: >
-    Call normalize_backlog_tasks to find and fix tasks created directly
-    in ClickUp (not from GitHub). These are design tasks from the Buena team.
-
-    Detection: if the task description has NO github.com link, it's a design task.
-
-    The tool automatically:
-    - Adds 'design' source tag (instead of 'github')
-    - Renames to [TYPE] prefix format matching our nomenclature
-    - Adds domain tag if it can infer one from the title
-
-    Tasks that already have a GitHub link in the description are left untouched.
-  expected_output: >
-    JSON: {tasks_scanned, tasks_normalized, skipped_has_github, details}
-  agent: backlog_analyst_agent
-  context:
-    - dedup_task
-
-estimate_sp_task:
-  description: >
-    Call bulk_assign_and_estimate to set story points on ALL backlog
-    tasks that don't have SP yet and remove assignees from any assigned
-    tasks. Backlog items stay unassigned until sprint planning.
-
-    IMPORTANT: Return the EXACT numbers from the tool response.
-    Do NOT fabricate, round, or estimate any counts. Copy sp_set,
-    already_has_sp, and total_tasks verbatim from the JSON output.
-  expected_output: >
-    The EXACT JSON returned by bulk_assign_and_estimate — do not
-    paraphrase or summarize the numbers.
-  agent: backlog_analyst_agent
-  context:
-    - normalize_task
-
 scan_task:
   description: >
     Call scan_backlog_for_triage to get a health report of the backlog:
@@ -118,7 +73,7 @@ scan_task:
     The scan results JSON for analysis.
   agent: backlog_analyst_agent
   context:
-    - estimate_sp_task
+    - close_sync
 
 decide_and_execute_task:
   description: >
@@ -156,14 +111,17 @@ post_triage_task:
       '342 tasks | 12 bugs | 45 features | 280 compliance | 5 other'
       Use the EXACT counts from scan results — do NOT estimate.
 
-    hygiene_actions: combine results from dedup, normalize, estimate, and
-      decide tasks into a bullet list of what changed, e.g.:
+    hygiene_actions: Build from the {hygiene_stats} in your inputs. The stats
+      contain dedup (tasks_deleted, duplicates_found), normalize
+      (tasks_normalized), and estimate (sp_set, already_has_sp) results from
+      the automated cleanup that ran before your tasks started. Combine with
+      decide task results into a bullet list of what changed, e.g.:
       '• 2 duplicates removed
        • 5 tasks got SP estimates
        • 1 priority adjusted (normal → high: security keyword)'
       If nothing changed across all steps: 'Backlog clean — no actions needed'
 
-    design_tasks: from normalize_task results, e.g.:
+    design_tasks: from {hygiene_stats} normalize section, e.g.:
       '• 3 design tasks normalized ([TYPE] prefix + design tag added)'
       If tasks_normalized == 0: 'None found'
 

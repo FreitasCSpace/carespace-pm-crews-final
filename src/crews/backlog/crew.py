@@ -29,6 +29,45 @@ class BacklogCrew:
         from shared.config.context import crew_context
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
+
+        # ── Deterministic backlog hygiene (no LLM needed) ──
+        import json, logging
+        log = logging.getLogger(__name__)
+
+        # 1. Dedup
+        try:
+            result = dedup_backlog_cleanup.run(dry_run=False)
+            dedup_stats = json.loads(result) if isinstance(result, str) else result
+            log.info("backlog: dedup — %s duplicates removed", dedup_stats.get("tasks_deleted", 0))
+        except Exception as e:
+            dedup_stats = {"error": str(e)}
+            log.warning("backlog: dedup failed: %s", e)
+
+        # 2. Normalize
+        try:
+            result = normalize_backlog_tasks.run()
+            normalize_stats = json.loads(result) if isinstance(result, str) else result
+            log.info("backlog: normalize — %s tasks normalized", normalize_stats.get("tasks_normalized", 0))
+        except Exception as e:
+            normalize_stats = {"error": str(e)}
+            log.warning("backlog: normalize failed: %s", e)
+
+        # 3. Estimate SP
+        try:
+            result = bulk_assign_and_estimate.run()
+            estimate_stats = json.loads(result) if isinstance(result, str) else result
+            log.info("backlog: estimate — %s tasks got SP", estimate_stats.get("sp_set", 0))
+        except Exception as e:
+            estimate_stats = {"error": str(e)}
+            log.warning("backlog: estimate failed: %s", e)
+
+        # Inject stats so the analyst agent can reference them
+        ctx["hygiene_stats"] = json.dumps({
+            "dedup": dedup_stats,
+            "normalize": normalize_stats,
+            "estimate": estimate_stats,
+        })
+
         return ctx
 
     # ── Agents ────────────────────────────────────────────────────────────
@@ -53,9 +92,6 @@ class BacklogCrew:
         return Agent(
             config=interpolate_config(self.agents_config["backlog_analyst_agent"]),
             tools=[
-                dedup_backlog_cleanup,
-                normalize_backlog_tasks,
-                bulk_assign_and_estimate,
                 scan_backlog_for_triage,
                 execute_triage_actions,
             ],
@@ -84,18 +120,6 @@ class BacklogCrew:
     @task
     def close_sync(self) -> Task:
         return Task(config=interpolate_config(self.tasks_config["close_sync"]))
-
-    @task
-    def dedup_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["dedup_task"]))
-
-    @task
-    def normalize_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["normalize_task"]))
-
-    @task
-    def estimate_sp_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["estimate_sp_task"]))
 
     @task
     def scan_task(self) -> Task:
