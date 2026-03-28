@@ -169,7 +169,7 @@ All crons are in PDT (America/Los_Angeles) timezone.
 | Intake | Every 3 hours | `0 */3 * * *` |
 | Triage | Every 3 hours (+15min) | `15 */3 * * *` |
 | Daily Pulse | Mon-Fri 07:45 | `45 7 * * 1-5` |
-| Huddle Notes | Daily 08:00 | `0 8 * * *` |
+| Huddle Notes | Daily 11:00 | `0 11 * * *` |
 | Retrospective | Bi-weekly Fri 16:00 | `0 16 * * 5` |
 | Sprint | Bi-weekly Sun 18:00 | `0 18 * * 0` |
 

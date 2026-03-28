@@ -127,7 +127,7 @@ Closes sprint: completed → archived, incomplete → backlog with "carryover" t
 Calculates velocity, per-engineer breakdown, recommends next sprint capacity.
 
 ### 6. Huddle Notes Crew
-**Schedule:** Daily 08:00 PDT | **Writes to:** vault only
+**Schedule:** Daily 11:00 PDT | **Writes to:** vault only
 
 Fetches today's huddle notes from Slack (`#carespace-team`), resolves user IDs
 to real names, produces structured summary (attendees, topics, actions, decisions,
@@ -144,7 +144,7 @@ All times PDT (America/Los_Angeles).
 */3h   intake             GitHub import + sync → #pm-engineering
 */3h   triage             Backlog health → #pm-engineering (+15min after intake)
 07:45  daily_pulse        Sprint Digest → #pm-standup
-08:00  huddle_notes       Slack huddle → vault (if huddle occurred)
+11:00  huddle_notes       Slack huddle → vault (if huddle occurred)
 
 Fri 16:00  retrospective  Sprint retro → #pm-sprint-board (bi-weekly)
 Sun 18:00  sprint         Finalize sprint → #pm-sprint-board (bi-weekly)
