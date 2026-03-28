@@ -556,6 +556,10 @@ def scan_backlog_for_triage() -> str:
 
     summary = {
         "total_tasks": 0,
+        "bugs": 0,
+        "features": 0,
+        "compliance": 0,
+        "tasks": 0,
         "unassigned": [],
         "wrong_priority": [],
         "no_story_points": [],
@@ -594,6 +598,17 @@ def scan_backlog_for_triage() -> str:
             for tag in tags:
                 summary["by_tag"][tag] = summary["by_tag"].get(tag, 0) + 1
             summary["by_priority"][pri] = summary["by_priority"].get(pri, 0) + 1
+
+            # Count by type (from tags or title prefix)
+            name_upper = name.upper()
+            if "bug" in tags or name_upper.startswith("[BUG]"):
+                summary["bugs"] += 1
+            elif "compliance" in tags or name_upper.startswith("[COMPLIANCE]") or name_upper.startswith("[VANTA]"):
+                summary["compliance"] += 1
+            elif "feature" in tags or name_upper.startswith("[FEATURE]"):
+                summary["features"] += 1
+            else:
+                summary["tasks"] += 1
 
             task_info = {
                 "id": t["id"],

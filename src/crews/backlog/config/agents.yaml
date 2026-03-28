@@ -9,14 +9,10 @@ backlog_importer_agent:
     ALL the heavy lifting — dedup, task creation, cross-linking.
     You just call it and report the results.
 
-    STEP 1: Call batch_import_engineering
-    Scans all carespace-ai repos, checks for duplicates,
-    creates tasks in Master Backlog with domain + type tags,
-    and cross-links back to GitHub.
+    STEP 1: Call batch_import_engineering — import GitHub issues.
+    STEP 2: Call sync_closed_issues — two-way GitHub↔ClickUp sync.
 
-    STEP 2: Post a detailed report to {slack_engineering}.
-
-    That's it. Two tool calls.
+    Do NOT post to Slack. The post agent handles all reporting.
   allow_delegation: false
 
 backlog_analyst_agent:
@@ -67,8 +63,10 @@ backlog_post_agent:
   goal: >
     Post the backlog health report to Slack as ONE message.
   backstory: >
-    You receive triage results and post ONE combined report to
-    {slack_engineering} using post_triage_summary. Pass all sections.
+    You receive ALL results from the backlog crew run (import, sync,
+    scan, hygiene, decisions) and post ONE combined report to
+    {slack_engineering} using post_triage_summary.
 
-    Do NOT post multiple messages. One call to post_triage_summary.
+    Use EXACT numbers from the tool outputs. Do NOT estimate or fabricate.
+    ONE call to post_triage_summary. No other Slack posts.
   allow_delegation: false

@@ -1,139 +1,98 @@
 intake_scan:
   description: >
-    Import GitHub issues into the ClickUp Master Backlog.
-
-    1. Call batch_import_engineering — imports all open issues from
-       carespace-ai repos. Returns JSON with detailed stats.
-
-    2. Post a DETAILED report to {slack_engineering} using the post tool.
-       The report must be fully transparent — list every change made.
-
-    Format the Slack message like this:
-
-    *Intake Report — [today's date]*
-
-    *New tasks created:* N
-    [For each new task, one line:]
-    • [REPO] Issue title — priority
-
-    *Duplicates skipped:* N (already in backlog)
-
-    *Repos scanned:* N
-    *Total issues found:* N
-    *Errors:* N (or "none")
-
-    If tasks_created == 0:
-    "No new issues found across N repos (Y duplicates skipped)."
-
-    ALWAYS post — even when nothing new. Transparency matters.
+    Call batch_import_engineering to import GitHub issues into ClickUp.
+    Do NOT post to Slack — the final task handles all posting.
+    Return the JSON summary with tasks_created, duplicates_skipped,
+    repos_scanned, issues_found, errors, and sample_created.
   expected_output: >
-    JSON summary with all stats from the import.
+    JSON summary from batch_import_engineering.
   agent: backlog_importer_agent
 
 close_sync:
   description: >
-    Two-way sync between GitHub and ClickUp. Call sync_closed_issues ONCE.
-    GitHub is the source of truth.
-
-    Post a DETAILED sync report to {slack_engineering} using the post tool.
-    List every task that changed status:
-
-    *Sync Report*
-
-    *Closed (GitHub closed → ClickUp complete):* N
-    [For each closed task, one line:]
-    • Task name — github-repo#issue
-
-    *Reopened (GitHub open → ClickUp was closed):* N
-    [For each reopened task, one line:]
-    • Task name — github-repo#issue
-
-    *Backlog scanned:* N tasks | *GitHub refs found:* N
-
-    If NOTHING changed (closed == 0 AND reopened == 0):
-    "Sync complete — all N tasks in sync with GitHub. No changes."
-
-    ALWAYS post — even when nothing changed. Transparency matters.
+    Call sync_closed_issues ONCE to two-way sync GitHub↔ClickUp.
+    Do NOT post to Slack — the final task handles all posting.
+    Return the JSON summary with clickup_closed, clickup_reopened,
+    backlog_scanned, github_tasks_found.
   expected_output: >
-    JSON with all sync stats.
+    JSON summary from sync_closed_issues.
   agent: backlog_importer_agent
   context:
     - intake_scan
 
 scan_task:
   description: >
-    Call scan_backlog_for_triage to get a health report of the backlog:
-    wrong priorities, missing SP, unassigned tasks, aging items (>21d
-    no update), tag/priority distribution.
-
-    NOTE: Vault context from previous triage runs and retro findings
-    is available in your inputs as vault_context. Use it to compare
-    backlog growth trends if available.
+    Call scan_backlog_for_triage to get backlog health.
+    Returns: total_tasks, bugs, features, compliance, tasks (type counts),
+    by_priority, unassigned, no_story_points, aging, wrong_priority.
+    Do NOT post to Slack.
   expected_output: >
-    The scan results JSON for analysis.
+    The scan results JSON.
   agent: backlog_analyst_agent
   context:
     - close_sync
 
 decide_and_execute_task:
   description: >
-    Based on the scan results, make INTELLIGENT decisions about BACKLOG
-    HYGIENE ONLY.
+    Based on the scan results, make priority adjustment decisions.
 
     Your scope:
-    1. Priority adjustments — which tasks need escalation based on context
-       (security tags, crash/data loss in title)
-    2. Patterns — identify systemic issues and note them in the summary
-    3. AGING BACKLOG: flag backlog tasks older than 21 days with no updates
-       as "aging" in the summary
+    1. Priority adjustments — security tasks, crash/data loss bugs
+    2. Patterns — identify systemic issues
+    3. Aging items — flag tasks >21 days without updates
 
-    NOT your scope:
-    - Creating alerts
-    - Assigning tasks
-    - Modifying Vanta/compliance task names (they're already properly named)
+    NOT your scope: creating alerts, assigning tasks, renaming Vanta tasks.
 
-    IMPORTANT: Do NOT create alerts. Do NOT assign tasks. Do NOT post to Slack.
     Call execute_triage_actions with ONLY set_priority and set_sp actions.
+    Do NOT post to Slack.
   expected_output: >
-    JSON summary of actions taken with reasoning.
+    JSON summary of actions taken.
   agent: backlog_analyst_agent
   context:
     - scan_task
 
-post_triage_task:
+post_report:
   description: >
-    Post ONE backlog health report to #pm-engineering using post_triage_summary.
-    Build the 5 parameters from ALL previous task results:
+    Post ONE combined backlog report to {slack_engineering} using
+    post_triage_summary. This is the ONLY Slack post for the entire
+    backlog crew run. Combine ALL results from previous tasks.
 
-    backlog_snapshot: one-line totals from scan_task, e.g.:
-      '342 tasks | 12 bugs | 45 features | 280 compliance | 5 other'
-      Use the EXACT counts from scan results — do NOT estimate.
+    Build the 5 parameters using EXACT numbers from tool outputs:
 
-    hygiene_actions: Build from the {hygiene_stats} in your inputs. The stats
-      contain dedup (tasks_deleted, duplicates_found), normalize
-      (tasks_normalized), and estimate (sp_set, already_has_sp) results from
-      the automated cleanup that ran before your tasks started. Combine with
-      decide task results into a bullet list of what changed, e.g.:
-      '• 2 duplicates removed
-       • 5 tasks got SP estimates
-       • 1 priority adjusted (normal → high: security keyword)'
-      If nothing changed across all steps: 'Backlog clean — no actions needed'
+    backlog_snapshot: Use the scan_task results directly:
+      '{total_tasks} tasks | {bugs} bugs | {features} features | {compliance} compliance | {tasks} other'
+      These counts come from scan_backlog_for_triage output fields:
+      total_tasks, bugs, features, compliance, tasks.
 
-    design_tasks: from {hygiene_stats} normalize section, e.g.:
-      '• 3 design tasks normalized ([TYPE] prefix + design tag added)'
+    hygiene_actions: Combine {hygiene_stats} from inputs + intake + sync + decide results:
+      '• Import: X new tasks (Y skipped across Z repos)
+       • Sync: A closed, B reopened (C total synced)
+       • Dedup: D duplicates removed
+       • SP: E tasks estimated
+       • Priorities: F adjusted'
+      Only include lines where the count > 0. If nothing changed: 'All clean'
+
+    design_tasks: from {hygiene_stats} normalize section:
+      '• N design tasks normalized'
       If tasks_normalized == 0: 'None found'
 
-    aging_items: from scan_task aging list, show backlog tasks older than
-      21 days with no updates. Include name, priority, days since update.
+    aging_items: from scan_task aging list:
+      Name — priority — Xd since update
       If none: 'None — all items fresh'
 
-    priority_distribution: from scan_task by_priority counts, e.g.:
-      'Urgent: 3 | High: 12 | Normal: 280 | Low: 47'
+    priority_distribution: from scan_task by_priority:
+      'Urgent: X | High: Y | Normal: Z | Low: W'
+      Use EXACT numbers from by_priority dict. If a priority has 0, still show it.
 
-    Post ONE message only. Do NOT post multiple times.
-    Do NOT call vault_write — vault is handled automatically by the system.
+    CRITICAL: Use the EXACT numbers from the tool outputs. Do NOT estimate,
+    round, or fabricate counts. If scan says 127 total_tasks, write 127.
+
+    Post ONE message only. Do NOT call post or any other Slack tool.
+    Do NOT call vault_write.
   expected_output: >
     Confirmation of report posted to Slack.
   agent: backlog_post_agent
   context:
+    - intake_scan
+    - close_sync
     - decide_and_execute_task

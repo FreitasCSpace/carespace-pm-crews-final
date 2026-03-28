@@ -4,7 +4,6 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 from shared.tools import (
     batch_import_engineering,
     sync_closed_issues,
-    post,
     dedup_backlog_cleanup,
     bulk_assign_and_estimate,
     normalize_backlog_tasks,
@@ -79,7 +78,6 @@ class BacklogCrew:
             tools=[
                 batch_import_engineering,
                 sync_closed_issues,
-                post,
             ],
             verbose=True,
             allow_delegation=False,
@@ -134,8 +132,8 @@ class BacklogCrew:
         )
 
     @task
-    def post_triage_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["post_triage_task"]))
+    def post_report(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["post_report"]))
 
     # ── Crew ──────────────────────────────────────────────────────────────
 
