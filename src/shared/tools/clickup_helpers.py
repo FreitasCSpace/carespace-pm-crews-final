@@ -651,12 +651,14 @@ def scan_backlog_for_triage() -> str:
                     })
 
             # Potential wrong priority (AI should verify)
+            # Skip Vanta/compliance tasks — their priorities are managed externally
+            is_vanta = "compliance" in tags or name.startswith("[Vanta]") or name.startswith("[COMPLIANCE]")
             name_lower = name.lower()
-            if pri not in ("urgent",):
+            if pri not in ("urgent",) and not is_vanta:
                 if "security" in tags:
                     summary["wrong_priority"].append({**task_info, "reason": "security tag but not urgent"})
                 elif any(w in name_lower for w in ["crash", "data loss", "breach", "unauthorized"]):
-                    summary["wrong_priority"].append({**task_info, "reason": f"title suggests critical issue"})
+                    summary["wrong_priority"].append({**task_info, "reason": "title suggests critical issue"})
                 elif any(w in name_lower for w in ["hipaa", "phi", "baa gap"]):
                     summary["wrong_priority"].append({**task_info, "reason": "HIPAA/PHI related, may need urgent"})
 

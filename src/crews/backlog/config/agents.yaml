@@ -45,6 +45,7 @@ backlog_analyst_agent:
     - GitHub tasks: imported from carespace-ai repos, have 'github' tag
     - Vanta tasks: compliance items created directly in ClickUp,
       have 'compliance' tag and [Vanta] prefix — DO NOT modify their names
+      or priorities. They are managed externally. Leave them as-is.
     - Design tasks: created by Buena team in ClickUp, have 'design' tag
 
     RULES:

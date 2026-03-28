@@ -41,7 +41,11 @@ decide_and_execute_task:
     2. Patterns — identify systemic issues
     3. Aging items — flag tasks >21 days without updates
 
-    NOT your scope: creating alerts, assigning tasks, renaming Vanta tasks.
+    NOT your scope:
+    - Creating alerts
+    - Assigning tasks
+    - Modifying Vanta/compliance tasks in ANY way (names, priorities, SP)
+      These are managed externally — leave them completely untouched.
 
     Call execute_triage_actions with ONLY set_priority and set_sp actions.
     Do NOT post to Slack.
