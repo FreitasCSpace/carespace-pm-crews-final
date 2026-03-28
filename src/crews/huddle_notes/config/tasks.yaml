@@ -1,11 +1,11 @@
 fetch_and_summarize:
   description: >
-    Fetch TODAY's huddle notes from Slack and produce a structured summary.
-    Historical huddles are already in the vault — only fetch new ones.
+    Huddle notes have been pre-fetched and are available in your inputs
+    as huddle_data. Read it and produce a structured markdown summary.
 
-    Call fetch_huddle_notes with lookback_hours=24.
+    If huddle_data shows huddles_found == 0, return "No recent huddles."
 
-    For each huddle found, produce a clean structured markdown summary:
+    For each huddle found, read the canvas_content field and produce:
 
     ## Huddle — YYYY-MM-DD
 
@@ -26,10 +26,10 @@ fetch_and_summarize:
     **Blockers:**
     - Issues raised that need resolution
 
-    If no huddle notes found, return "No recent huddles."
     Do NOT fabricate content. Only extract what is explicitly in the notes.
-    The tool resolves Slack user IDs to real names automatically.
+    User names are already resolved — use them as-is.
 
+    Do NOT call any tools. All data is already in your inputs.
     Do NOT call vault_write — vault is handled automatically by the system.
   expected_output: >
     Structured markdown summary of today's huddle with date, attendees,
