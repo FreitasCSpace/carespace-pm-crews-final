@@ -41,7 +41,7 @@ TEAM = {
 ```
 
 **To add someone:** Get their ClickUp user ID, add entry to `TEAM`.
-**To remove someone:** Delete their entry. Triage stops assigning them.
+**To remove someone:** Delete their entry. Backlog crew stops assigning them.
 
 ### Non-Engineering Staff
 
@@ -73,7 +73,7 @@ finalizes from this list — it does NOT auto-pick from the backlog.
 
 ### Story Point Estimates (`SP_ESTIMATE`)
 
-Auto-assigned by triage when a task has no SP:
+Auto-assigned by backlog crew when a task has no SP:
 
 ```python
 SP_ESTIMATE = {
@@ -88,7 +88,7 @@ SP_ESTIMATE = {
 
 ### Repo-to-Domain Map (`REPO_DOMAIN`)
 
-When intake imports a GitHub issue, it tags by repo:
+When the backlog crew imports a GitHub issue, it tags by repo:
 
 ```python
 REPO_DOMAIN = {
@@ -116,7 +116,7 @@ GITHUB_ORG = "carespace-ai"
 
 ```python
 L = {
-    "master_backlog":       "901326439232",   # Single intake point
+    "master_backlog":       "901326439232",   # Single entry point
     "sprint_candidates":    "901326510572",   # Team curates here
     "alerts":               "901326439234",   # Alerts & Escalations
     "sprint_history":       "901326439238",   # Sprint History
@@ -140,7 +140,7 @@ SP_CUSTOM_FIELD_ID = "1662e3e7-b018-47b7-8881-e30f6831c674"
 SLACK = {
     "standup":     "#pm-standup",          # Daily Pulse
     "sprint":      "#pm-sprint-board",     # Sprint + Retro
-    "engineering": "#pm-engineering",      # Intake + Triage
+    "engineering": "#pm-engineering",      # Backlog
 }
 ```
 
@@ -160,14 +160,11 @@ Huddle Notes does not post to Slack — vault only.
 
 ## Crew Schedules
 
-| Crew | Schedule | Cron (UTC) |
-|------|----------|-----------|
 All crons are in PDT (America/Los_Angeles) timezone.
 
 | Crew | Schedule | Cron (PDT) |
 |------|----------|-----------|
-| Intake | Every 3 hours | `0 */3 * * *` |
-| Triage | Every 3 hours (+15min) | `15 */3 * * *` |
+| Backlog | Every 3 hours | `0 */3 * * *` |
 | Daily Pulse | Mon-Fri 07:45 | `45 7 * * 1-5` |
 | Huddle Notes | Daily 11:00 | `0 11 * * *` |
 | Retrospective | Bi-weekly Fri 16:00 | `0 16 * * 5` |
@@ -184,7 +181,7 @@ Defined in task YAML configs (LLM reads as instructions):
 | Stale task (no comments) | 3 days | `crews/daily_pulse/config/tasks.yaml` |
 | Stale PR | 7 days | `crews/daily_pulse/config/tasks.yaml` |
 | Missing PR (in progress) | immediate | `crews/daily_pulse/config/tasks.yaml` |
-| Aging backlog item | 21 days | `crews/triage/config/tasks.yaml` |
+| Aging backlog item | 21 days | `crews/backlog/config/tasks.yaml` |
 
 To change: edit the number in the task description.
 
@@ -198,9 +195,8 @@ To change: edit the number in the task description.
 VAULT_REPO = "FreitasCSpace/carespace-pm-vault"
 
 CREW_DIRS = {
-    "intake": "intake",
+    "backlog": "backlog",
     "daily_pulse": "sprint/daily",
-    "triage": "backlog",
     "sprint_plan": "sprint/plans",
     "sprint_retro": "sprint/retros",
     "huddle_notes": "huddles",
@@ -212,7 +208,7 @@ CREW_DIRS = {
 - `CREW_READS` — static files to read before running
 - `CREW_DYNAMIC_READS` — latest file from a directory
 - `CREW_WRITES` — where output goes (date or datetime filename)
-- `CREW_CONTEXT_WRITES` — rolling state files (triage → `backlog-health.md`, retro → `velocity.md`)
+- `CREW_CONTEXT_WRITES` — rolling state files (backlog → `backlog-health.md`, retro → `velocity.md`)
 
 ---
 
@@ -221,9 +217,9 @@ CREW_DIRS = {
 | Variable | Required | Used by |
 |----------|----------|---------|
 | `CLICKUP_API_TOKEN` | Yes | All crews (`pk_` format) |
-| `GITHUB_TOKEN` | Yes | Intake, Daily Pulse, Vault (`ghp_` format) |
+| `GITHUB_TOKEN` | Yes | Backlog, Daily Pulse, Vault (`ghp_` format) |
 | `OPENAI_API_KEY` | Yes | All crews (LLM) |
-| `SLACK_BOT_TOKEN` | Yes | Daily Pulse, Intake, Huddle Notes (`xoxb_` format) |
+| `SLACK_BOT_TOKEN` | Yes | Daily Pulse, Huddle Notes (`xoxb_` format) |
 | `OPENAI_MODEL_NAME` | No | Override default model (default: `gpt-4o`) |
 
 ---
@@ -242,9 +238,8 @@ src/crews/<crew_name>/config/
 
 | Crew | Config path |
 |------|------------|
-| Intake | `src/crews/intake/config/` |
+| Backlog | `src/crews/backlog/config/` |
 | Daily Pulse | `src/crews/daily_pulse/config/` |
-| Triage | `src/crews/triage/config/` |
 | Sprint | `src/crews/sprint/config/` |
 | Retrospective | `src/crews/retrospective/config/` |
 | Huddle Notes | `src/crews/huddle_notes/config/` |

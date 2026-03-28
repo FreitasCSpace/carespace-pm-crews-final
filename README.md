@@ -36,6 +36,7 @@ carespace-pm-crews-final/
 - **Planning** — `planning=True` on all crews (step-by-step plan before execution)
 - **Structured outputs** — Pydantic models for type-safe data between tasks
 - **Guardrails** — validate task outputs before accepting them
+- **before_kickoff optimization** — deterministic work (dedup, normalize, data gathering) runs before LLM, reducing token cost
 - **Stale task detection** — checks ClickUp comments (not bot-bumped timestamps)
 - **PR coverage** — flags in-progress sprint tasks with no open PR
 
@@ -45,7 +46,7 @@ carespace-pm-crews-final/
 - **GitHub is source of truth** — ClickUp tasks sync status from GitHub issues
 - **Backlog stays unassigned** — assignees are set during sprint planning only
 - **Sprint-scoped reporting** — daily pulse only covers current sprint, never backlog
-- **Single pipeline** — all work enters via GitHub → intake crew → ClickUp backlog
+- **Single pipeline** — all work enters via GitHub → backlog crew → ClickUp backlog
 - **Sprint Candidates** — staging area where team curates what goes into the sprint
 - **No noise** — empty sections hidden, no "None" lines, no backlog dumps
 - **Batch tools** — Python handles API calls/pagination, AI handles analysis/decisions
@@ -55,10 +56,11 @@ carespace-pm-crews-final/
 ## Data Flow
 
 ```
-/backlog skill ──→ GitHub Issue ──→ Intake Crew ──→ MASTER BACKLOG
-                                                        │
-                                                   Triage Crew (every 6h)
-                                                   • Dedup → Normalize → SP → Priorities
+/backlog skill ──→ GitHub Issue ──→ Backlog Crew ──→ MASTER BACKLOG
+                                      (every 3h)
+                                   • before_kickoff: Dedup → Normalize → SP
+                                   • Agent 1: Import + sync
+                                   • Agent 2: Backlog health + priorities
                                                         │
                           ┌─────────────────────────────┘
                           ▼
@@ -149,12 +151,11 @@ carespace-pm-vault/
 │   ├── daily/              # Daily pulse digests (task health, progress)
 │   ├── plans/              # Sprint plans (sprint-N.md)
 │   └── retros/             # Sprint retrospectives (sprint-N.md)
-├── backlog/                # Triage reports (backlog health, priorities)
-├── intake/                 # GitHub import summaries
+├── backlog/                # Import summaries + backlog health reports
 ├── huddles/                # Meeting notes with real names (53 historical + daily)
 └── context/                # Rolling state (overwritten each run)
-    ├── velocity.md         # Latest velocity data (from retro)
-    └── backlog-health.md   # Latest backlog snapshot (from triage)
+    ├── velocity.md         # Latest velocity data (from retrospective)
+    └── backlog-health.md   # Latest backlog snapshot (from backlog crew)
 ```
 
 **How it works:**
@@ -195,7 +196,7 @@ Huddle Notes crew does not post to Slack — vault only.
 | Secret | Used by |
 |--------|---------|
 | `CLICKUP_API_TOKEN` | All crews (pk_ format) |
-| `GITHUB_TOKEN` | Intake, daily pulse, vault tools (ghp_ format) |
+| `GITHUB_TOKEN` | Backlog, daily pulse, vault tools (ghp_ format) |
 | `OPENAI_API_KEY` | All crews (LLM + planning) |
 | `SLACK_BOT_TOKEN` | Daily pulse, huddle notes (xoxb_ format) |
 
@@ -218,6 +219,6 @@ All tunable values in `src/shared/config/context.py`:
 4. Move tasks to "done" when complete
 5. Run `/sprint-plan` before each sprint
 
-**AI does everything else** — intake, sync, dedup, normalize, estimate, triage,
+**AI does everything else** — import, sync, dedup, normalize, estimate,
 sprint finalization, daily digest, task health analysis, huddle archival,
 vault persistence, and carryover management.

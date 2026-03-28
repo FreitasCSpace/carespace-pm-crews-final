@@ -8,7 +8,7 @@
 
 ## What Is This?
 
-CareSpace uses an **AI-powered project management system** with 6 automated crews that handle the heavy PM work. You don't need to learn a new tool or change how you code. You just need to understand:
+CareSpace uses an **AI-powered project management system** with 5 automated crews that handle the heavy PM work. You don't need to learn a new tool or change how you code. You just need to understand:
 
 1. **Where your work lives** (ClickUp)
 2. **What the AI does for you** (everything except coding)
@@ -78,7 +78,7 @@ The AI will flag it in the next standup digest.
 When you find bugs or need new features:
 1. Create a GitHub issue in the relevant repo
 2. Label it properly (bug, enhancement, etc.)
-3. The **intake crew** imports it into ClickUp automatically every morning
+3. The **backlog crew** imports it into ClickUp automatically (every 3 hours)
 
 You can also add tasks directly to the **Master Backlog** in ClickUp with tags.
 
@@ -112,7 +112,7 @@ The AI does NOT auto-pick tasks for sprints. Instead:
 
 ### Story Points (SP)
 
-Each task has an SP estimate (set by AI during triage, adjustable by you):
+Each task has an SP estimate (set by AI during backlog processing, adjustable by you):
 
 | SP | Effort | Example |
 |----|--------|---------|
@@ -179,13 +179,12 @@ If the estimate is wrong, change the SP custom field in ClickUp.
 
 ---
 
-## The 6 AI Crews
+## The 5 AI Crews
 
 | Crew | What it does | When |
 |------|-------------|------|
-| **Intake** | Imports GitHub issues to ClickUp, syncs statuses | Daily 7:00am |
+| **Backlog** | Import GitHub issues, sync statuses, dedup, normalize, estimate SP, backlog health | Every 3 hours |
 | **Daily Pulse** | Sprint digest + per-task health analysis | Mon-Fri 7:45am |
-| **Triage** | Dedup, normalize, estimate SP, check backlog health | Every 6 hours |
 | **Sprint** | Finalize sprint from Sprint Candidates | Bi-weekly Sunday |
 | **Retrospective** | Close sprint, carryovers, velocity | Bi-weekly Friday |
 | **Huddle Notes** | Fetch Slack huddle notes → save to vault | Daily |
@@ -216,11 +215,11 @@ If the estimate is wrong, change the SP custom field in ClickUp.
 ### "I found a bug"
 1. Create a GitHub issue in the relevant repo
 2. Label it (bug, priority)
-3. Intake crew imports it to ClickUp backlog automatically
+3. Backlog crew imports it to ClickUp backlog automatically
 
 ### "I need to add a new task"
 Add it to the **Master Backlog** in ClickUp with tags (type + domain).
-Or create a GitHub issue — the intake crew imports it.
+Or create a GitHub issue — the backlog crew imports it.
 
 ### "My task is taking longer than expected"
 Add a comment with an update. As long as there's activity, the AI won't flag it as stale.
@@ -247,8 +246,8 @@ The AI checks if in-progress tasks have a matching open PR on GitHub. If you're 
    - Stale tasks (3d+ no comments) need a check-in
 
 3. **Adjust priorities** when needed
-   - Change priority in ClickUp — triage respects it
-   - If urgent, set to **Urgent** — triage picks it up within 6 hours
+   - Change priority in ClickUp — the backlog crew respects it
+   - If urgent, set to **Urgent** — backlog crew picks it up within 3 hours
 
 4. **Unblock your team**
    - When a task is flagged as blocked, you're the escalation path
