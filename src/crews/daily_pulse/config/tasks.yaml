@@ -1,25 +1,20 @@
-find_sprint_task:
+analyze_sprint:
   description: >
-    Call create_or_get_sprint_list to find the active sprint.
-    Returns sprint list_id, name, start date, end date, and pre-calculated timing.
-  expected_output: >
-    JSON with list_id, sprint_name, start_date, end_date, timing, status.
-  agent: daily_pulse_agent
+    All sprint data has been pre-gathered and is available in your inputs
+    as sprint_data (JSON). Parse it and analyze the sprint health.
 
-scan_and_gather:
-  description: >
     NOTE: Vault context from previous daily pulses and velocity history
     is available in your inputs as vault_context. Use it to calculate
     deltas vs yesterday if available.
 
-    Gather ALL data needed for the daily sprint digest:
+    Analyze ALL data needed for the daily sprint digest:
 
-    1. Pull sprint tasks using get_tasks_by_list (include_closed=True).
+    1. Read sprint tasks from sprint_data.tasks.
        For each task note: name, STATUS (exact ClickUp status), assignee,
        SP, last updated, tags, and URL (clickup link for each task).
 
     2. Sprint timing:
-       The sprint tool returns a pre-calculated "timing" object.
+       Read sprint_data.sprint for the pre-calculated "timing" object.
        Use timing.timing_display EXACTLY as returned — do NOT
        recalculate dates yourself. Examples:
        * "Starts in 3 days (Mar 23 — Apr 05)" — sprint not started
@@ -53,31 +48,30 @@ scan_and_gather:
        - Urgent/critical priority tasks still pending late in sprint
        These are RISKS, not blockers. They go in the Sprint Risks section.
 
-    7. Find stale sprint tasks using check_stale_sprint_tasks tool.
-       Pass all non-done sprint task IDs as a JSON array and days=3.
-       This checks actual ClickUp COMMENTS, not date_updated (which
-       gets bumped by bot activity like triage SP estimates).
+    7. Read stale sprint tasks from sprint_data.stale_tasks.
+       These were checked using actual ClickUp COMMENTS, not date_updated
+       (which gets bumped by bot activity like triage SP estimates).
        A task with no human comments for 3+ days is truly stale.
        Flag them in Needs Attention.
 
     8. PR COVERAGE: For each sprint task that is "in progress" or "to do",
-       check if there's an open PR linked to it. Call get_open_pull_requests
-       (empty repo = all repos) and cross-reference PR titles/branches with
-       sprint task names and GitHub issue references in the task description.
+       check if there's an open PR linked to it. Read sprint_data.open_prs
+       and cross-reference PR titles/branches with sprint task names and
+       GitHub issue references in the task description.
        For each sprint task, determine:
        - Has PR: yes/no
        - If yes: PR status (open, draft, passing CI, failing CI)
        - If "in progress" but NO PR: flag as a risk — work may not be tracked
        Report this as a "PR Coverage" sub-section in Needs Attention.
 
-    9. Check GitHub: stale PRs (>{stale_pr_days}d) using get_stale_pull_requests.
+    9. Read sprint_data.stale_prs for stale PRs (>{stale_pr_days}d).
        IMPORTANT: Only include PRs that are RELATED to sprint tasks.
        No "critical stale PRs" category — sprints are 2 weeks.
        Cross-reference PR titles/branches with sprint task names.
        If a PR doesn't match any sprint task, SKIP it.
        If the sprint is empty, skip stale PR reporting entirely.
 
-    10. Check for stale GitHub issues using get_stale_issues, BUT only
+    10. Read sprint_data.stale_issues for stale GitHub issues, BUT only
         report issues that match a CURRENT SPRINT task name. Cross-reference
         the issue titles with sprint task names. If an issue doesn't match
         any sprint task, SKIP it. If the sprint is empty, skip entirely.
@@ -94,8 +88,6 @@ scan_and_gather:
   expected_output: >
     Complete data JSON for digest compilation.
   agent: daily_pulse_agent
-  context:
-    - find_sprint_task
 
 compile_and_post:
   description: >
@@ -228,4 +220,4 @@ compile_and_post:
     Confirmation of standup posted to {slack_standup}.
   agent: daily_pulse_agent
   context:
-    - scan_and_gather
+    - analyze_sprint
