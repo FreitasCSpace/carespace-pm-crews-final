@@ -78,24 +78,22 @@ scan_task:
 decide_and_execute_task:
   description: >
     Based on the scan results, make INTELLIGENT decisions about BACKLOG
-    HYGIENE ONLY. SLA enforcement is handled by the SLA crew — not here.
+    HYGIENE ONLY.
 
     Your scope:
     1. Priority adjustments — which tasks need escalation based on context
-       (security tags, HIPAA keywords, crash/data loss in title)
+       (security tags, crash/data loss in title)
     2. Patterns — identify systemic issues and note them in the summary
     3. AGING BACKLOG: flag backlog tasks older than 21 days with no updates
-       as "aging" in the summary — do NOT create alerts for them
+       as "aging" in the summary
 
     NOT your scope:
-    - Creating alerts (SLA crew handles alerts)
-    - Sprint SLA breaches
-    - Engineer DM notifications
+    - Creating alerts
     - Assigning tasks
+    - Modifying Vanta/compliance task names (they're already properly named)
 
     IMPORTANT: Do NOT create alerts. Do NOT assign tasks. Do NOT post to Slack.
     Call execute_triage_actions with ONLY set_priority and set_sp actions.
-    Do NOT include create_alerts in the actions JSON.
   expected_output: >
     JSON summary of actions taken with reasoning.
   agent: backlog_analyst_agent
