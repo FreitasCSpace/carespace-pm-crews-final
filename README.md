@@ -87,7 +87,7 @@ GitHub↔ClickUp Sync: GitHub closed → ClickUp complete (and vice versa)
 ## Crew Reference
 
 ### 1. Intake Crew
-**Schedule:** Daily 07:00 PDT | **Posts to:** `#pm-engineering`
+**Schedule:** Every 3 hours | **Posts to:** `#pm-engineering`
 
 Scans all carespace-ai GitHub repos, creates ClickUp tasks with tags.
 Two-way sync: GitHub closed = ClickUp complete, GitHub reopened = ClickUp "to do".
@@ -104,7 +104,7 @@ Sprint-only digest with per-task health analysis:
 All tasks link to ClickUp. Clean format: `Task Name — @assignee · 3 SP`
 
 ### 3. Triage Crew
-**Schedule:** Every 6 hours | **Posts to:** `#pm-engineering`
+**Schedule:** Every 3 hours (15min after intake) | **Posts to:** `#pm-engineering`
 
 Backlog hygiene pipeline:
 1. Dedup (remove duplicate tasks)
@@ -139,9 +139,9 @@ If no huddle today, writes nothing.
 ## Daily Schedule (Oregon/PDT)
 
 ```
-07:00  intake             GitHub import + sync → #pm-engineering
+*/3h   intake             GitHub import + sync → #pm-engineering
+*/3h   triage             Backlog health → #pm-engineering (15min after intake)
 07:45  daily_pulse        Sprint Digest → #pm-standup
-*/6h   triage             Backlog health → #pm-engineering
 daily  huddle_notes       Slack huddle → vault (if huddle occurred)
 
 Fri    retrospective      Sprint retro → #pm-sprint-board (bi-weekly)

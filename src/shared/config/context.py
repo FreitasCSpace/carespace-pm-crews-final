@@ -304,9 +304,9 @@ SLACK = {
 CREW_SCHEDULE = {
     # Times in America/Los_Angeles (Oregon) — PDT = UTC-7, PST = UTC-8
     # CrewHub server runs UTC — crons adjusted for PDT (March-November)
-    "intake_crew":            "Daily 07:00 PDT (cron: 0 14 * * *)",
+    "intake_crew":            "Every 3 hours (cron: 0 */3 * * *)",
     "daily_pulse_crew":       "Mon-Fri 07:45 PDT (cron: 45 14 * * 1-5)",
-    "triage_crew":            "Every 6 hours (cron: 0 */6 * * *)",
+    "triage_crew":            "Every 3 hours, 15min after intake (cron: 15 */3 * * *)",
     "huddle_notes_crew":      "Daily (after huddle)",
     "retrospective_crew":     "Bi-weekly Friday 16:00 PDT (cron: 0 23 * * 5)",
     "sprint_crew":            "Bi-weekly Sunday 18:00 PDT (cron: 0 1 * * 1)",
