@@ -83,10 +83,19 @@ post_report:
       If no changes: 'Sync: all N tasks in sync'
 
       For dedup (from {hygiene_stats}.dedup):
-      If tasks_deleted > 0: 'Dedup: X duplicates removed'
+      If tasks_deleted > 0, list each from sample_duplicates:
+        'Duplicates removed:
+         • <clickup_url|Task name> (deleted)'
 
       For SP estimation (from {hygiene_stats}.estimate):
-      If sp_set > 0: 'SP estimated: X tasks'
+      If sp_set > 0, list each from sp_details:
+        'SP estimated:
+         • <clickup_url|Task name> → X SP'
+
+      For normalize (from {hygiene_stats}.normalize):
+      If tasks_normalized > 0, list each from details:
+        'Design tasks tagged:
+         • <clickup_url|Task name> — [TYPE] prefix + design tag'
 
       For priority adjustments (from decide_and_execute_task priority_details):
       List each with clickable link:
@@ -99,10 +108,7 @@ post_report:
       <https://app.clickup.com/t/TASKID|Display Name> for ClickUp tasks
       <https://github.com/org/repo/issues/N|GitHub> for GitHub issues
 
-    design_tasks: from {hygiene_stats}.normalize:
-      If tasks_normalized > 0, list each:
-        '• Task name — tagged as design'
-      If 0: 'None found'
+    design_tasks: pass empty string '' (normalize details are in hygiene_actions now)
 
     aging_items: from scan_task aging list:
       List each: '• Task name — priority — Xd since update'

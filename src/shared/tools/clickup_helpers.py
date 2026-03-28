@@ -523,6 +523,7 @@ def normalize_backlog_tasks() -> str:
                     "id": task_id,
                     "original_name": name[:80],
                     "updates": updates_made,
+                    "clickup_url": t.get("url", f"https://app.clickup.com/t/{task_id}"),
                 })
 
         # Truncate details for LLM context
@@ -1410,6 +1411,7 @@ def bulk_estimate_sp() -> str:
     stats = {
         "total_tasks": 0, "sp_set": 0, "unassigned": 0,
         "already_has_sp": 0, "already_unassigned": 0, "errors": 0,
+        "sp_details": [],
     }
 
     try:
@@ -1453,6 +1455,11 @@ def bulk_estimate_sp() -> str:
                 est = _estimate_sp(t["name"], pri)
                 if _set_sp(task_id, est):
                     stats["sp_set"] += 1
+                    stats["sp_details"].append({
+                        "name": t["name"][:80],
+                        "sp": est,
+                        "clickup_url": t.get("url", f"https://app.clickup.com/t/{task_id}"),
+                    })
                 else:
                     stats["errors"] += 1
             else:
@@ -1543,7 +1550,7 @@ def dedup_backlog_cleanup(dry_run: bool = True) -> str:
                     try:
                         _clickup_api(f"task/{dupe['id']}", method="DELETE")
                         stats["tasks_deleted"] += 1
-                        deleted_tasks.append({"name": dupe["name"][:60], "id": dupe["id"], "deleted": True})
+                        deleted_tasks.append({"name": dupe["name"][:60], "id": dupe["id"], "deleted": True, "clickup_url": f"https://app.clickup.com/t/{dupe['id']}"})
                         time.sleep(0.2)
                     except Exception as e:
                         stats["errors"] += 1
