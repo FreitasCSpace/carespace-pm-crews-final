@@ -60,8 +60,9 @@ post_report:
     Build the 5 parameters using EXACT numbers from tool outputs:
 
     backlog_snapshot: Use scan_task results directly:
-      '{total_tasks} tasks | {bugs} bugs | {features} features | {compliance} compliance | {design} design | {tasks} tasks'
-      Use the EXACT fields: total_tasks, bugs, features, compliance, design, tasks.
+      'N tasks | N bugs | N features | N compliance | N design | N tasks'
+      Pull the EXACT numbers from scan_backlog_for_triage output fields:
+      total_tasks, bugs, features, compliance, design, tasks.
 
     hygiene_actions: DETAILED item-level transparency. List every action performed.
       Combine {hygiene_stats} from inputs + intake + sync + decide results.
