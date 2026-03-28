@@ -307,7 +307,7 @@ CREW_SCHEDULE = {
     "intake_crew":            "Every 3 hours (cron: 0 */3 * * *)",
     "daily_pulse_crew":       "Mon-Fri 07:45 PDT (cron: 45 14 * * 1-5)",
     "triage_crew":            "Every 3 hours, 15min after intake (cron: 15 */3 * * *)",
-    "huddle_notes_crew":      "Daily (after huddle)",
+    "huddle_notes_crew":      "Daily 08:00 PDT (cron: 0 15 * * *)",
     "retrospective_crew":     "Bi-weekly Friday 16:00 PDT (cron: 0 23 * * 5)",
     "sprint_crew":            "Bi-weekly Sunday 18:00 PDT (cron: 0 1 * * 1)",
 }
