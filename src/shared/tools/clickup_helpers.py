@@ -559,6 +559,7 @@ def scan_backlog_for_triage() -> str:
         "bugs": 0,
         "features": 0,
         "compliance": 0,
+        "design": 0,
         "tasks": 0,
         "unassigned": [],
         "wrong_priority": [],
@@ -607,6 +608,8 @@ def scan_backlog_for_triage() -> str:
                 summary["compliance"] += 1
             elif "feature" in tags or name_upper.startswith("[FEATURE]"):
                 summary["features"] += 1
+            elif "design" in tags or name_upper.startswith("[DESIGN]"):
+                summary["design"] += 1
             else:
                 summary["tasks"] += 1
 

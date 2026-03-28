@@ -59,33 +59,56 @@ post_report:
 
     Build the 5 parameters using EXACT numbers from tool outputs:
 
-    backlog_snapshot: Use the scan_task results directly:
-      '{total_tasks} tasks | {bugs} bugs | {features} features | {compliance} compliance | {tasks} other'
-      These counts come from scan_backlog_for_triage output fields:
-      total_tasks, bugs, features, compliance, tasks.
+    backlog_snapshot: Use scan_task results directly:
+      '{total_tasks} tasks | {bugs} bugs | {features} features | {compliance} compliance | {design} design | {tasks} tasks'
+      Use the EXACT fields: total_tasks, bugs, features, compliance, design, tasks.
 
-    hygiene_actions: Combine {hygiene_stats} from inputs + intake + sync + decide results:
-      '• Import: X new tasks (Y skipped across Z repos)
-       • Sync: A closed, B reopened (C total synced)
-       • Dedup: D duplicates removed
-       • SP: E tasks estimated
-       • Priorities: F adjusted'
-      Only include lines where the count > 0. If nothing changed: 'All clean'
+    hygiene_actions: DETAILED item-level transparency. List every action performed.
+      Combine {hygiene_stats} from inputs + intake + sync + decide results.
 
-    design_tasks: from {hygiene_stats} normalize section:
-      '• N design tasks normalized'
-      If tasks_normalized == 0: 'None found'
+      For import (from intake_scan results):
+      If tasks_created > 0, list each new task:
+        'New tasks imported:
+         • [repo] Issue title — priority
+         • [repo] Issue title — priority'
+      If tasks_created == 0: 'No new issues (X skipped across Y repos)'
+
+      For sync (from close_sync results):
+      If clickup_closed > 0, list each closed task:
+        'Closed (GitHub → ClickUp):
+         • Task name — repo#issue'
+      If clickup_reopened > 0, list each reopened task:
+        'Reopened (GitHub → ClickUp):
+         • Task name — repo#issue'
+      If no changes: 'Sync: all N tasks in sync'
+
+      For dedup (from {hygiene_stats}.dedup):
+      If tasks_deleted > 0: 'Dedup: X duplicates removed'
+
+      For SP estimation (from {hygiene_stats}.estimate):
+      If sp_set > 0: 'SP estimated: X tasks'
+
+      For priority adjustments (from decide_and_execute_task):
+      List each adjustment:
+        'Priority adjusted:
+         • Task name: old → new (reason)'
+
+      If NOTHING happened across all steps: 'All clean — no actions needed'
+
+    design_tasks: from {hygiene_stats}.normalize:
+      If tasks_normalized > 0, list each:
+        '• Task name — tagged as design'
+      If 0: 'None found'
 
     aging_items: from scan_task aging list:
-      Name — priority — Xd since update
+      List each: '• Task name — priority — Xd since update'
       If none: 'None — all items fresh'
 
     priority_distribution: from scan_task by_priority:
       'Urgent: X | High: Y | Normal: Z | Low: W'
-      Use EXACT numbers from by_priority dict. If a priority has 0, still show it.
 
-    CRITICAL: Use the EXACT numbers from the tool outputs. Do NOT estimate,
-    round, or fabricate counts. If scan says 127 total_tasks, write 127.
+    CRITICAL: Use EXACT numbers and names from tool outputs. Do NOT
+    estimate, round, or fabricate. Every action must name the specific item.
 
     Post ONE message only. Do NOT call post or any other Slack tool.
     Do NOT call vault_write.
