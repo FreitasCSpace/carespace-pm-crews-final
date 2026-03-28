@@ -129,4 +129,5 @@ post_report:
   context:
     - intake_scan
     - close_sync
+    - scan_task
     - decide_and_execute_task
