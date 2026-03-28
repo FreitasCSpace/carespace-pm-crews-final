@@ -296,9 +296,6 @@ SLACK = {
     "standup":     "#pm-standup",
     "sprint":      "#pm-sprint-board",
     "engineering": "#pm-engineering",
-    "alerts":      "#pm-alerts",
-    "exec":        "#pm-exec-updates",
-    "compliance":  "#pm-compliance",
 }
 
 # ======================================================================
@@ -307,12 +304,10 @@ SLACK = {
 CREW_SCHEDULE = {
     # Times in America/Los_Angeles (Oregon) — PDT = UTC-7, PST = UTC-8
     # CrewHub server runs UTC — crons adjusted for PDT (March-November)
-    "compliance_crew":        "Daily 06:30 PDT (cron: 30 13 * * *)",
     "intake_crew":            "Daily 07:00 PDT (cron: 0 14 * * *)",
     "daily_pulse_crew":       "Mon-Fri 07:45 PDT (cron: 45 14 * * 1-5)",
-    "sla_crew":               "Every 6 hours (cron: 0 */6 * * *)",
     "triage_crew":            "Every 6 hours (cron: 0 */6 * * *)",
-    "exec_report_crew":       "Friday 17:00 PDT (cron: 0 0 * * 6)",
+    "huddle_notes_crew":      "Daily (after huddle)",
     "retrospective_crew":     "Bi-weekly Friday 16:00 PDT (cron: 0 23 * * 5)",
     "sprint_crew":            "Bi-weekly Sunday 18:00 PDT (cron: 0 1 * * 1)",
 }
