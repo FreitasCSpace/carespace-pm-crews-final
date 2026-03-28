@@ -66,20 +66,20 @@ post_report:
     hygiene_actions: DETAILED item-level transparency. List every action performed.
       Combine {hygiene_stats} from inputs + intake + sync + decide results.
 
-      For import (from intake_scan results):
-      If tasks_created > 0, list each new task:
+      For import (from intake_scan sample_created):
+      If tasks_created > 0, list each with clickable links:
         'New tasks imported:
-         • [repo] Issue title — priority
-         • [repo] Issue title — priority'
+         • <clickup_url|Issue title> — priority (<github_url|GitHub>)
+         • <clickup_url|Issue title> — priority (<github_url|GitHub>)'
       If tasks_created == 0: 'No new issues (X skipped across Y repos)'
 
-      For sync (from close_sync results):
-      If clickup_closed > 0, list each closed task:
+      For sync (from close_sync closed_tasks/reopened_tasks):
+      If clickup_closed > 0, list each with links:
         'Closed (GitHub → ClickUp):
-         • Task name — repo#issue'
-      If clickup_reopened > 0, list each reopened task:
+         • <clickup_url|Task name> (<github_url|GitHub>)'
+      If clickup_reopened > 0:
         'Reopened (GitHub → ClickUp):
-         • Task name — repo#issue'
+         • <clickup_url|Task name> (<github_url|GitHub>)'
       If no changes: 'Sync: all N tasks in sync'
 
       For dedup (from {hygiene_stats}.dedup):
@@ -88,12 +88,16 @@ post_report:
       For SP estimation (from {hygiene_stats}.estimate):
       If sp_set > 0: 'SP estimated: X tasks'
 
-      For priority adjustments (from decide_and_execute_task):
-      List each adjustment:
+      For priority adjustments (from decide_and_execute_task priority_details):
+      List each with clickable link:
         'Priority adjusted:
-         • Task name: old → new (reason)'
+         • <clickup_url|Task name> → new_priority (reason)'
 
       If NOTHING happened across all steps: 'All clean — no actions needed'
+
+      FORMAT RULE: All item references must use Slack link format:
+      <https://app.clickup.com/t/TASKID|Display Name> for ClickUp tasks
+      <https://github.com/org/repo/issues/N|GitHub> for GitHub issues
 
     design_tasks: from {hygiene_stats}.normalize:
       If tasks_normalized > 0, list each:

@@ -714,7 +714,10 @@ def execute_triage_actions(actions_json: str) -> str:
     stats = {
         "priorities_set": 0, "tasks_assigned": 0,
         "sp_set": 0, "alerts_created": 0, "errors": 0,
+        "priority_details": [],
     }
+
+    pri_names = {1: "urgent", 2: "high", 3: "normal", 4: "low"}
 
     # Set priorities
     for action in actions.get("set_priority", []):
@@ -722,6 +725,12 @@ def execute_triage_actions(actions_json: str) -> str:
             _clickup_api(f"task/{action['task_id']}", method="PUT",
                         payload={"priority": action["priority"]})
             stats["priorities_set"] += 1
+            stats["priority_details"].append({
+                "task_id": action["task_id"],
+                "new_priority": pri_names.get(action["priority"], str(action["priority"])),
+                "reason": action.get("reason", ""),
+                "clickup_url": f"https://app.clickup.com/t/{action['task_id']}",
+            })
         except Exception as e:
             stats["errors"] += 1
             if "first_error" not in stats:

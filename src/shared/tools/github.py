@@ -228,7 +228,12 @@ def batch_import_engineering() -> str:
                     stats["tasks_created"] += 1
                     stats["by_domain"][domain] = stats["by_domain"].get(domain, 0) + 1
                     stats["by_type"][itype] = stats["by_type"].get(itype, 0) + 1
-                    created_tasks.append({"title": title[:80], "priority": pri})
+                    created_tasks.append({
+                        "title": title[:80],
+                        "priority": pri,
+                        "clickup_url": result.get("url", ""),
+                        "github_url": issue.html_url,
+                    })
                     # Add to cache so we don't create duplicates within same run
                     if _backlog_cache is not None:
                         _backlog_cache.append(title.lower())
@@ -375,6 +380,8 @@ def sync_closed_issues() -> str:
                     closed_tasks.append({
                         "task": gt["task_name"][:80],
                         "issue": f"{gt['repo']}#{gt['issue_number']}",
+                        "clickup_url": f"https://app.clickup.com/t/{gt['task_id']}",
+                        "github_url": issue.html_url,
                     })
                 except Exception:
                     stats["errors"] += 1
@@ -391,6 +398,8 @@ def sync_closed_issues() -> str:
                     reopened_tasks.append({
                         "task": gt["task_name"][:80],
                         "issue": f"{gt['repo']}#{gt['issue_number']}",
+                        "clickup_url": f"https://app.clickup.com/t/{gt['task_id']}",
+                        "github_url": issue.html_url,
                     })
                 except Exception:
                     stats["errors"] += 1
