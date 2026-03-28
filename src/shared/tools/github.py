@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from crewai.tools import tool
 from github import Github, GithubException
 from shared.config.context import (
-    REPO_DOMAIN, INTAKE_TARGET, COMPLIANCE_REPO, COMPLIANCE_LABEL_MAP,
+    REPO_DOMAIN, INTAKE_TARGET,
     WORKSPACE_ID, L,
 )
 
@@ -261,13 +261,9 @@ def batch_import_engineering() -> str:
 import re
 
 _GITHUB_REF_RE = re.compile(r"\(([a-zA-Z0-9_.-]+#\d+)\)\s*$")
-_COMPLIANCE_REF_RE = re.compile(r"\(#(\d+)\)\s*$")
-
-
 def _extract_github_ref(task: dict) -> dict | None:
     """Extract GitHub repo + issue number from a ClickUp task title."""
     name = task.get("name", "")
-    tags = [tag["name"] for tag in task.get("tags", [])]
 
     # Engineering: title ends with (repo#123)
     m = _GITHUB_REF_RE.search(name)
@@ -281,18 +277,6 @@ def _extract_github_ref(task: dict) -> dict | None:
             "repo": f"{ORG}/{repo_name}",
             "issue_number": int(issue_num),
         }
-
-    # Compliance: title ends with (#543)
-    if "compliance" in tags or name.startswith("[COMPLIANCE]"):
-        m2 = _COMPLIANCE_REF_RE.search(name)
-        if m2:
-            return {
-                "task_id": task["id"],
-                "task_name": name,
-                "task_status": task.get("status", {}).get("status", "").lower(),
-                "repo": COMPLIANCE_REPO,
-                "issue_number": int(m2.group(1)),
-            }
 
     return None
 

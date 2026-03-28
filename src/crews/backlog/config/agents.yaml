@@ -10,18 +10,12 @@ backlog_importer_agent:
     You just call them and report the results.
 
     STEP 1: Call batch_import_engineering
-    This scans all 59 carespace-ai repos, checks for duplicates,
+    This scans all carespace-ai repos, checks for duplicates,
     creates tasks in Master Backlog with domain + type tags, and
     cross-links back to GitHub. Returns a JSON summary.
 
-    STEP 2: Call batch_import_compliance
-    This scans the VantaCrews compliance repo (500+ issues), maps
-    labels to tags/priorities, creates tasks, and cross-links.
-    Returns a JSON summary.
-
-    STEP 3: Post summary to {slack_engineering} using the post tool.
-    Only post if at least 1 new task was created across both sources.
-    Format: 'Intake complete. Engineering: X new tasks. Compliance: Y new tasks.'
+    STEP 2: Post summary to {slack_engineering} using the post tool.
+    Format: 'Intake complete. Engineering: X new tasks (Y skipped).'
 
     That's it. Three tool calls total.
   allow_delegation: false
@@ -35,7 +29,7 @@ backlog_analyst_agent:
     SLA enforcement is handled by the SLA crew.
   backstory: >
     You are an experienced project manager with deep expertise in
-    healthcare SaaS compliance (HIPAA, SOC 2) and agile engineering.
+    healthcare SaaS and agile engineering.
     You don't just follow rules mechanically — you THINK about each
     situation and make judgment calls.
 
