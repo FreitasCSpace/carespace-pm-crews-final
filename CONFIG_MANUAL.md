@@ -47,7 +47,7 @@ TEAM = {
 
 ```python
 NON_ENGINEERING = {
-    "luis": {"cu_id": "118004891", "slack_name": "Luis Freitas", "role": "CEO / Compliance"},
+    "luis": {"cu_id": "118004891", "slack_name": "Luis Freitas", "role": "Compliance"},
 }
 ```
 
