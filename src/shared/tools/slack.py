@@ -193,9 +193,7 @@ def post_triage_summary(backlog_snapshot: str, hygiene_actions: str,
        • 5 tasks estimated (SP set)
        • 2 priorities adjusted (normal → high)'
       Or 'Backlog clean — no actions needed' if nothing changed.
-    design_tasks: summary of Buena design tasks normalized, e.g.:
-      '• 4 design tasks normalized ([TASK] prefix + design tag added)'
-      Or 'None found' if no new design tasks.
+    design_tasks: unused (kept for compatibility) — pass empty string ''
     aging_items: bullet list of backlog items >21d with no updates, e.g.:
       '• [BUG] Login crash — urgent — 28d old
        • [FEATURE] Export PDF — normal — 35d old'
@@ -209,8 +207,6 @@ def post_triage_summary(backlog_snapshot: str, hygiene_actions: str,
         _sec(f"*{backlog_snapshot}*"),
         _div(),
         _sec(_trunc(f"*🔧 Hygiene Actions*\n{hygiene_actions or '_No actions needed_'}")),
-        _div(),
-        _sec(_trunc(f"*🎨 Design Tasks (Buena)*\n{design_tasks or '_None found_'}")),
         _div(),
         _sec(_trunc(f"*⏳ Aging Items (>21d)*\n{aging_items or '_All items fresh_'}")),
         _div(),
