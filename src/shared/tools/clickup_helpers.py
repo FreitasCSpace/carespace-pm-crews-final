@@ -540,14 +540,14 @@ def normalize_backlog_tasks() -> str:
 @tool("Scan Backlog For Triage")
 def scan_backlog_for_triage() -> str:
     """
-    Scans Master Backlog tasks for hygiene issues.
+    Scans Master Backlog for hygiene issues. Includes closed/complete items
+    in the count so totals match what ClickUp shows.
 
     Returns:
-    - unassigned: tasks with no assignee
-    - wrong_priority: tasks that may need priority adjustment
-    - no_story_points: tasks missing SP estimates
-    - aging: tasks with no update in >21 days
-    - by_tag / by_priority: distribution counts
+    - total_items: total count (all statuses)
+    - bugs, features, compliance, design, tasks: type breakdown
+    - unassigned, wrong_priority, no_story_points, aging: hygiene issues
+    - by_tag, by_priority: distribution counts
 
     Only scans the Master Backlog — sprint items are handled by daily pulse.
     """
@@ -556,7 +556,7 @@ def scan_backlog_for_triage() -> str:
     now_ms = int(datetime.utcnow().timestamp() * 1000)
 
     summary = {
-        "total_tasks": 0,
+        "total_items": 0,
         "bugs": 0,
         "features": 0,
         "compliance": 0,
@@ -568,13 +568,16 @@ def scan_backlog_for_triage() -> str:
         "aging": [],
         "by_tag": {},
         "by_priority": {},
+        "by_status": {},
     }
 
     try:
         all_tasks = []
         page = 0
         while True:
-            data = _clickup_api(f"list/{L['master_backlog']}/task?archived=false&page={page}&page_size=100")
+            data = _clickup_api(
+                f"list/{L['master_backlog']}/task?archived=false&include_closed=true&page={page}&page_size=100"
+            )
             tasks = data.get("tasks", [])
             if not tasks:
                 break
@@ -583,7 +586,7 @@ def scan_backlog_for_triage() -> str:
                 break
             page += 1
 
-        summary["total_tasks"] = len(all_tasks)
+        summary["total_items"] = len(all_tasks)
 
         for t in all_tasks:
             tags = [tag["name"] for tag in t.get("tags", [])]
@@ -596,10 +599,12 @@ def scan_backlog_for_triage() -> str:
             age_hours = round((now_ms - created_ms) / (1000 * 3600), 1) if created_ms else 0
             name = t["name"]
 
-            # Count by tag and priority
+            # Count by tag, priority, and status
             for tag in tags:
                 summary["by_tag"][tag] = summary["by_tag"].get(tag, 0) + 1
             summary["by_priority"][pri] = summary["by_priority"].get(pri, 0) + 1
+            task_status = t.get("status", {}).get("status", "unknown").lower()
+            summary["by_status"][task_status] = summary["by_status"].get(task_status, 0) + 1
 
             # Count by type (from tags or title prefix)
             name_upper = name.upper()
