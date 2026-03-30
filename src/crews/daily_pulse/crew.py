@@ -41,6 +41,7 @@ class DailyPulseCrew:
 
         # 2. Get sprint tasks
         tasks = []
+        log.info("daily_pulse: sprint=%s list_id=%s", sprint.get("sprint_name", "?"), list_id)
         if list_id:
             try:
                 tasks_result = get_tasks_by_list.run(
@@ -49,6 +50,9 @@ class DailyPulseCrew:
                 tasks = json.loads(tasks_result) if isinstance(tasks_result, str) else tasks_result
                 if isinstance(tasks, dict) and "error" in tasks:
                     tasks = []
+                log.info("daily_pulse: fetched %d tasks from list %s: %s",
+                         len(tasks), list_id,
+                         [t.get("name", "?")[:50] for t in tasks[:5]])
             except Exception as e:
                 log.warning("daily_pulse: tasks fetch failed: %s", e)
 
@@ -188,7 +192,12 @@ class DailyPulseCrew:
         else:
             ctx["digest_meeting_mode"] = "🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion."
 
-        log.info("daily_pulse: digest pre-built — %d tasks, %d issues", len(tasks), len(health_lines))
+        log.info("daily_pulse: digest pre-built — %d tasks, %d health issues", len(tasks), len(health_lines))
+        log.info("daily_pulse: exec_summary=%s", ctx["digest_executive_summary"][:200])
+        log.info("daily_pulse: done=%s", ctx.get("digest_done", "")[:200])
+        log.info("daily_pulse: in_progress=%s", ctx.get("digest_in_progress", "")[:200])
+        log.info("daily_pulse: pending=%s", ctx.get("digest_pending", "")[:200])
+        log.info("daily_pulse: attention=%s", ctx.get("digest_attention", "")[:200])
         return ctx
 
     @agent
