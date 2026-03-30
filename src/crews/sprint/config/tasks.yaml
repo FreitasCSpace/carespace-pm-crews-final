@@ -52,15 +52,19 @@ post_sprint_plan_task:
     Post ONE message to #pm-sprint-board.
 
     IF a sprint was finalized (tasks_moved > 0):
-      Call post_sprint_plan(sprint_list_id=<list_id from finalize_task>).
+      You MUST call post_sprint_plan with the sprint_list_id.
+      Do NOT use the generic 'post' tool for this case.
+      post_sprint_plan fetches the sprint name and all tasks from ClickUp
+      and formats them into a proper sprint board with task names and SP.
+      Pass ONLY sprint_list_id — do NOT pass sprint_name.
 
     IF sprint is active (candidates are for next sprint):
-      Use the generic post tool to post to {slack_sprint}:
+      Use the post tool to post to {slack_sprint}:
       "Sprint N is active until DATE. Sprint Candidates (N items)
        are being collected for the next sprint."
 
     IF no sprint and no candidates:
-      Use the generic post tool to post to {slack_sprint}:
+      Use the post tool to post to {slack_sprint}:
       "No active sprint. Sprint Candidates is empty —
        team needs to add tasks before the next sprint can start."
 
