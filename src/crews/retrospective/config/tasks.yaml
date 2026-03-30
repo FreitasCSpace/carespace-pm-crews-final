@@ -1,95 +1,65 @@
 find_sprint_task:
   description: >
-    Call create_or_get_sprint_list to find the current sprint.
-    Check the response carefully:
-
-    1. If status = 'active': a sprint exists. Check the END DATE.
-       - If end date has NOT passed yet: sprint is still running.
-         Report: "Sprint N is still active (ends DATE). Too early for retro."
-         Set can_close = false.
-       - If end date HAS passed: sprint is ready for retro.
-         Set can_close = true.
-
-    2. If status = 'created': a new sprint was just created — nothing to retro.
-       Report: "No completed sprint to review."
-       Set can_close = false.
-
-    Also pull tasks via get_tasks_by_list (include_closed=True).
-    If the sprint has ZERO tasks: report "Sprint is empty — nothing to review."
-    Set can_close = false.
-
-    Only proceed with retro if can_close = true AND tasks > 0.
+    Check retro_skip in your inputs.
+    IF retro_skip = "true": return retro_result. Do NOT call any tools.
+    IF retro_skip = "false": Call create_or_get_sprint_list to get the
+    active sprint. Use retro_list_id from inputs for the sprint.
   expected_output: >
-    Sprint info with can_close flag. Or message explaining why retro cannot run.
+    Sprint info or skip message.
   agent: retrospective_agent
 
 measure:
   description: >
-    IF find_sprint_task said can_close = false or sprint is empty:
-      Pass through the message. Do NOT calculate anything.
+    IF previous task returned a skip message: pass it through.
+    Do NOT call any tools. Do NOT calculate anything.
 
-    IF sprint is ready for retro (can_close = true, has tasks):
-      Using the sprint tasks from previous step, calculate:
-      - Total tasks, done count, in progress, pending, blocked
+    IF sprint is ready for retro:
+      Pull ALL tasks via get_tasks_by_list (include_closed=True)
+      using retro_list_id from inputs.
+
+      Calculate:
+      - Total tasks, done/in-progress/pending/blocked counts
       - Completion rate (done / total)
-      - Velocity: sum of SP from completed tasks
-      - Per-engineer breakdown: tasks/SP each person completed
-      - Carry-overs: incomplete tasks (NOT complete/done)
+      - Velocity: sum SP from completed tasks
+      - Per-engineer breakdown
+      - Carry-overs: incomplete tasks
       - Recommended next sprint SP = completed_sp x 0.80
 
-      List each task with ClickUp URL, assignee, SP, and status.
+      List each task with ClickUp URL, assignee, SP, status.
   expected_output: >
-    Detailed metrics with task-level detail. Or pass-through message.
+    Detailed metrics or skip message.
   agent: retrospective_agent
   context:
     - find_sprint_task
 
 close_and_carryover:
   description: >
-    IF measure passed through a "cannot close" message:
-      Pass it through. Do NOT call close_sprint.
+    IF previous task returned a skip message: pass it through.
+    Do NOT call close_sprint.
 
-    IF metrics were calculated (sprint is ready to close):
-      Call close_sprint. This tool:
-      - Moves incomplete tasks to Sprint Candidates (for next sprint)
-      - Tags them with "carryover" + bumps priority
-      - Completed tasks STAY in the sprint list
-
-      Record: how many carried over, which tasks, total SP.
+    IF metrics were calculated:
+      Call close_sprint. It moves incomplete tasks to Sprint Candidates
+      with "carryover" tag + priority bump. Completed tasks stay.
   expected_output: >
-    Carryover results. Or pass-through message.
+    Carryover results or skip message.
   agent: retrospective_agent
   context:
     - measure
 
 post_and_log:
   description: >
-    Post ONE message to {slack_sprint}.
+    IF previous tasks returned a skip message:
+      Do NOT post to Slack. Do NOT log anything.
+      Just return: "Retro skipped — sprint not ready."
 
     IF sprint was closed (has metrics + carryovers):
-      Call post_retro with: sprint_name, completion_pct, velocity_sp,
-      carry_over count, doc_url="N/A".
-      Also log velocity in Sprint History ({sprint_history_id}).
+      Post ONE retro to {slack_sprint} using post_retro.
+      Log velocity in Sprint History ({sprint_history_id}).
+      Post ONE message only.
 
-    IF sprint is still active (not ended yet):
-      Call post_retro with:
-      - sprint_name: from sprint data
-      - completion_pct: 0
-      - velocity_sp: 0
-      - carry_over: 0
-      - doc_url: "Sprint still active — retro skipped"
-
-    IF sprint is empty or no sprint exists:
-      Call post_retro with:
-      - sprint_name: "No Sprint"
-      - completion_pct: 0
-      - velocity_sp: 0
-      - carry_over: 0
-      - doc_url: "No sprint to review"
-
-    Post ONE message only. Do NOT call vault_write.
+    Do NOT call vault_write.
   expected_output: >
-    Confirmation of Slack post.
+    Confirmation of Slack post, or "Retro skipped."
   agent: retrospective_agent
   context:
     - close_and_carryover
