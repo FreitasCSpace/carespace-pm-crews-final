@@ -1,65 +1,7 @@
-find_sprint_task:
+confirm_task:
   description: >
-    Check retro_skip in your inputs.
-    IF retro_skip = "true": return retro_result. Do NOT call any tools.
-    IF retro_skip = "false": Call create_or_get_sprint_list to get the
-    active sprint. Use retro_list_id from inputs for the sprint.
+    The retrospective was handled by the system. Check retro_result
+    in your inputs and return it. Do NOT call any tools.
   expected_output: >
-    Sprint info or skip message.
+    The retro_result message from inputs.
   agent: retrospective_agent
-
-measure:
-  description: >
-    IF previous task returned a skip message: pass it through.
-    Do NOT call any tools. Do NOT calculate anything.
-
-    IF sprint is ready for retro:
-      Pull ALL tasks via get_tasks_by_list (include_closed=True)
-      using retro_list_id from inputs.
-
-      Calculate:
-      - Total tasks, done/in-progress/pending/blocked counts
-      - Completion rate (done / total)
-      - Velocity: sum SP from completed tasks
-      - Per-engineer breakdown
-      - Carry-overs: incomplete tasks
-      - Recommended next sprint SP = completed_sp x 0.80
-
-      List each task with ClickUp URL, assignee, SP, status.
-  expected_output: >
-    Detailed metrics or skip message.
-  agent: retrospective_agent
-  context:
-    - find_sprint_task
-
-close_and_carryover:
-  description: >
-    IF previous task returned a skip message: pass it through.
-    Do NOT call close_sprint.
-
-    IF metrics were calculated:
-      Call close_sprint. It moves incomplete tasks to Sprint Candidates
-      with "carryover" tag + priority bump. Completed tasks stay.
-  expected_output: >
-    Carryover results or skip message.
-  agent: retrospective_agent
-  context:
-    - measure
-
-post_and_log:
-  description: >
-    IF previous tasks returned a skip message:
-      Do NOT post to Slack. Do NOT log anything.
-      Just return: "Retro skipped — sprint not ready."
-
-    IF sprint was closed (has metrics + carryovers):
-      Post ONE retro to {slack_sprint} using post_retro.
-      Log velocity in Sprint History ({sprint_history_id}).
-      Post ONE message only.
-
-    Do NOT call vault_write.
-  expected_output: >
-    Confirmation of Slack post, or "Retro skipped."
-  agent: retrospective_agent
-  context:
-    - close_and_carryover

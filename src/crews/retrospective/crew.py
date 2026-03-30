@@ -2,8 +2,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
-    create_sprint_list, get_stale_prs, get_ci, get_activity,
-    get_tasks_by_list, create_clickup_task, post_retro,
+    create_sprint_list, get_tasks_by_list, post_retro,
     close_sprint,
 )
 from shared.config.context import interpolate_config
@@ -11,10 +10,10 @@ from shared.config.context import interpolate_config
 
 @CrewBase
 class RetrospectiveCrew:
-    """Sprint retrospective — 100% Python guards in before_kickoff.
+    """Sprint retrospective — 100% Python in before_kickoff.
 
-    Checks sprint dates and task count before running. If sprint is
-    still active or empty, returns silently with no Slack post.
+    Checks sprint dates, tasks, runs retro if ready, posts to Slack.
+    If sprint is active or empty, does NOTHING — no Slack, no vault.
     """
 
     agents_config = "config/agents.yaml"
@@ -24,19 +23,18 @@ class RetrospectiveCrew:
     def inject_context(self, inputs):
         import json, logging
         from datetime import date
-        from shared.config.context import crew_context
+        from shared.config.context import crew_context, SP_CUSTOM_FIELD_ID
 
         log = logging.getLogger(__name__)
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
 
-        # ── 1. Check sprint status ──
+        # ── 1. Get sprint ──
         try:
             sprint_result = create_sprint_list.run()
             sprint = json.loads(sprint_result) if isinstance(sprint_result, str) else sprint_result
         except Exception as e:
             log.warning("retro: sprint lookup failed: %s", e)
-            ctx["retro_skip"] = "true"
             ctx["retro_result"] = f"Sprint lookup failed: {e}"
             return ctx
 
@@ -45,27 +43,24 @@ class RetrospectiveCrew:
         list_id = sprint.get("list_id", "")
         status = sprint.get("status", "")
 
-        log.info("retro: %s (status=%s, end_date=%s)", sprint_name, status, end_date_str)
+        log.info("retro: %s (status=%s, end=%s, list=%s)", sprint_name, status, end_date_str, list_id)
 
         # ── 2. Sprint must have ended ──
         if status == "created":
-            log.info("retro: no sprint to review (just created)")
-            ctx["retro_skip"] = "true"
-            ctx["retro_result"] = "No completed sprint to review."
+            log.info("retro: no sprint to review — skipping silently")
+            ctx["retro_result"] = "No completed sprint."
             return ctx
 
         try:
             end_date = date.fromisoformat(end_date_str)
-            today = date.today()
-            if today <= end_date:
+            if date.today() <= end_date:
                 log.info("retro: sprint still active (ends %s) — skipping silently", end_date_str)
-                ctx["retro_skip"] = "true"
                 ctx["retro_result"] = f"Sprint still active (ends {end_date_str}). Skipped."
                 return ctx
         except Exception:
-            pass  # If date parsing fails, proceed anyway
+            pass
 
-        # ── 3. Sprint must have tasks ──
+        # ── 3. Get tasks ──
         tasks = []
         try:
             tasks_result = get_tasks_by_list.run(list_id=list_id, status="", include_closed=True)
@@ -76,50 +71,71 @@ class RetrospectiveCrew:
             pass
 
         if not tasks:
-            log.info("retro: sprint is empty — skipping silently")
-            ctx["retro_skip"] = "true"
-            ctx["retro_result"] = "Sprint is empty. Skipped."
+            log.info("retro: sprint empty — skipping silently")
+            ctx["retro_result"] = "Sprint empty. Skipped."
             return ctx
 
-        # ── Sprint is ready for retro — pass data for the LLM tasks ──
-        log.info("retro: sprint ready — %d tasks, proceeding with retro", len(tasks))
-        ctx["retro_skip"] = "false"
-        ctx["retro_sprint_name"] = sprint_name
-        ctx["retro_list_id"] = list_id
-        ctx["retro_task_count"] = str(len(tasks))
+        # ── 4. Calculate metrics ──
+        done_tasks, carryover_tasks = [], []
+        total_sp, done_sp = 0, 0
+        DONE = {"complete", "done", "closed"}
+
+        for t in tasks:
+            task_status = (t.get("status") or "").lower()
+            sp = t.get("points") or 0
+            total_sp += sp
+            if task_status in DONE:
+                done_tasks.append(t)
+                done_sp += sp
+            else:
+                carryover_tasks.append(t)
+
+        completion_pct = round(len(done_tasks) / len(tasks) * 100, 1) if tasks else 0
+        sprint_number = sprint.get("sprint_number", 1)
+
+        log.info("retro: %d tasks, %d done (%s%%), %d SP, %d carryovers",
+                 len(tasks), len(done_tasks), completion_pct, done_sp, len(carryover_tasks))
+
+        # ── 5. Close sprint (move carryovers to Sprint Candidates) ──
+        try:
+            close_result = close_sprint.run()
+            close_data = json.loads(close_result) if isinstance(close_result, str) else close_result
+            log.info("retro: close_sprint result: %s", str(close_data)[:200])
+        except Exception as e:
+            log.error("retro: close_sprint failed: %s", e)
+
+        # ── 6. Post retro to Slack ──
+        try:
+            post_retro.run(
+                sprint_name=sprint_name,
+                completion_pct=completion_pct,
+                velocity_sp=done_sp,
+                carry_over=len(carryover_tasks),
+                doc_url="N/A",
+            )
+            log.info("retro: posted to Slack")
+        except Exception as e:
+            log.error("retro: Slack post failed: %s", e)
+
+        ctx["retro_result"] = (
+            f"Retro complete: {sprint_name} — {completion_pct}% completion, "
+            f"{done_sp} SP velocity, {len(carryover_tasks)} carryovers."
+        )
         return ctx
+
+    # ── Minimal crew — just confirms ──
 
     @agent
     def retrospective_agent(self) -> Agent:
         return Agent(
             config=interpolate_config(self.agents_config["retrospective_agent"]),
-            tools=[
-                create_sprint_list, get_stale_prs, get_ci, get_activity,
-                get_tasks_by_list, create_clickup_task, post_retro,
-                close_sprint,
-            ],
+            tools=[],
             verbose=True,
-            allow_delegation=False,
-            reasoning=True,
-            inject_date=True,
-            function_calling_llm="gpt-4o-mini",
         )
 
     @task
-    def find_sprint_task(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["find_sprint_task"]))
-
-    @task
-    def measure(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["measure"]))
-
-    @task
-    def close_and_carryover(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["close_and_carryover"]))
-
-    @task
-    def post_and_log(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["post_and_log"]))
+    def confirm_task(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["confirm_task"]))
 
     @crew
     def crew(self) -> Crew:
