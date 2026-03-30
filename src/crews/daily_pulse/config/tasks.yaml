@@ -1,69 +1,41 @@
 analyze_sprint:
   description: >
-    CRITICAL: ALL sprint data is pre-gathered in your inputs as sprint_data.
-    You MUST use ONLY this data. Do NOT invent, hallucinate, or fabricate
-    any task names, assignees, SP values, or statuses.
+    The sprint digest has been pre-built by the system. All sections are
+    ready in your inputs as digest_* fields. Your ONLY job is to verify
+    the data looks reasonable and pass it through.
 
-    If sprint_data.tasks has 1 task, report 1 task. If it has 0, report 0.
-    NEVER add fake tasks to make the report look more complete.
+    The pre-built sections are:
+    - digest_executive_summary
+    - digest_done
+    - digest_in_progress
+    - digest_blocked
+    - digest_pending
+    - digest_attention (task health)
+    - digest_meeting_mode
 
-    Parse sprint_data JSON and extract:
-
-    1. Sprint info from sprint_data.sprint (name, timing, dates)
-    2. Tasks from sprint_data.tasks — use EXACT names, statuses, assignees, SP, URLs
-    3. Stale tasks from sprint_data.stale_tasks
-    4. Open PRs from sprint_data.open_prs (for PR coverage)
-    5. Stale PRs from sprint_data.stale_prs
-
-    Task counts by LITERAL ClickUp status:
-    * done: status 'complete' or 'done'
-    * in_progress: status 'in progress'
-    * blocked: status 'blocked' ONLY
-    * pending: status 'to do' or 'open'
-
-    SP progress: sum SP of done tasks / sum SP of all tasks
-
-    Sprint timing: use sprint_data.sprint.timing.timing_display EXACTLY.
-
-    If sprint has NO tasks: report "Sprint is empty — no tasks assigned."
-
-    Do NOT post to Slack. Do NOT call post_standup. The next task handles posting.
+    Return these fields as-is. Do NOT modify, add to, or replace any content.
+    Do NOT invent any task names. Do NOT call any tools.
   expected_output: >
-    Analysis based ONLY on sprint_data. Every task name, SP, and status
-    must come from the actual data. Zero fabricated content.
+    The pre-built digest sections passed through unchanged.
   agent: daily_pulse_agent
 
 compile_and_post:
   description: >
-    Post ONE sprint digest to #pm-standup using post_standup.
-    Use ONLY the analysis from the previous task. Do NOT add tasks
-    that weren't in the analysis.
+    Post the sprint digest to #pm-standup using post_standup.
 
-    FORMAT:
+    Pass the pre-built sections from your inputs EXACTLY as they are:
+    - executive_summary = digest_executive_summary
+    - done = digest_done (or 'None' if empty)
+    - in_progress = digest_in_progress (or 'None' if empty)
+    - blocked = digest_blocked (or 'None' if empty)
+    - pending = digest_pending (or 'None' if empty)
+    - attention = digest_attention
+    - meeting_mode = digest_meeting_mode
+    - blocker_details = empty string
 
-    executive_summary: 3-4 bullets
-    • Sprint N — timing_display (EXACT from sprint data)
-    • Progress: X% complete (A/B SP delivered)
-    • Status: green/yellow/red based on progress vs time
-    • Key risk or win in one line
-
-    done/in_progress/blocked/pending: task lists using this format:
-    • <clickup_url|Task name> — @assignee · X SP
-    Drop [TYPE] prefix. Use middle dot separator. Skip empty sections.
-
-    attention: unified Task Health — each problematic task listed ONCE:
-    • <clickup_url|Task name> — @assignee · X SP · status
-      - issue 1
-      - issue 2
-
-    meeting_mode: headline only
-    🔴 STANDUP MODE: N task(s) need attention.
-    OR 🟢 OPEN SLOT: Sprint healthy.
-
-    blocker_details: empty string
-
-    CRITICAL: Call post_standup EXACTLY ONCE. When ok:true, STOP.
-    Do NOT call vault_write.
+    CRITICAL: Pass the content EXACTLY as provided. Do NOT modify it.
+    Do NOT add tasks that aren't in the pre-built sections.
+    Call post_standup EXACTLY ONCE. When ok:true, STOP.
   expected_output: >
     Confirmation of standup posted.
   agent: daily_pulse_agent

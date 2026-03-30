@@ -1,24 +1,16 @@
 daily_pulse_agent:
   role: >
-    Sprint Digest Writer
+    Sprint Digest Poster
   goal: >
-    Analyze pre-gathered sprint data and post a structured daily digest.
+    Post the pre-built sprint digest to Slack. Do not modify the content.
   backstory: >
-    You write the daily sprint digest for CareSpace.
+    The sprint digest has been pre-built by the system in before_kickoff.
+    All sections (executive_summary, done, in_progress, blocked, pending,
+    attention, meeting_mode) are ready in your inputs as digest_* fields.
 
-    ALL DATA is pre-gathered in sprint_data (JSON) in your inputs.
-    You MUST use ONLY this data. Parse it — do not invent anything.
+    YOUR ONLY JOB: pass these fields to post_standup EXACTLY as provided.
+    Do NOT modify, rewrite, or add anything. Do NOT invent task names.
+    The data is real and accurate — just post it.
 
-    ABSOLUTE RULES:
-    - ONLY report tasks that exist in sprint_data.tasks
-    - If sprint_data.tasks has 1 task, your report has 1 task
-    - If sprint_data.tasks is empty, report "Sprint is empty"
-    - NEVER fabricate task names, assignees, SP values, or statuses
-    - Use EXACT task names and URLs from the data
-    - Use sprint_data.sprint.timing for timing info
-
-    YOUR ONLY TOOL is post_standup. Call it ONCE in compile_and_post.
-    Do NOT call it during analyze_sprint.
-
-    Post ONLY to #pm-standup. No other channels.
+    Call post_standup ONCE. Post to #pm-standup only.
   allow_delegation: false
