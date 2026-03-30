@@ -1,72 +1,56 @@
-create_sprint_task:
-  description: >
-    Call create_or_get_sprint_list. It checks if an active sprint exists:
-    - If status = 'active': a sprint is already running. Return it.
-    - If status = 'created': a new sprint was created. Proceed.
-  expected_output: >
-    JSON with list_id, sprint_name, sprint_number, dates, and status.
-  agent: sprint_agent
-
 check_candidates_task:
   description: >
-    NOTE: Vault context with velocity history and retro findings is
-    available in your inputs as vault_context. Use it to validate the
-    velocity budget recommendation.
+    FIRST check if there are candidates to finalize.
 
-    Call get_last_sprint_velocity to get the recommended SP budget
-    based on the team's actual last-sprint delivery. Use the returned
-    recommended_budget_sp as the target for this sprint.
+    Call list_sprint_candidates to see what the team has selected.
+    Call get_last_sprint_velocity for the recommended SP budget.
 
-    Then call list_sprint_candidates to see what the team has selected.
+    Report: candidate count, total SP, recommended budget, over/under delta.
 
-    Report: recommended budget (from velocity history), total candidates SP,
-    over/under budget delta, unassigned tasks.
-
-    If Sprint Candidates is EMPTY, report that the team needs to populate
-    it before the sprint can be finalized.
+    If Sprint Candidates is EMPTY: set a flag that sprint planning
+    cannot proceed. The team needs to populate Sprint Candidates first.
   expected_output: >
-    Sprint Candidates summary: recommended budget, current SP total,
-    over/under delta, task list, and assignment status.
+    Sprint Candidates summary: count, SP total, budget, assignment status.
+    Or: "Sprint Candidates is empty — sprint planning cannot proceed."
   agent: sprint_agent
-  context:
-    - create_sprint_task
 
 finalize_task:
   description: >
-    IF Sprint Candidates has tasks:
-    Call finalize_sprint_from_candidates with the sprint list_id from
-    create_sprint_task. This moves ALL candidates into the sprint:
-    - Copies each task to the sprint list (with assignees, SP, tags)
-    - Deletes each task from Sprint Candidates
-    - Closes the backlog original
+    IF check_candidates_task found candidates (count > 0):
+      1. Call create_or_get_sprint_list to get/create the sprint.
+      2. Call finalize_sprint_from_candidates with the sprint list_id.
+         This moves ALL candidates into the sprint.
+      3. Report: tasks_moved, total_sp, warnings.
 
-    IF Sprint Candidates is EMPTY:
-    Do NOT pull from the backlog. Report that sprint planning needs
-    the team to populate Sprint Candidates first.
-
-    IMPORTANT: Do NOT use scan_backlog_for_sprint or execute_sprint_selection.
-    Those tools do not exist. Only use finalize_sprint_from_candidates.
+    IF Sprint Candidates was EMPTY:
+      Do NOT create a sprint. Do NOT call create_or_get_sprint_list.
+      Do NOT call finalize_sprint_from_candidates.
+      Return: "No sprint created — Sprint Candidates is empty.
+      The team needs to add tasks to Sprint Candidates before
+      the sprint can be planned."
   expected_output: >
-    JSON with tasks_moved, total_sp, warnings. Or empty candidates warning.
+    JSON with tasks_moved, total_sp, warnings. Or empty candidates message.
   agent: sprint_agent
   context:
     - check_candidates_task
 
 post_sprint_plan_task:
   description: >
-    Post ONE message to #pm-sprint-board using post_sprint_plan.
+    Post ONE message to #pm-sprint-board.
 
-    Call: post_sprint_plan(sprint_list_id=<list_id from create_sprint_task or finalize_task>)
+    IF a sprint was finalized (tasks_moved > 0):
+      Call post_sprint_plan(sprint_list_id=<list_id from finalize_task>).
+      The tool fetches sprint name and tasks from ClickUp.
 
-    The tool fetches the sprint name and tasks directly from ClickUp — you only
-    need to pass sprint_list_id. Do NOT pass sprint_name.
+    IF Sprint Candidates was empty (no sprint created):
+      Use the generic post tool to post to {slack_sprint}:
+      "Sprint not planned — Sprint Candidates is empty.
+       The team needs to add tasks to Sprint Candidates
+       before the next sprint can be finalized."
 
-    If candidates were empty or finalize errored, post a warning instead.
-    Post ONE message only. Do NOT post to other channels.
-    Do NOT call vault_write — vault is handled automatically by the system.
+    Post ONE message only. Do NOT call vault_write.
   expected_output: >
-    Confirmation of Slack post to #pm-sprint-board.
+    Confirmation of Slack post.
   agent: sprint_post_agent
   context:
-    - create_sprint_task
     - finalize_task
