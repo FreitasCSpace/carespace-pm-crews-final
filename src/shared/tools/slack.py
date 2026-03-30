@@ -171,6 +171,25 @@ def post_sprint_plan(sprint_list_id: str) -> str:
     return json.dumps({"ok": r.get("ok")})
 
 
+@tool("Post Sprint Status to Slack")
+def post_sprint_status(headline: str, detail: str) -> str:
+    """
+    Posts a sprint status message to #pm-sprint-board using the same
+    Block Kit format as post_sprint_plan. Use this for status messages
+    like "sprint is active" or "no candidates" — NOT for sprint plans.
+
+    headline: one-line status, e.g. "Sprint 1 — Active until Apr 12"
+    detail: body text with context, e.g. "3 Sprint Candidates being collected for next sprint."
+    """
+    r = _api(SLACK["sprint"], headline, [
+        _hdr(f"📅 {headline}"),
+        _div(),
+        _sec(detail),
+        _ctx("_Sprint plan by CareSpace PM AI_"),
+    ])
+    return json.dumps({"ok": r.get("ok")})
+
+
 def _trunc(text: str, max_chars: int = 2800) -> str:
     """Truncate text to Slack's block limit (3000 chars). Adds note if cut."""
     if len(text) <= max_chars:

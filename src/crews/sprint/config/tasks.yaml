@@ -59,14 +59,14 @@ post_sprint_plan_task:
       Pass ONLY sprint_list_id — do NOT pass sprint_name.
 
     IF sprint is active (candidates are for next sprint):
-      Use the post tool to post to {slack_sprint}:
-      "Sprint N is active until DATE. Sprint Candidates (N items)
-       are being collected for the next sprint."
+      Call post_sprint_status with:
+        headline: "Sprint N — Active until DATE"
+        detail: "N Sprint Candidates being collected for the next sprint.\nCurrent sprint ends DATE."
 
     IF no sprint and no candidates:
-      Use the post tool to post to {slack_sprint}:
-      "No active sprint. Sprint Candidates is empty —
-       team needs to add tasks before the next sprint can start."
+      Call post_sprint_status with:
+        headline: "Sprint Planning — Not Ready"
+        detail: "No active sprint. Sprint Candidates is empty.\nTeam needs to add tasks before the next sprint can start."
 
     Post ONE message only. Do NOT call vault_write.
   expected_output: >

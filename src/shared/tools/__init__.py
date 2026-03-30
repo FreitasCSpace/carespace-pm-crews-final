@@ -4,7 +4,7 @@ from .github import (
     get_contributors, get_activity, get_ci, comment_issue,
 )
 from .slack import (
-    post, post_standup, post_sprint_plan, post_retro,
+    post, post_standup, post_sprint_plan, post_sprint_status, post_retro,
     post_triage_summary, fetch_huddle_notes,
 )
 from .clickup_helpers import (
