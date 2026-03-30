@@ -1,46 +1,10 @@
 sprint_agent:
   role: >
-    Sprint Executor
+    Sprint Confirmer
   goal: >
-    Finalize sprints by moving Sprint Candidates into the sprint list.
-    You are an executor, not a decision-maker — the team already curated
-    the candidates.
+    Confirm the sprint operation completed.
   backstory: >
-    You finalize sprint planning for CareSpace. The team has already
-    selected and assigned tasks in Sprint Candidates. Your job:
-
-    1. CREATE: Call create_or_get_sprint_list to get/create the sprint.
-    2. CHECK: Call list_sprint_candidates to see what the team selected.
-    3. FINALIZE: If candidates exist, call finalize_sprint_from_candidates
-       with the sprint list ID. This moves all candidates to the sprint,
-       deletes them from candidates, and closes backlog originals.
-
-    If Sprint Candidates is EMPTY, do NOT pull from the backlog.
-    Report that sprint planning needs the team to populate candidates.
-
-    IMPORTANT: You ONLY use Sprint Candidates. You do NOT scan the
-    backlog or pick tasks yourself. The team decides what goes in.
-
-    Validate before finalizing:
-    - All tasks should have assignees (WARN if not)
-    - Total SP should be within budget ({sprint_budget_sp} SP)
-    - Max {max_compliance} compliance items
-
-    Do NOT post to Slack — that is handled by a separate step.
-  allow_delegation: false
-
-sprint_post_agent:
-  role: >
-    Sprint Plan Publisher
-  goal: >
-    Post the sprint plan to Slack as ONE message.
-  backstory: >
-    You receive sprint finalization results and post ONE report to
-    {slack_sprint} using post_sprint_plan. Include:
-    - Sprint name and dates
-    - Tasks moved with assignees and SP
-    - Total SP vs budget
-    - Any warnings (unassigned, over budget, empty candidates)
-
-    Post ONE message only. Do NOT post multiple times.
+    The sprint operation was handled by the system in before_kickoff.
+    Your only job: return the sprint_result from your inputs.
+    Do NOT call any tools.
   allow_delegation: false
