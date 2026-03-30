@@ -1,35 +1,48 @@
 check_candidates_task:
   description: >
-    FIRST check if there are candidates to finalize.
+    Check two things before sprint finalization:
 
-    Call list_sprint_candidates to see what the team has selected.
-    Call get_last_sprint_velocity for the recommended SP budget.
+    1. Call create_or_get_sprint_list to check if a sprint is active.
+       - If status = 'active': a sprint is already running.
+         Sprint Candidates are for the NEXT sprint — do NOT finalize now.
+         Report: "Sprint N is active (ends DATE). Candidates are being
+         collected for the next sprint."
+       - If status = 'created': no active sprint. Proceed to check candidates.
 
-    Report: candidate count, total SP, recommended budget, over/under delta.
+    2. If no active sprint, call list_sprint_candidates.
+       Call get_last_sprint_velocity for the recommended SP budget.
+       Report: candidate count, total SP, recommended budget.
 
-    If Sprint Candidates is EMPTY: set a flag that sprint planning
-    cannot proceed. The team needs to populate Sprint Candidates first.
+    3. If Sprint Candidates is EMPTY AND no active sprint:
+       Report: "No active sprint and no candidates — team needs to plan."
+
+    RULES:
+    - Active sprint + candidates = candidates are for NEXT sprint, don't touch them
+    - No active sprint + candidates = ready to finalize
+    - No active sprint + no candidates = nothing to do
   expected_output: >
-    Sprint Candidates summary: count, SP total, budget, assignment status.
-    Or: "Sprint Candidates is empty — sprint planning cannot proceed."
+    One of:
+    - "Sprint N is active — candidates are for next sprint"
+    - "Ready to finalize: N candidates, X SP"
+    - "No sprint and no candidates — team needs to plan"
   agent: sprint_agent
 
 finalize_task:
   description: >
-    IF check_candidates_task found candidates (count > 0):
-      1. Call create_or_get_sprint_list to get/create the sprint.
+    Based on check_candidates_task:
+
+    IF "ready to finalize" (no active sprint + candidates exist):
+      1. The sprint was already created by create_or_get_sprint_list
+         in the previous task (status='created'). Use that list_id.
       2. Call finalize_sprint_from_candidates with the sprint list_id.
-         This moves ALL candidates into the sprint.
       3. Report: tasks_moved, total_sp, warnings.
 
-    IF Sprint Candidates was EMPTY:
-      Do NOT create a sprint. Do NOT call create_or_get_sprint_list.
+    IF sprint is active OR candidates are empty:
       Do NOT call finalize_sprint_from_candidates.
-      Return: "No sprint created — Sprint Candidates is empty.
-      The team needs to add tasks to Sprint Candidates before
-      the sprint can be planned."
+      Do NOT create a new sprint.
+      Pass through the message from check_candidates_task.
   expected_output: >
-    JSON with tasks_moved, total_sp, warnings. Or empty candidates message.
+    Finalization results or pass-through message.
   agent: sprint_agent
   context:
     - check_candidates_task
@@ -40,17 +53,21 @@ post_sprint_plan_task:
 
     IF a sprint was finalized (tasks_moved > 0):
       Call post_sprint_plan(sprint_list_id=<list_id from finalize_task>).
-      The tool fetches sprint name and tasks from ClickUp.
 
-    IF Sprint Candidates was empty (no sprint created):
+    IF sprint is active (candidates are for next sprint):
       Use the generic post tool to post to {slack_sprint}:
-      "Sprint not planned — Sprint Candidates is empty.
-       The team needs to add tasks to Sprint Candidates
-       before the next sprint can be finalized."
+      "Sprint N is active until DATE. Sprint Candidates (N items)
+       are being collected for the next sprint."
+
+    IF no sprint and no candidates:
+      Use the generic post tool to post to {slack_sprint}:
+      "No active sprint. Sprint Candidates is empty —
+       team needs to add tasks before the next sprint can start."
 
     Post ONE message only. Do NOT call vault_write.
   expected_output: >
     Confirmation of Slack post.
   agent: sprint_post_agent
   context:
+    - check_candidates_task
     - finalize_task
