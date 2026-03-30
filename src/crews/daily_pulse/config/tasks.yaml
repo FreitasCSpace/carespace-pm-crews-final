@@ -1,223 +1,71 @@
 analyze_sprint:
   description: >
-    All sprint data has been pre-gathered and is available in your inputs
-    as sprint_data (JSON). Parse it and analyze the sprint health.
+    CRITICAL: ALL sprint data is pre-gathered in your inputs as sprint_data.
+    You MUST use ONLY this data. Do NOT invent, hallucinate, or fabricate
+    any task names, assignees, SP values, or statuses.
 
-    NOTE: Vault context from previous daily pulses and velocity history
-    is available in your inputs as vault_context. Use it to calculate
-    deltas vs yesterday if available.
+    If sprint_data.tasks has 1 task, report 1 task. If it has 0, report 0.
+    NEVER add fake tasks to make the report look more complete.
 
-    Analyze ALL data needed for the daily sprint digest:
+    Parse sprint_data JSON and extract:
 
-    1. Read sprint tasks from sprint_data.tasks.
-       For each task note: name, STATUS (exact ClickUp status), assignee,
-       SP, last updated, tags, and URL (clickup link for each task).
+    1. Sprint info from sprint_data.sprint (name, timing, dates)
+    2. Tasks from sprint_data.tasks — use EXACT names, statuses, assignees, SP, URLs
+    3. Stale tasks from sprint_data.stale_tasks
+    4. Open PRs from sprint_data.open_prs (for PR coverage)
+    5. Stale PRs from sprint_data.stale_prs
 
-    2. Sprint timing:
-       Read sprint_data.sprint for the pre-calculated "timing" object.
-       Use timing.timing_display EXACTLY as returned — do NOT
-       recalculate dates yourself. Examples:
-       * "Starts in 3 days (Mar 23 — Apr 05)" — sprint not started
-       * "Day 5 of 14 (9 days remaining)" — sprint in progress
-       Use timing.sprint_started to know if the sprint is active.
+    Task counts by LITERAL ClickUp status:
+    * done: status 'complete' or 'done'
+    * in_progress: status 'in progress'
+    * blocked: status 'blocked' ONLY
+    * pending: status 'to do' or 'open'
 
-    3. Task counts by LITERAL ClickUp status (not your interpretation):
-       * done: tasks with status 'complete' or 'done'
-       * in_progress: tasks with status 'in progress'
-       * blocked: tasks with status 'blocked' ONLY
-       * pending: tasks with status 'to do' or 'open'
-       CRITICAL: A task is "blocked" ONLY if its ClickUp status says
-       "blocked". Do NOT infer blocked status from the task name or
-       content. A compliance task in "to do" status is PENDING, not blocked.
+    SP progress: sum SP of done tasks / sum SP of all tasks
 
-    4. SP progress: completed_sp / total_sp
+    Sprint timing: use sprint_data.sprint.timing.timing_display EXACTLY.
 
-    5. Sprint risk assessment (only when timing.sprint_started is true):
-       time_pct = elapsed_days / total_days
-       done_pct = done_sp / total_sp
-       If done_pct < (time_pct - 0.15): 🔴 Behind schedule
-       If done_pct < (time_pct - 0.05): 🟡 At risk
-       Otherwise: 🟢 On track
-       If sprint hasn't started: status = "Not yet started"
+    If sprint has NO tasks: report "Sprint is empty — no tasks assigned."
 
-    6. Identify sprint risks — items that may not complete on time:
-       - High-SP tasks (8+ SP) still in pending with sprint >50% elapsed
-       - Tasks with no assignee
-       - Tasks with external dependencies (keywords: 'waiting on',
-         'blocked by', 'depends on', 'need from' in descriptions)
-       - Urgent/critical priority tasks still pending late in sprint
-       These are RISKS, not blockers. They go in the Sprint Risks section.
-
-    7. Read stale sprint tasks from sprint_data.stale_tasks.
-       These were checked using actual ClickUp COMMENTS, not date_updated
-       (which gets bumped by bot activity like triage SP estimates).
-       A task with no human comments for 3+ days is truly stale.
-       Flag them in Needs Attention.
-
-    8. PR COVERAGE: For each sprint task that is "in progress" or "to do",
-       check if there's an open PR linked to it. Read sprint_data.open_prs
-       and cross-reference PR titles/branches with sprint task names and
-       GitHub issue references in the task description.
-       For each sprint task, determine:
-       - Has PR: yes/no
-       - If yes: PR status (open, draft, passing CI, failing CI)
-       - If "in progress" but NO PR: flag as a risk — work may not be tracked
-       Report this as a "PR Coverage" sub-section in Needs Attention.
-
-    9. Read sprint_data.stale_prs for stale PRs (>{stale_pr_days}d).
-       IMPORTANT: Only include PRs that are RELATED to sprint tasks.
-       No "critical stale PRs" category — sprints are 2 weeks.
-       Cross-reference PR titles/branches with sprint task names.
-       If a PR doesn't match any sprint task, SKIP it.
-       If the sprint is empty, skip stale PR reporting entirely.
-
-    10. Read sprint_data.stale_issues for stale GitHub issues, BUT only
-        report issues that match a CURRENT SPRINT task name. Cross-reference
-        the issue titles with sprint task names. If an issue doesn't match
-        any sprint task, SKIP it. If the sprint is empty, skip entirely.
-        These are sprint-related issues with no comments for >{stale_task_days}d.
-
-    If the sprint list exists but has NO tasks yet (empty sprint):
-    Report "Sprint is empty — no tasks assigned yet" and skip all
-    task-level reporting (done/in-progress/blocked/pending/risks).
-    Only report CI status in that case.
-
-    IMPORTANT: NEVER scan or report on the Master Backlog. The daily
-    pulse ONLY covers the current sprint list. Backlog items are not
-    sprint items.
+    Do NOT post to Slack. Do NOT call post_standup. The next task handles posting.
   expected_output: >
-    Complete data JSON for digest compilation.
+    Analysis based ONLY on sprint_data. Every task name, SP, and status
+    must come from the actual data. Zero fabricated content.
   agent: daily_pulse_agent
 
 compile_and_post:
   description: >
-    Compile the data into a STRUCTURED SPRINT DIGEST and post to
-    #pm-standup. This is the ONLY channel daily pulse posts to.
+    Post ONE sprint digest to #pm-standup using post_standup.
+    Use ONLY the analysis from the previous task. Do NOT add tasks
+    that weren't in the analysis.
 
-    FORMAT THE STANDUP AS FOLLOWS (use this exact structure):
+    FORMAT:
 
-    ═══════════════════════════════════
-    📊 EXECUTIVE SUMMARY
-    ═══════════════════════════════════
-    • Sprint N — {timing.timing_display} (copy EXACTLY from tool output)
-    • Progress: Z% complete (A/B SP delivered)
-    • Status: [🟢 On Track / 🟡 At Risk / 🔴 Behind / 🟢 Not yet started]
-    • [Key risk or win in one line]
+    executive_summary: 3-4 bullets
+    • Sprint N — timing_display (EXACT from sprint data)
+    • Progress: X% complete (A/B SP delivered)
+    • Status: green/yellow/red based on progress vs time
+    • Key risk or win in one line
 
-    SPRINT STATUS RULES:
-    If timing.sprint_started is false: status = "🟢 Not yet started"
-    If timing.sprint_started is true:
-      🟢 On Track — done% is within 5% of time elapsed%
-      🟡 At Risk — done% is 5-15% behind time elapsed%
-      🔴 Behind — done% is >15% behind time elapsed%
-
-    CRITICAL: Use timing.timing_display for the sprint timing line.
-    Do NOT calculate dates yourself — the tool already did the math.
-
-    ═══════════════════════════════════
-    📋 SPRINT STATUS (literal ClickUp status)
-    ═══════════════════════════════════
-
-    ✅ Done:
+    done/in_progress/blocked/pending: task lists using this format:
     • <clickup_url|Task name> — @assignee · X SP
-    If no tasks are done, SKIP this sub-section entirely.
+    Drop [TYPE] prefix. Use middle dot separator. Skip empty sections.
 
-    🔄 In Progress:
-    • <clickup_url|Task name> — @assignee · X SP
-    If no tasks in progress, SKIP this sub-section entirely.
-
-    🚫 Blocked:
-    • <clickup_url|Task name> — @assignee · Reason
-    ONLY tasks whose ClickUp STATUS field is literally 'blocked'.
-    If no tasks have blocked status, SKIP this entire sub-section.
-    Do NOT show "Blocked: None".
-
-    ⏳ To Do:
-    • <clickup_url|Task name> — @assignee · X SP
-
-    FORMAT RULES for task lines:
-    - Use Slack link format: <https://app.clickup.com/t/TASKID|Task Name>
-    - Use the task URL from get_tasks_by_list output
-    - Drop the [TYPE] prefix — just use the clean task name
-    - Drop the GitHub issue reference (carespace-repo#N) — not useful here
-    - Use · (middle dot) to separate assignee and SP, not parentheses
-    - Keep each line short and scannable
-
-    ═══════════════════════════════════
-    ⚠️ TASK HEALTH
-    ═══════════════════════════════════
-    This replaces both "Needs Attention" and "Sprint Risks".
-    List each sprint task that has ANY issue ONCE, with ALL its
-    problems on indented lines below it. Do NOT repeat the same
-    task in multiple sections.
-
-    If a task has zero issues, do NOT list it here.
-    If all tasks are healthy, write: "All tasks healthy ✅"
-
-    List each problematic task:
-
+    attention: unified Task Health — each problematic task listed ONCE:
     • <clickup_url|Task name> — @assignee · X SP · status
-      - No comments for Xd
-      - No PR opened (in progress)
-      - Stale PR: <github_pr_url|PR title> — Xd old
-      - Unassigned — needs owner before sprint starts
-      - Blocked — reason
-      - High SP (8+), still pending at day X of sprint
+      - issue 1
+      - issue 2
 
-    Only include issue lines that apply. Skip lines that don't.
+    meeting_mode: headline only
+    🔴 STANDUP MODE: N task(s) need attention.
+    OR 🟢 OPEN SLOT: Sprint healthy.
 
-    Example:
-    • <https://app.clickup.com/t/abc|Calendar Program UI> — unassigned · 5 SP · to do
-      - No comments for 9d
-      - Unassigned — assign during sprint planning
+    blocker_details: empty string
 
-    • <https://app.clickup.com/t/def|UITabBar fix> — @kishorkumar · 3 SP · in progress
-      - No PR opened
-
-    RULES:
-    - Each task appears ONCE — combine all issues under it.
-    - Stale PRs: only sprint-related. Skip unrelated.
-    - No PR check: only for "in progress" tasks. "to do" don't need PRs yet.
-    - Stale issues: use ClickUp URL, not GitHub URL.
-    - Order tasks by severity: most issues first.
-
-    ═══════════════════════════════════
-    🎯 MEETING MODE
-    ═══════════════════════════════════
-    Based on sprint risks and blocked tasks:
-
-    If risks or blocked tasks exist:
-    🔴 STANDUP MODE: X risk(s) to discuss. 15-min focused session.
-
-    If no risks and no blocked tasks:
-    🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion.
-
-    Do NOT list the risks again here — the Sprint Risks section above
-    already has the full details. Meeting Mode is just the headline.
-
-    POST using post_standup tool with these parameters:
-    - executive_summary: 3-4 bullets (sprint timing, progress, status)
-    - done: completed tasks (or 'None')
-    - in_progress: active tasks with @assignee (X SP) (or 'None')
-    - blocked: ONLY tasks with ClickUp status 'blocked' (or 'None')
-    - pending: not-started tasks with @assignee (X SP)
-    - attention: the unified Task Health section — CI status line +
-        per-task analysis with all issues listed under each task.
-        If all healthy: "All tasks healthy ✅"
-    - meeting_mode: just the headline, e.g.:
-        '🔴 STANDUP MODE: 3 task(s) need attention. 15-min focused session.'
-        OR '🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion.'
-    - blocker_details: empty string (risks are now in Task Health section)
-
-    IMPORTANT: Do NOT add separator lines (═══) or section headers.
-    The tool adds all formatting automatically. Just pass clean content.
-
-    IMPORTANT: Post ONLY to #pm-standup using post_standup.
-    Do NOT post to any other channel.
-
-    Do NOT call vault_write — vault is handled automatically by the system.
+    CRITICAL: Call post_standup EXACTLY ONCE. When ok:true, STOP.
+    Do NOT call vault_write.
   expected_output: >
-    Confirmation of standup posted to {slack_standup}.
+    Confirmation of standup posted.
   agent: daily_pulse_agent
   context:
     - analyze_sprint
