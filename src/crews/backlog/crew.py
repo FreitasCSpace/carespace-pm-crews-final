@@ -144,8 +144,6 @@ class BacklogCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
-            planning=True,
-            planning_llm="gpt-4o",
-            skills=["src/shared/skills"],
-            output_log_file=True,
+            planning=False,
+            memory=False,
         )

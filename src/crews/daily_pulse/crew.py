@@ -212,11 +212,7 @@ class DailyPulseCrew:
 
     @task
     def analyze_sprint(self) -> Task:
-        return Task(
-            config=interpolate_config(self.tasks_config["analyze_sprint"]),
-            guardrail=validate_standup_data,
-            output_pydantic=PulseData,
-        )
+        return Task(config=interpolate_config(self.tasks_config["analyze_sprint"]))
 
     @task
     def compile_and_post(self) -> Task:
@@ -229,8 +225,7 @@ class DailyPulseCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
-            planning=True,
-            planning_llm="gpt-4o",
-            skills=["src/shared/skills"],
+            planning=False,
+            memory=False,
             output_log_file=True,
         )
