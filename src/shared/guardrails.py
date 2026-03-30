@@ -53,9 +53,14 @@ def validate_sprint_plan(result):
         return (False, f"Sprint is over budget: {total_sp} SP exceeds "
                 f"{budget} SP limit. Remove lower-priority items.")
 
-    if tasks_moved == 0 and "status" not in raw.lower():
-        return (False, "No tasks were moved to sprint. Either select tasks "
-                "or report that the sprint is already active.")
+    # Allow zero tasks if the sprint is already active or candidates are empty
+    if tasks_moved == 0:
+        lower = raw.lower()
+        valid_reasons = ["active", "already", "empty", "no candidates", "no tasks",
+                         "status", "populated", "nothing to finalize"]
+        if not any(reason in lower for reason in valid_reasons):
+            return (False, "No tasks were moved to sprint. Either select tasks "
+                    "or report that the sprint is already active or candidates are empty.")
 
     return (True, raw)
 
