@@ -8,29 +8,21 @@ find_sprint_task:
 
 measure:
   description: >
-    NOTE: Vault context with the sprint plan and velocity history is
-    available in your inputs as vault_context. Use it to compare plan
-    vs actual if available.
-
-    Using the sprint list_id from previous step, pull ALL tasks
-    via get_tasks_by_list (include_closed=True to capture done tasks).
+    Using the sprint list_id, pull ALL tasks via get_tasks_by_list
+    (include_closed=True to capture done tasks).
 
     Calculate:
-    - Total tasks, done count, in progress count, pending count
+    - Total tasks, done count, in progress, pending, blocked
     - Completion rate (done / total)
-    - Velocity: sum of SP from completed tasks (points field)
-    - Per-engineer breakdown: how many tasks/SP each person completed
-    - Carry-overs: tasks still in progress or pending (incomplete)
-    - Recommended next sprint SP = completed_sp × 0.80
-    - List each carryover task by name, assignee, and SP
+    - Velocity: sum of SP from completed tasks
+    - Per-engineer breakdown: tasks/SP each person completed
+    - Carry-overs: incomplete tasks (NOT complete/done)
+    - Recommended next sprint SP = completed_sp x 0.80
 
-    Also check GitHub:
-    - Stale PRs (>{stale_pr_days}d) using get_stale_pull_requests
-    - CI health using get_ci_status on key repos
-    - Commit activity using get_repo_activity on carespace-ui
+    List each task with its ClickUp URL, assignee, SP, and status.
+    List each carryover task with URL, assignee, SP, and reason.
   expected_output: >
-    JSON with completion_rate, velocity_sp, planned_sp, per_engineer,
-    carry_overs (with details), github_health, recommended_next_sp.
+    Detailed metrics with task-level detail and ClickUp URLs.
   agent: retrospective_agent
   context:
     - find_sprint_task
@@ -39,39 +31,38 @@ close_and_carryover:
   description: >
     Call close_sprint to handle incomplete tasks from the ending sprint.
     This tool:
-    - Moves all incomplete tasks back to Master Backlog
-    - Tags them with "carryover" so sprint crew picks them first
-    - Bumps their priority by 1 level (normal→high, high→urgent)
-    - Adds a note "Carried over from Sprint N" to each task
+    - Moves incomplete tasks to Sprint Candidates (for next sprint)
+    - Tags them with "carryover"
+    - Bumps priority by 1 level
+    - Completed tasks STAY in the sprint list (historical record)
 
-    Record the results: how many tasks carried over, total SP, which tasks.
+    Record: how many carried over, which tasks, total SP.
   expected_output: >
-    JSON with carryover count, tasks moved, SP carried over.
+    JSON with carryover count, task names, SP carried over.
   agent: retrospective_agent
   context:
     - measure
 
 post_and_log:
   description: >
-    Post the retro summary to {slack_sprint} using post_retro:
-    - sprint_name: from the sprint data
-    - completion_pct: percentage (e.g., 80.0)
+    Post ONE retro summary to {slack_sprint} using post_retro.
+    Do NOT post to any other channel. ONE message only.
+
+    Parameters:
+    - sprint_name: from sprint data
+    - completion_pct: percentage
     - velocity_sp: total SP completed
     - carry_over: number of incomplete tasks
-    - doc_url: "N/A" (no ClickUp Doc — report is in Slack)
+    - doc_url: "N/A"
 
-    Include carryover details in the summary.
-
-    Also post a brief summary to {slack_engineering} using post.
-
-    Log velocity data by creating a task in Sprint History ({sprint_history_id})
-    using create_task_in_list:
+    Also log velocity in Sprint History ({sprint_history_id}) using
+    create_task_in_list:
     - name: "Sprint N Velocity: X SP (Y% completion)"
-    - description: full metrics summary including carryover list
+    - description: full metrics + carryover list with ClickUp URLs
 
-    Do NOT call vault_write — vault is handled automatically by the system.
+    Do NOT call vault_write.
   expected_output: >
-    Confirmation of Slack posts and velocity log.
+    Confirmation of Slack post and velocity log.
   agent: retrospective_agent
   context:
     - close_and_carryover

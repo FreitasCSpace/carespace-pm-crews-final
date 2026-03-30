@@ -1238,7 +1238,7 @@ def close_sprint() -> str:
 
     1. Finds the active sprint
     2. Identifies incomplete tasks (not 'complete' or 'done')
-    3. Moves them back to Master Backlog with:
+    3. Moves them to Sprint Candidates with:
        - "carryover" tag added (preserves existing tags)
        - Priority bumped by 1 level (normal→high, high→urgent)
        - Description note: "Carried over from Sprint N"
@@ -1300,7 +1300,7 @@ def close_sprint() -> str:
             else:
                 carryovers.append(task)
 
-        # Move carryover tasks back to Master Backlog
+        # Move carryover tasks to Sprint Candidates (for next sprint)
         # ClickUp API does NOT support moving tasks between lists.
         # Must use copy + close approach (same as _move_task_to_sprint).
         moved = []
@@ -1333,9 +1333,9 @@ def close_sprint() -> str:
                 if "Carried over from" not in desc:
                     desc += carryover_note
 
-                # 1. Create copy in Master Backlog
+                # 1. Create copy in Sprint Candidates (for next sprint)
                 new_task = _clickup_api(
-                    f"list/{L['master_backlog']}/task",
+                    f"list/{L['sprint_candidates']}/task",
                     method="POST",
                     payload={
                         "name": task_name,
@@ -1357,8 +1357,8 @@ def close_sprint() -> str:
                 if sp:
                     _set_sp(new_id, sp)
 
-                # 3. Delete sprint original (it's now in backlog, not "complete")
-                # Orphan protection: if delete fails, keep the backlog copy.
+                # 3. Delete sprint original (it's now in Sprint Candidates)
+                # Orphan protection: if delete fails, keep the copy.
                 # Better to have a duplicate than lose the task entirely.
                 try:
                     _clickup_api(f"task/{task_id}", method="DELETE")

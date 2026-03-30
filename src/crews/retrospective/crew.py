@@ -3,7 +3,7 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, get_stale_prs, get_ci, get_activity,
-    get_tasks_by_list, create_clickup_task, post_retro, post,
+    get_tasks_by_list, create_clickup_task, post_retro,
     close_sprint,
 )
 from shared.config.context import interpolate_config
@@ -30,7 +30,7 @@ class RetrospectiveCrew:
             config=interpolate_config(self.agents_config["retrospective_agent"]),
             tools=[
                 create_sprint_list, get_stale_prs, get_ci, get_activity,
-                get_tasks_by_list, create_clickup_task, post_retro, post,
+                get_tasks_by_list, create_clickup_task, post_retro,
                 close_sprint,
             ],
             verbose=True,
