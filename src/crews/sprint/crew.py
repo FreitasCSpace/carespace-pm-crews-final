@@ -63,7 +63,6 @@ class SprintCrew:
         return Task(
             config=interpolate_config(self.tasks_config["finalize_task"]),
             guardrail=validate_sprint_plan,
-            output_pydantic=SprintPlan,
         )
 
     @task

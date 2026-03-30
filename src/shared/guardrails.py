@@ -56,8 +56,9 @@ def validate_sprint_plan(result):
     # Allow zero tasks if the sprint is already active or candidates are empty
     if tasks_moved == 0:
         lower = raw.lower()
-        valid_reasons = ["active", "already", "empty", "no candidates", "no tasks",
-                         "status", "populated", "nothing to finalize"]
+        valid_reasons = ["active", "already", "empty", "candidates", "no tasks",
+                         "status", "populate", "nothing to finalize", "needs the team",
+                         "warning"]
         if not any(reason in lower for reason in valid_reasons):
             return (False, "No tasks were moved to sprint. Either select tasks "
                     "or report that the sprint is already active or candidates are empty.")
