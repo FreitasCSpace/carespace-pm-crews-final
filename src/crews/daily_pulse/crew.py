@@ -3,33 +3,35 @@ from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import (
     create_sprint_list, get_stale_prs, get_tasks_by_list,
-    get_prs, get_contributors, get_stale_issues, check_stale_sprint_tasks,
+    get_prs, get_stale_issues, check_stale_sprint_tasks,
     post_standup,
 )
 from shared.config.context import interpolate_config
-from shared.guardrails import validate_standup_data
-from shared.models.daily_pulse import PulseData
 
 
 @CrewBase
 class DailyPulseCrew:
-    """Daily sprint intelligence digest — runs Mon-Fri 07:45 PDT."""
+    """Daily sprint intelligence digest — runs Mon-Fri 07:45 PDT.
 
-    agents_config  = "config/agents.yaml"
-    tasks_config   = "config/tasks.yaml"
+    100% Python — no LLM involved. before_kickoff gathers real sprint data,
+    builds the digest, and posts directly to Slack via post_standup.
+    The crew's single task just returns a confirmation.
+    """
+
+    agents_config = "config/agents.yaml"
+    tasks_config = "config/tasks.yaml"
 
     @before_kickoff
     def inject_context(self, inputs):
-        from shared.config.context import crew_context
         import json, logging
+
+        from shared.config.context import crew_context
 
         log = logging.getLogger(__name__)
         ctx = crew_context()
         ctx.update(inputs or {})
 
-        # ── Pre-gather AND pre-format sprint digest (no LLM needed) ──
-
-        # 1. Get active sprint
+        # ── 1. Get active sprint ──
         try:
             sprint_result = create_sprint_list.run()
             sprint = json.loads(sprint_result) if isinstance(sprint_result, str) else sprint_result
@@ -39,9 +41,10 @@ class DailyPulseCrew:
             sprint = {"error": str(e)}
             list_id = ""
 
-        # 2. Get sprint tasks
-        tasks = []
         log.info("daily_pulse: sprint=%s list_id=%s", sprint.get("sprint_name", "?"), list_id)
+
+        # ── 2. Get sprint tasks ──
+        tasks = []
         if list_id:
             try:
                 tasks_result = get_tasks_by_list.run(
@@ -56,7 +59,7 @@ class DailyPulseCrew:
             except Exception as e:
                 log.warning("daily_pulse: tasks fetch failed: %s", e)
 
-        # 3. Check stale sprint tasks
+        # ── 3. Check stale sprint tasks (by ClickUp comments) ──
         stale_tasks = []
         non_done_ids = [t["id"] for t in tasks if t.get("status") not in ("complete", "done")]
         if non_done_ids:
@@ -69,7 +72,7 @@ class DailyPulseCrew:
                 pass
         stale_ids = {s.get("task_id") for s in stale_tasks}
 
-        # 4. Get open PRs
+        # ── 4. Get open PRs (for PR coverage) ──
         open_prs = []
         try:
             prs_result = get_prs.run(repo="")
@@ -77,7 +80,7 @@ class DailyPulseCrew:
         except Exception:
             pass
 
-        # ── Build formatted digest sections ──
+        # ── 5. Build formatted digest sections ──
         timing = sprint.get("timing", {})
         sprint_name = sprint.get("sprint_name", "Unknown Sprint")
         timing_display = timing.get("timing_display", "")
@@ -92,7 +95,6 @@ class DailyPulseCrew:
             assignees = [a.get("username", "?") for a in t.get("assignees", [])]
             assignee = assignees[0] if assignees else "unassigned"
             url = t.get("url", "")
-            # Clean name: drop [TYPE] prefix
             name = t.get("name", "")
             if name.startswith("[") and "]" in name:
                 name = name[name.index("]") + 1:].strip()
@@ -111,7 +113,7 @@ class DailyPulseCrew:
 
         pct = round(done_sp / total_sp * 100, 1) if total_sp > 0 else 0
 
-        # Sprint status
+        # Sprint health status
         if timing.get("sprint_started"):
             elapsed = timing.get("elapsed_days", 0)
             total_days = timing.get("total_days", 14)
@@ -135,12 +137,6 @@ class DailyPulseCrew:
         issues_count = len(blocked) + len([t for t in tasks if t["id"] in stale_ids])
         if issues_count > 0:
             exec_lines.append(f"• {issues_count} task(s) need attention")
-        ctx["digest_executive_summary"] = "\n".join(exec_lines)
-
-        ctx["digest_done"] = "\n".join(f"• {l}" for l in done) if done else ""
-        ctx["digest_in_progress"] = "\n".join(f"• {l}" for l in in_progress) if in_progress else ""
-        ctx["digest_blocked"] = "\n".join(f"• {l}" for l in blocked) if blocked else ""
-        ctx["digest_pending"] = "\n".join(f"• {l}" for l in pending) if pending else ""
 
         # Task health — each problematic task once with all issues
         health_lines = []
@@ -165,7 +161,6 @@ class DailyPulseCrew:
             if not assignees:
                 issues.append("Unassigned — needs owner")
             if status == "in progress":
-                # Check PR coverage
                 has_pr = any(
                     name.lower()[:30] in (pr.get("title", "") + pr.get("branch", "")).lower()
                     for pr in open_prs if isinstance(pr, dict) and "title" in pr
@@ -184,39 +179,49 @@ class DailyPulseCrew:
                 for issue in issues:
                     health_lines.append(f"  - {issue}")
 
-        ctx["digest_attention"] = "\n".join(health_lines) if health_lines else "All tasks healthy ✅"
+        attention = "\n".join(health_lines) if health_lines else "All tasks healthy ✅"
 
-        # Meeting mode
         if health_lines:
-            ctx["digest_meeting_mode"] = f"🔴 STANDUP MODE: {len([l for l in health_lines if l.startswith('•')])} task(s) need attention. 15-min focused session."
+            meeting_mode = f"🔴 STANDUP MODE: {len([l for l in health_lines if l.startswith('•')])} task(s) need attention. 15-min focused session."
         else:
-            ctx["digest_meeting_mode"] = "🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion."
+            meeting_mode = "🟢 OPEN SLOT: Sprint healthy. Available for strategic discussion."
 
-        log.info("daily_pulse: digest pre-built — %d tasks, %d health issues", len(tasks), len(health_lines))
-        log.info("daily_pulse: exec_summary=%s", ctx["digest_executive_summary"][:200])
-        log.info("daily_pulse: done=%s", ctx.get("digest_done", "")[:200])
-        log.info("daily_pulse: in_progress=%s", ctx.get("digest_in_progress", "")[:200])
-        log.info("daily_pulse: pending=%s", ctx.get("digest_pending", "")[:200])
-        log.info("daily_pulse: attention=%s", ctx.get("digest_attention", "")[:200])
+        # ── 6. POST DIRECTLY TO SLACK (no LLM) ──
+        try:
+            post_result = post_standup.run(
+                executive_summary="\n".join(exec_lines),
+                done="\n".join(f"• {l}" for l in done) if done else "None",
+                in_progress="\n".join(f"• {l}" for l in in_progress) if in_progress else "None",
+                blocked="\n".join(f"• {l}" for l in blocked) if blocked else "None",
+                pending="\n".join(f"• {l}" for l in pending) if pending else "None",
+                attention=attention,
+                meeting_mode=meeting_mode,
+                blocker_details="",
+            )
+            log.info("daily_pulse: posted to Slack: %s", post_result)
+        except Exception as e:
+            log.error("daily_pulse: Slack post failed: %s", e)
+
+        log.info("daily_pulse: digest posted — %d tasks, %d health issues", len(tasks), len(health_lines))
+
+        # Pass confirmation so the crew's task has something to return
+        ctx["digest_posted"] = "true"
+        ctx["digest_summary"] = f"{sprint_name} — {len(tasks)} tasks, {pct}% complete"
         return ctx
+
+    # ── Minimal crew — just returns confirmation ──
 
     @agent
     def daily_pulse_agent(self) -> Agent:
         return Agent(
             config=interpolate_config(self.agents_config["daily_pulse_agent"]),
-            tools=[post_standup],
+            tools=[],
             verbose=True,
-            inject_date=True,
-            function_calling_llm="gpt-4o-mini",
         )
 
     @task
-    def analyze_sprint(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["analyze_sprint"]))
-
-    @task
-    def compile_and_post(self) -> Task:
-        return Task(config=interpolate_config(self.tasks_config["compile_and_post"]))
+    def confirm_post(self) -> Task:
+        return Task(config=interpolate_config(self.tasks_config["confirm_post"]))
 
     @crew
     def crew(self) -> Crew:
@@ -227,5 +232,4 @@ class DailyPulseCrew:
             verbose=True,
             planning=False,
             memory=False,
-            output_log_file=True,
         )

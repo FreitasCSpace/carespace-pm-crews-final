@@ -1,43 +1,9 @@
-analyze_sprint:
+confirm_post:
   description: >
-    The sprint digest has been pre-built by the system. All sections are
-    ready in your inputs as digest_* fields. Your ONLY job is to verify
-    the data looks reasonable and pass it through.
-
-    The pre-built sections are:
-    - digest_executive_summary
-    - digest_done
-    - digest_in_progress
-    - digest_blocked
-    - digest_pending
-    - digest_attention (task health)
-    - digest_meeting_mode
-
-    Return these fields as-is. Do NOT modify, add to, or replace any content.
-    Do NOT invent any task names. Do NOT call any tools.
+    The sprint digest has already been posted to Slack by the system.
+    Check digest_posted in your inputs — it should be "true".
+    Return a confirmation: "Sprint digest posted for [digest_summary]."
+    Do NOT call any tools. Do NOT post anything.
   expected_output: >
-    The pre-built digest sections passed through unchanged.
+    Confirmation that the digest was posted.
   agent: daily_pulse_agent
-
-compile_and_post:
-  description: >
-    Post the sprint digest to #pm-standup using post_standup.
-
-    Pass the pre-built sections from your inputs EXACTLY as they are:
-    - executive_summary = digest_executive_summary
-    - done = digest_done (or 'None' if empty)
-    - in_progress = digest_in_progress (or 'None' if empty)
-    - blocked = digest_blocked (or 'None' if empty)
-    - pending = digest_pending (or 'None' if empty)
-    - attention = digest_attention
-    - meeting_mode = digest_meeting_mode
-    - blocker_details = empty string
-
-    CRITICAL: Pass the content EXACTLY as provided. Do NOT modify it.
-    Do NOT add tasks that aren't in the pre-built sections.
-    Call post_standup EXACTLY ONCE. When ok:true, STOP.
-  expected_output: >
-    Confirmation of standup posted.
-  agent: daily_pulse_agent
-  context:
-    - analyze_sprint
