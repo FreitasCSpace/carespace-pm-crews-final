@@ -144,13 +144,15 @@ def validate_standup_data(result):
 # ── Retrospective Crew ──────────────────────────────────────────────────────
 
 def validate_retro_metrics(result):
-    """Ensure retro measurement collected key metrics before posting.
-
-    This guardrail runs on the MEASURE task (before posting) so retries
-    don't cause duplicate Slack posts.
-    """
+    """Ensure retro measurement collected key metrics or has a valid skip reason."""
     raw = result.raw if hasattr(result, "raw") else str(result)
     lower = raw.lower()
+
+    # Accept skip reasons — sprint still active, empty, no sprint
+    skip_reasons = ["too early", "still active", "empty", "no sprint",
+                    "cannot", "not ready", "nothing to review"]
+    if any(reason in lower for reason in skip_reasons):
+        return (True, raw)
 
     has_velocity = any(w in lower for w in ["velocity", "sp", "story point",
                                              "completed", "done"])
