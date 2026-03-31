@@ -1,7 +1,11 @@
 confirm_task:
   description: >
-    The sprint operation was handled by the system. Check sprint_result
-    in your inputs and return it as confirmation. Do NOT call any tools.
+    The sprint operation was handled by the system.
+    Return the result below as confirmation. Do NOT call any tools.
+
+    --- SPRINT RESULT ---
+    {sprint_result}
+    --- END RESULT ---
   expected_output: >
-    The sprint_result message from inputs.
+    The sprint result message.
   agent: sprint_agent

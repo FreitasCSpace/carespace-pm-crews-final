@@ -1,9 +1,13 @@
 confirm_post:
   description: >
     The sprint digest has already been posted to Slack by the system.
-    Check digest_posted in your inputs — it should be "true".
-    Return a confirmation: "Sprint digest posted for [digest_summary]."
+    Return a confirmation based on the data below.
     Do NOT call any tools. Do NOT post anything.
+
+    --- DIGEST STATUS ---
+    Posted: {digest_posted}
+    Summary: {digest_summary}
+    --- END STATUS ---
   expected_output: >
-    Confirmation that the digest was posted.
+    Confirmation that the digest was posted, including the summary.
   agent: daily_pulse_agent

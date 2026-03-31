@@ -1,7 +1,11 @@
 confirm_task:
   description: >
-    The retrospective was handled by the system. Check retro_result
-    in your inputs and return it. Do NOT call any tools.
+    The retrospective was handled by the system.
+    Return the result below as confirmation. Do NOT call any tools.
+
+    --- RETRO RESULT ---
+    {retro_result}
+    --- END RESULT ---
   expected_output: >
-    The retro_result message from inputs.
+    The retro result message.
   agent: retrospective_agent
