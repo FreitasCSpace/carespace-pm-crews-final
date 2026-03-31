@@ -19,18 +19,24 @@ class HuddleNotesCrew:
         from shared.config.context import crew_context
         log = logging.getLogger(__name__)
 
+        print("[HUDDLE_DEBUG] before_kickoff ENTERED — commit c011221+", flush=True)
+
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
 
         # ── Pre-fetch huddle notes — 7 day window to catch missed runs ──
         try:
+            print("[HUDDLE_DEBUG] calling fetch_huddle_notes with lookback_hours=168", flush=True)
             result = fetch_huddle_notes.run(channel="#carespace-team", lookback_hours=168)
+            print(f"[HUDDLE_DEBUG] raw result type={type(result).__name__} len={len(str(result))}", flush=True)
+            print(f"[HUDDLE_DEBUG] raw result preview: {str(result)[:500]}", flush=True)
             huddle_data = json.loads(result) if isinstance(result, str) else result
+            print(f"[HUDDLE_DEBUG] huddles_found={huddle_data.get('huddles_found', 'MISSING')}", flush=True)
             log.info("huddle: fetched %d huddles from last 7 days", huddle_data.get("huddles_found", 0))
-            # Diagnostic: log dates of all huddles found
             for h in huddle_data.get("huddles", []):
                 log.info("huddle: found — date=%s source=%s", h.get("date", "?"), h.get("source", "?"))
         except Exception as e:
+            print(f"[HUDDLE_DEBUG] EXCEPTION: {type(e).__name__}: {e}", flush=True)
             huddle_data = {"huddles_found": 0, "error": str(e)}
             log.warning("huddle: fetch failed: %s", e)
 
