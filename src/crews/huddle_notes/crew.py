@@ -50,38 +50,41 @@ class HuddleNotesCrew:
         # ── Deduplicate against vault — only keep new huddles ──
         existing_dates = set()
         try:
+            print("[HUDDLE_DEBUG] calling vault_list for huddles dir", flush=True)
             vault_files = vault_list.run(directory="huddles")
+            print(f"[HUDDLE_DEBUG] vault_list raw: {str(vault_files)[:500]}", flush=True)
             vault_entries = json.loads(vault_files) if isinstance(vault_files, str) else vault_files
+            import re
             for entry in vault_entries if isinstance(vault_entries, list) else []:
-                # Vault filenames are like huddle_notes_2026-03-30T12-00.md
                 name = entry.get("name", "") if isinstance(entry, dict) else str(entry)
-                # Extract date portion (YYYY-MM-DD)
-                for part in name.replace("_", "-").split("-"):
-                    pass  # just need the date
-                import re
                 date_match = re.search(r"(\d{4}-\d{2}-\d{2})", name)
                 if date_match:
                     existing_dates.add(date_match.group(1))
+            print(f"[HUDDLE_DEBUG] existing vault dates ({len(existing_dates)}): {sorted(existing_dates)[-5:]}", flush=True)
         except Exception as e:
-            log.debug("huddle: vault list failed (first run?): %s", e)
+            print(f"[HUDDLE_DEBUG] vault_list EXCEPTION: {type(e).__name__}: {e}", flush=True)
+
+        all_huddles = huddle_data.get("huddles", [])
+        huddle_dates = [h.get("date", "")[:10] for h in all_huddles]
+        print(f"[HUDDLE_DEBUG] huddle dates from Slack: {huddle_dates}", flush=True)
 
         if existing_dates:
-            all_huddles = huddle_data.get("huddles", [])
             new_huddles = [
                 h for h in all_huddles
                 if h.get("date", "")[:10] not in existing_dates
             ]
-            log.info("huddle: %d total, %d already in vault, %d new",
-                     len(all_huddles), len(all_huddles) - len(new_huddles), len(new_huddles))
+            print(f"[HUDDLE_DEBUG] after dedup: {len(new_huddles)} new out of {len(all_huddles)}", flush=True)
 
             if not new_huddles:
-                log.info("huddle: all huddles already in vault — skipping")
+                print("[HUDDLE_DEBUG] ALL FILTERED — returning skipped", flush=True)
                 ctx["huddle_data"] = json.dumps({"huddles_found": 0, "status": "skipped", "reason": "All huddles already processed"})
                 return ctx
 
             huddle_data = {"huddles_found": len(new_huddles), "huddles": new_huddles}
 
-        ctx["huddle_data"] = json.dumps(huddle_data, indent=2)
+        final_json = json.dumps(huddle_data, indent=2)
+        print(f"[HUDDLE_DEBUG] FINAL huddle_data length={len(final_json)} huddles_found={huddle_data.get('huddles_found')}", flush=True)
+        ctx["huddle_data"] = final_json
         return ctx
 
     @agent
