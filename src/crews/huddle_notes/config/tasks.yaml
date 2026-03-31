@@ -1,11 +1,10 @@
 fetch_and_summarize:
   description: >
-    Huddle notes have been pre-fetched and are available in your inputs
-    as huddle_data. Read it and produce a structured markdown summary.
+    Process the huddle data below and produce a structured markdown summary.
 
-    If huddle_data shows huddles_found == 0, return "No recent huddles."
+    If huddles_found is 0, return "No recent huddles."
 
-    For each huddle found, read the canvas_content field and produce:
+    For each huddle, read the canvas_content field and produce:
 
     ## Huddle — YYYY-MM-DD
 
@@ -28,9 +27,11 @@ fetch_and_summarize:
 
     Do NOT fabricate content. Only extract what is explicitly in the notes.
     User names are already resolved — use them as-is.
+    Do NOT call any tools or vault_write.
 
-    Do NOT call any tools. All data is already in your inputs.
-    Do NOT call vault_write — vault is handled automatically by the system.
+    --- HUDDLE DATA ---
+    {huddle_data}
+    --- END HUDDLE DATA ---
   expected_output: >
     Structured markdown summary of today's huddle with date, attendees,
     summary, topics, actions, decisions, and blockers.
