@@ -43,6 +43,13 @@ class DailyPulseCrew:
 
         log.info("daily_pulse: sprint=%s list_id=%s", sprint.get("sprint_name", "?"), list_id)
 
+        # Guard: no sprint found — don't post an empty digest
+        if not list_id:
+            log.warning("daily_pulse: no active sprint list — skipping digest")
+            ctx["digest_posted"] = "false"
+            ctx["digest_summary"] = "No active sprint found. Digest skipped."
+            return ctx
+
         # ── 2. Get sprint tasks ──
         tasks = []
         if list_id:
@@ -58,6 +65,13 @@ class DailyPulseCrew:
                          [t.get("name", "?")[:50] for t in tasks[:5]])
             except Exception as e:
                 log.warning("daily_pulse: tasks fetch failed: %s", e)
+
+        # Guard: no tasks in sprint — don't post empty digest
+        if not tasks:
+            log.warning("daily_pulse: sprint has no tasks — skipping digest")
+            ctx["digest_posted"] = "false"
+            ctx["digest_summary"] = f"{sprint.get('sprint_name', 'Unknown')} has no tasks. Digest skipped."
+            return ctx
 
         # ── 3. Check stale sprint tasks (by ClickUp comments) ──
         stale_tasks = []

@@ -30,6 +30,13 @@ class HuddleNotesCrew:
             huddle_data = {"huddles_found": 0, "error": str(e)}
             log.warning("huddle: fetch failed: %s", e)
 
+        # Guard: no huddles found or fetch failed — skip the LLM entirely
+        if huddle_data.get("huddles_found", 0) == 0:
+            reason = huddle_data.get("error", "No huddles in lookback period")
+            log.info("huddle: nothing to process — %s", reason)
+            ctx["huddle_data"] = json.dumps({"huddles_found": 0, "status": "skipped", "reason": reason})
+            return ctx
+
         ctx["huddle_data"] = json.dumps(huddle_data, indent=2)
         return ctx
 

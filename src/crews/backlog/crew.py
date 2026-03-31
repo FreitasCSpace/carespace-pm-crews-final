@@ -60,12 +60,26 @@ class BacklogCrew:
             estimate_stats = {"error": str(e)}
             log.warning("backlog: estimate failed: %s", e)
 
-        # Inject stats so the analyst agent can reference them
-        ctx["hygiene_stats"] = json.dumps({
-            "dedup": dedup_stats,
-            "normalize": normalize_stats,
-            "estimate": estimate_stats,
-        })
+        # Guard: if ALL hygiene ops failed, bail — don't let the LLM hallucinate
+        all_failed = all(
+            "error" in stats
+            for stats in (dedup_stats, normalize_stats, estimate_stats)
+        )
+        if all_failed:
+            log.error("backlog: all hygiene operations failed — aborting crew")
+            ctx["hygiene_stats"] = json.dumps({"status": "all_failed", "note": "All hygiene checks failed. Nothing to report."})
+            return ctx
+
+        # Strip error entries so the agent only sees real data
+        hygiene = {}
+        if "error" not in dedup_stats:
+            hygiene["dedup"] = dedup_stats
+        if "error" not in normalize_stats:
+            hygiene["normalize"] = normalize_stats
+        if "error" not in estimate_stats:
+            hygiene["estimate"] = estimate_stats
+
+        ctx["hygiene_stats"] = json.dumps(hygiene)
 
         return ctx
 
