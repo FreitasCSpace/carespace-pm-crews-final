@@ -2,6 +2,7 @@ from .github import (
     batch_import_engineering, sync_closed_issues,
     get_issues, get_prs, get_stale_prs, get_stale_issues,
     get_contributors, get_activity, get_ci, comment_issue,
+    get_pr_diff,
 )
 from .slack import (
     post, post_standup, post_sprint_plan, post_sprint_status, post_retro,

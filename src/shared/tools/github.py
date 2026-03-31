@@ -627,6 +627,75 @@ def get_stale_issues(days: int = 3) -> str:
     return json.dumps(out, indent=2)
 
 
+@tool("Get PR Diff (chunked)")
+def get_pr_diff(repo: str, pr_number: int, max_files: int = 50) -> str:
+    """
+    Fetches a PR diff file-by-file instead of as one giant diff.
+    Handles PRs with >20K lines that GitHub's diff API rejects (HTTP 406).
+
+    repo: repo name (e.g. 'carespace-ui')
+    pr_number: PR number
+    max_files: max files to include (default 50, largest patches first)
+
+    Returns JSON with: summary stats + per-file patches (truncated to 500 lines each).
+    """
+    try:
+        r = _repo(repo)
+        pr = r.get_pull(pr_number)
+        files = list(pr.get_files())
+
+        # Sort by patch size descending — largest changes first
+        files_with_patch = []
+        for f in files:
+            patch = f.patch or ""
+            files_with_patch.append({
+                "filename": f.filename,
+                "status": f.status,  # added, modified, removed, renamed
+                "additions": f.additions,
+                "deletions": f.deletions,
+                "changes": f.changes,
+                "patch_lines": len(patch.splitlines()),
+                "patch": patch,
+            })
+
+        files_with_patch.sort(key=lambda x: x["changes"], reverse=True)
+
+        # Truncate individual patches to keep context manageable
+        MAX_PATCH_LINES = 500
+        result_files = []
+        for f in files_with_patch[:max_files]:
+            patch = f["patch"]
+            lines = patch.splitlines()
+            if len(lines) > MAX_PATCH_LINES:
+                patch = "\n".join(lines[:MAX_PATCH_LINES]) + f"\n... ({len(lines) - MAX_PATCH_LINES} more lines truncated)"
+            result_files.append({
+                "filename": f["filename"],
+                "status": f["status"],
+                "additions": f["additions"],
+                "deletions": f["deletions"],
+                "patch": patch,
+            })
+
+        summary = {
+            "repo": repo,
+            "pr_number": pr_number,
+            "title": pr.title,
+            "author": pr.user.login,
+            "total_files": len(files),
+            "total_additions": sum(f.additions for f in files),
+            "total_deletions": sum(f.deletions for f in files),
+            "files_included": len(result_files),
+            "files_omitted": max(0, len(files) - max_files),
+            "files": result_files,
+        }
+        return json.dumps(summary, indent=2)
+
+    except GithubException as e:
+        return json.dumps({"error": f"GitHub API: {e.status} {e.data}"})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
 @tool("Comment on GitHub Issue")
 def comment_issue(repo: str, issue_number: int, comment: str) -> str:
     """
