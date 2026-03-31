@@ -2,57 +2,103 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import fetch_huddle_notes
-from shared.tools.vault import vault_list
+from shared.tools.vault import vault_write
 from shared.config.context import interpolate_config
 
 
 @CrewBase
 class HuddleNotesCrew:
-    """Fetches Slack huddle notes and produces structured vault summaries."""
+    """Fetches Slack huddle notes and writes raw canvas content to vault — one file per day.
+
+    100% Python — no LLM involved. before_kickoff fetches huddles,
+    writes each one directly to vault, and the crew's single task
+    just returns a confirmation.
+    """
 
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
 
     @before_kickoff
     def inject_context(self, inputs):
-        import json, logging
+        import json, logging, re
+        from datetime import datetime
         from shared.config.context import crew_context
         log = logging.getLogger(__name__)
-
-        print("[HUDDLE_DEBUG] before_kickoff ENTERED — commit c011221+", flush=True)
 
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
 
-        # ── Pre-fetch huddle notes — 7 day window to catch missed runs ──
+        # ── 1. Fetch huddle notes — 7 day lookback ──
         try:
-            print("[HUDDLE_DEBUG] calling fetch_huddle_notes with lookback_hours=168", flush=True)
             result = fetch_huddle_notes.run(channel="#carespace-team", lookback_hours=168)
-            print(f"[HUDDLE_DEBUG] raw result type={type(result).__name__} len={len(str(result))}", flush=True)
-            print(f"[HUDDLE_DEBUG] raw result preview: {str(result)[:500]}", flush=True)
             huddle_data = json.loads(result) if isinstance(result, str) else result
-            print(f"[HUDDLE_DEBUG] huddles_found={huddle_data.get('huddles_found', 'MISSING')}", flush=True)
             log.info("huddle: fetched %d huddles from last 7 days", huddle_data.get("huddles_found", 0))
-            for h in huddle_data.get("huddles", []):
-                log.info("huddle: found — date=%s source=%s", h.get("date", "?"), h.get("source", "?"))
         except Exception as e:
-            print(f"[HUDDLE_DEBUG] EXCEPTION: {type(e).__name__}: {e}", flush=True)
             huddle_data = {"huddles_found": 0, "error": str(e)}
             log.warning("huddle: fetch failed: %s", e)
 
-        # Guard: no huddles found or fetch failed — skip the LLM entirely
+        # Guard: nothing found
         if huddle_data.get("huddles_found", 0) == 0:
             reason = huddle_data.get("error", "No huddles in lookback period")
             log.info("huddle: nothing to process — %s", reason)
-            ctx["huddle_data"] = json.dumps({"huddles_found": 0, "status": "skipped", "reason": reason})
+            ctx["huddle_result"] = f"No huddles found. {reason}"
             return ctx
 
-        # Skip vault dedup for now — vault_list was hanging on CrewHub.
-        # Vault write_vault will just overwrite if duplicate.
-        print(f"[HUDDLE_DEBUG] passing {huddle_data.get('huddles_found')} huddles straight to agent (no dedup)", flush=True)
-        ctx["huddle_data"] = json.dumps(huddle_data, indent=2)
-        print(f"[HUDDLE_DEBUG] ctx huddle_data set, length={len(ctx['huddle_data'])}", flush=True)
+        # ── 2. Write each huddle directly to vault — raw canvas content ──
+        huddles = huddle_data.get("huddles", [])
+        written = []
+        skipped = []
+
+        for h in huddles:
+            canvas = h.get("canvas_content", "").strip()
+            huddle_date = h.get("date", "")  # "2026-03-30 16:54"
+
+            # Skip empty canvases (no real content)
+            if not canvas or len(canvas) < 50:
+                log.info("huddle: skipping %s — canvas too short (%d chars)", huddle_date, len(canvas))
+                skipped.append(huddle_date)
+                continue
+
+            # Parse date for filename: "2026-03-30 16:54" → "2026-03-30-1654"
+            try:
+                dt = datetime.strptime(huddle_date, "%Y-%m-%d %H:%M")
+                filename = dt.strftime("%Y-%m-%d-%H%M") + ".md"
+                date_iso = dt.strftime("%Y-%m-%d")
+            except Exception:
+                filename = huddle_date.replace(" ", "-").replace(":", "") + ".md"
+                date_iso = huddle_date[:10] if len(huddle_date) >= 10 else "unknown"
+
+            # Build vault file — raw canvas content with frontmatter
+            content = f"""---
+date: {date_iso}
+crew: huddle_notes
+---
+
+{canvas}
+"""
+
+            # Write to vault
+            try:
+                vault_write.run(crew="huddle_notes", content=content, filename=filename)
+                log.info("huddle: wrote vault huddles/%s", filename)
+                written.append(filename)
+            except Exception as e:
+                log.warning("huddle: vault write failed for %s: %s", filename, e)
+
+        # ── 3. Summary for the crew output ──
+        summary_parts = []
+        if written:
+            summary_parts.append(f"Wrote {len(written)} huddle(s) to vault: {', '.join(written)}")
+        if skipped:
+            summary_parts.append(f"Skipped {len(skipped)} huddle(s) with empty content")
+        if not written and not skipped:
+            summary_parts.append("No huddles to process")
+
+        ctx["huddle_result"] = " | ".join(summary_parts)
+        log.info("huddle: %s", ctx["huddle_result"])
         return ctx
+
+    # ── Minimal crew — just returns confirmation ──
 
     @agent
     def huddle_agent(self) -> Agent:

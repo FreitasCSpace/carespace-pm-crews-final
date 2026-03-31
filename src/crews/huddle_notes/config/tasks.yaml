@@ -1,38 +1,11 @@
 fetch_and_summarize:
   description: >
-    Process the huddle data below and produce a structured markdown summary.
+    Huddle notes have been fetched and written to the vault by the system.
+    Return the result below as confirmation. Do NOT call any tools.
 
-    If huddles_found is 0, return "No recent huddles."
-
-    For each huddle, read the canvas_content field and produce:
-
-    ## Huddle — YYYY-MM-DD
-
-    **Attendees:** Name1, Name2, Name3
-
-    **Summary:** 3-5 sentences of what was discussed.
-
-    **Key Topics:**
-    - Topic 1
-    - Topic 2
-
-    **Action Items:**
-    - Name: what they committed to do
-
-    **Decisions:**
-    - What the team agreed on
-
-    **Blockers:**
-    - Issues raised that need resolution
-
-    Do NOT fabricate content. Only extract what is explicitly in the notes.
-    User names are already resolved — use them as-is.
-    Do NOT call any tools or vault_write.
-
-    --- HUDDLE DATA ---
-    {huddle_data}
-    --- END HUDDLE DATA ---
+    --- HUDDLE RESULT ---
+    {huddle_result}
+    --- END RESULT ---
   expected_output: >
-    Structured markdown summary of today's huddle with date, attendees,
-    summary, topics, actions, decisions, and blockers.
+    The huddle result message.
   agent: huddle_agent

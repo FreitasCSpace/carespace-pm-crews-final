@@ -202,6 +202,11 @@ def vault_after_kickoff(crew_name: str, result, sprint_number: int = None):
         log.info("vault: %s skipped — no content to save", crew_name)
         return
 
+    # Huddle crew writes its own vault files in before_kickoff — skip auto-write
+    if crew_name == "huddle_notes" and "wrote" in output_text.lower() and "vault" in output_text.lower():
+        log.info("vault: %s already wrote files in before_kickoff — skipping auto-write", crew_name)
+        return
+
     # Determine filename
     now = datetime.now()
     if pattern == "datetime":
