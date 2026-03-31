@@ -324,13 +324,13 @@ def _resolve_channel_id(channel_name: str) -> str | None:
 
 
 @tool("fetch_huddle_notes")
-def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 24) -> str:
+def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 168) -> str:
     """
-    Fetches today's Slack huddle notes and resolves user IDs to real names.
-    Historical huddles are already in the vault.
+    Fetches Slack huddle notes from the last 7 days and resolves user IDs to real names.
+    Returns ALL huddles found — the crew deduplicates against the vault.
 
     channel: Slack channel name (default #carespace-team)
-    lookback_hours: how far back to search (default 24h)
+    lookback_hours: how far back to search (default 168h = 7 days)
     """
     import time as _time
     from datetime import datetime
@@ -348,7 +348,6 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
 
     oldest = str(_time.time() - lookback_hours * 3600)
     oldest_ts = int(float(oldest))
-    today_str = datetime.now().strftime("%Y-%m-%d")
     seen_ts = set()  # Dedup across both methods
     huddles = []
 
@@ -424,10 +423,6 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
                 meeting_date = dt.strftime("%Y-%m-%d %H:%M")
             except Exception:
                 meeting_date = "unknown"
-
-            # Only keep today's huddles
-            if not meeting_date.startswith(today_str):
-                continue
 
             # Resolve Slack user IDs to real names
             content = _resolve_user_names(content)
@@ -559,10 +554,6 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 2
             meeting_date = dt.strftime("%Y-%m-%d %H:%M")
         except Exception:
             meeting_date = "unknown"
-
-        # Only keep today's huddles
-        if not meeting_date.startswith(today_str):
-            continue
 
         if ts not in seen_ts:
             seen_ts.add(ts)

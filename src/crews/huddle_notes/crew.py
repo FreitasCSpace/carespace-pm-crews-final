@@ -2,6 +2,7 @@ from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, before_kickoff, crew, task
 
 from shared.tools import fetch_huddle_notes
+from shared.tools.vault import vault_list
 from shared.config.context import interpolate_config
 
 
@@ -36,6 +37,40 @@ class HuddleNotesCrew:
             log.info("huddle: nothing to process — %s", reason)
             ctx["huddle_data"] = json.dumps({"huddles_found": 0, "status": "skipped", "reason": reason})
             return ctx
+
+        # ── Deduplicate against vault — only keep new huddles ──
+        existing_dates = set()
+        try:
+            vault_files = vault_list.run(directory="huddles")
+            vault_entries = json.loads(vault_files) if isinstance(vault_files, str) else vault_files
+            for entry in vault_entries if isinstance(vault_entries, list) else []:
+                # Vault filenames are like huddle_notes_2026-03-30T12-00.md
+                name = entry.get("name", "") if isinstance(entry, dict) else str(entry)
+                # Extract date portion (YYYY-MM-DD)
+                for part in name.replace("_", "-").split("-"):
+                    pass  # just need the date
+                import re
+                date_match = re.search(r"(\d{4}-\d{2}-\d{2})", name)
+                if date_match:
+                    existing_dates.add(date_match.group(1))
+        except Exception as e:
+            log.debug("huddle: vault list failed (first run?): %s", e)
+
+        if existing_dates:
+            all_huddles = huddle_data.get("huddles", [])
+            new_huddles = [
+                h for h in all_huddles
+                if h.get("date", "")[:10] not in existing_dates
+            ]
+            log.info("huddle: %d total, %d already in vault, %d new",
+                     len(all_huddles), len(all_huddles) - len(new_huddles), len(new_huddles))
+
+            if not new_huddles:
+                log.info("huddle: all huddles already in vault — skipping")
+                ctx["huddle_data"] = json.dumps({"huddles_found": 0, "status": "skipped", "reason": "All huddles already processed"})
+                return ctx
+
+            huddle_data = {"huddles_found": len(new_huddles), "huddles": new_huddles}
 
         ctx["huddle_data"] = json.dumps(huddle_data, indent=2)
         return ctx
