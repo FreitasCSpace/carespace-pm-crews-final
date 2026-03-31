@@ -483,9 +483,20 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 1
 
         is_huddle = False
         canvas_content = ""
+        msg_subtype = msg.get("subtype", "")
 
-        # Detection 1: 🎧 emoji or "huddle notes" in message text
-        if "\U0001f3a7" in msg_text or "huddle notes" in msg_lower or "huddle note" in msg_lower:
+        # Detection 0: Slack huddle message subtypes
+        if msg_subtype in ("huddle_thread", "sh_room_created", "sh_room_shared"):
+            is_huddle = True
+            canvas_content = msg_text
+
+        # Detection 1: 🎧 emoji, "huddle notes", or Portuguese "círculo aconteceu"
+        if (
+            "\U0001f3a7" in msg_text
+            or "huddle notes" in msg_lower or "huddle note" in msg_lower
+            or "c\u00edrculo aconteceu" in msg_lower   # PT: "Um círculo aconteceu"
+            or "circulo aconteceu" in msg_lower         # PT without accent
+        ):
             is_huddle = True
             canvas_content = msg_text
 
@@ -515,11 +526,11 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 1
                         canvas_content = f.get("title", "")
                 break
 
-        # Detection 3: Attachments with huddle references
+        # Detection 3: Attachments with huddle references (EN + PT)
         if not is_huddle:
             for att in msg.get("attachments", []):
                 att_text = (att.get("title", "") + att.get("text", "")).lower()
-                if "huddle" in att_text:
+                if "huddle" in att_text or "c\u00edrculo" in att_text or "circulo" in att_text:
                     is_huddle = True
                     canvas_content = att.get("text", "") or att.get("fallback", "")
                     break
