@@ -351,6 +351,8 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 1
     seen_ts = set()  # Dedup across both methods
     huddles = []
 
+    log.info("fetch_huddle: channel=%s lookback=%dh oldest_ts=%s", channel, lookback_hours, oldest[:10])
+
     # ── Method 1: Search Slack files for huddle canvases ──
     try:
         files_resp = requests.get(
@@ -366,8 +368,13 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 1
         )
         files_data = files_resp.json()
         if not files_data.get("ok"):
-            log.debug("files.list failed: %s — falling back to channel history", files_data.get("error"))
-        for f in files_data.get("files", []):
+            log.info("fetch_huddle: files.list failed: %s", files_data.get("error"))
+        all_files = files_data.get("files", [])
+        log.info("fetch_huddle: files.list returned %d files", len(all_files))
+        for f in all_files:
+            log.info("fetch_huddle: file — title=%s type=%s created=%s",
+                     f.get("title", "?")[:60], f.get("filetype", "?"), f.get("created", "?"))
+        for f in all_files:
             title = f.get("title", "")
             if "huddle" not in title.lower():
                 continue
@@ -452,11 +459,19 @@ def fetch_huddle_notes(channel: str = "#carespace-team", lookback_hours: int = 1
         )
         data = resp.json()
         if not data.get("ok"):
+            log.info("fetch_huddle: conversations.history failed: %s", data.get("error"))
             if not huddles:
                 return json.dumps({"error": f"Slack API: {data.get('error', 'unknown')}"})
-            # If we already found huddles via files API, continue with those
             return json.dumps({"huddles_found": len(huddles), "huddles": huddles})
         messages = data.get("messages", [])
+        log.info("fetch_huddle: conversations.history returned %d messages", len(messages))
+        # Log messages that look huddle-related
+        for msg in messages:
+            mt = msg.get("text", "")[:80]
+            mf = [f.get("title", "?") for f in msg.get("files", [])]
+            if "huddle" in mt.lower() or any("huddle" in t.lower() for t in mf) or "\U0001f3a7" in mt:
+                log.info("fetch_huddle: potential huddle msg — ts=%s text=%s files=%s",
+                         msg.get("ts", "?"), mt, mf)
     except Exception as e:
         if not huddles:
             return json.dumps({"error": f"Failed to fetch channel history: {e}"})

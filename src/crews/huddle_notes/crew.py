@@ -22,11 +22,14 @@ class HuddleNotesCrew:
         ctx = crew_context()
         ctx.update({k: v for k, v in (inputs or {}).items() if v})
 
-        # ── Pre-fetch huddle notes (no LLM needed) ──
+        # ── Pre-fetch huddle notes — 7 day window to catch missed runs ──
         try:
-            result = fetch_huddle_notes.run(channel="#carespace-team", lookback_hours=24)
+            result = fetch_huddle_notes.run(channel="#carespace-team", lookback_hours=168)
             huddle_data = json.loads(result) if isinstance(result, str) else result
-            log.info("huddle: fetched %d huddles", huddle_data.get("huddles_found", 0))
+            log.info("huddle: fetched %d huddles from last 7 days", huddle_data.get("huddles_found", 0))
+            # Diagnostic: log dates of all huddles found
+            for h in huddle_data.get("huddles", []):
+                log.info("huddle: found — date=%s source=%s", h.get("date", "?"), h.get("source", "?"))
         except Exception as e:
             huddle_data = {"huddles_found": 0, "error": str(e)}
             log.warning("huddle: fetch failed: %s", e)
